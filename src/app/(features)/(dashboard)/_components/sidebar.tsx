@@ -3,15 +3,12 @@ import React, { useState } from "react";
 import { 
   HomeIcon,
   AcademicCapIcon,
-  UserGroupIcon,
   BookOpenIcon,
   ChartBarIcon,
   Cog6ToothIcon,
   UserIcon,
-  BuildingLibraryIcon,
   CalendarDaysIcon,
   DocumentChartBarIcon,
-  BellAlertIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   UsersIcon,
@@ -93,9 +90,9 @@ export default function SimplifiedSideBar() {
       <button
         key={item.key}
         onClick={() => setActiveSection(item.key)}
-        className={`w-full text-left px-3 py-2 text-sm rounded transition-colors flex items-center space-x-2 ${
+        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex items-center space-x-2 ${
           isActive 
-            ? 'bg-forest-50 text-forest-700' 
+            ? 'bg-forest-50 text-forest-700 border border-forest-200' 
             : 'text-gray-600 hover:bg-gray-50'
         }`}
       >
@@ -103,7 +100,7 @@ export default function SimplifiedSideBar() {
           <IconComponent /> : 
           <IconComponent className="w-4 h-4" />
         }
-        <span>{item.label}</span>
+        <span className="font-poppins">{item.label}</span>
       </button>
     );
   };
@@ -112,7 +109,7 @@ export default function SimplifiedSideBar() {
     <div className="w-64 bg-white border-r border-gray-200 h-screen overflow-y-auto">
       {/* Header */}
       <div className="p-4 border-b border-gray-100">
-        <span className="font-pacifico text-4xl font-semibold text-gray-900">Praxis</span>
+        <span className="text-2xl font-pacifico font-semibold text-gray-900">Praxis</span>
       </div>
 
       {/* Navigation */}
@@ -128,53 +125,42 @@ export default function SimplifiedSideBar() {
             }`}
           >
             <HomeIcon className="w-5 h-5" />
-            <span className="font-medium">Tableau de bord</span>
+            <span className="font-poppins font-medium">Tableau de bord</span>
           </button>
         </div>
 
         {/* Menu Sections */}
-        {menuSections.map((section) => {
-          const SectionIcon = section.icon;
-          const isExpanded = expandedSections[section.key];
-          
-          return (
-            <div key={section.key} className="mb-6">
-              <button
-                onClick={() => toggleSection(section.key)}
-                className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mb-2"
-              >
-                <div className="flex items-center space-x-3">
-                  <SectionIcon className="w-5 h-5 text-gray-500" />
-                  <span className="font-medium">{section.title}</span>
-                </div>
-                {isExpanded ? (
-                  <ChevronDownIcon className="w-4 h-4 text-gray-400" />
-                ) : (
-                  <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+        <div className="space-y-6">
+          {menuSections.map((section) => {
+            const SectionIcon = section.icon;
+            const isExpanded = expandedSections[section.key];
+            
+            return (
+              <div key={section.key}>
+                <button
+                  onClick={() => toggleSection(section.key)}
+                  className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mb-2"
+                >
+                  <div className="flex items-center space-x-3">
+                    <SectionIcon className="w-5 h-5 text-gray-500" />
+                    <span className="font-poppins font-medium">{section.title}</span>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+                  )}
+                </button>
+                
+                {isExpanded && (
+                  <div className="ml-8 space-y-1">
+                    {section.items.map(renderMenuItem)}
+                  </div>
                 )}
-              </button>
-              
-              {isExpanded && (
-                <div className="ml-8 space-y-1">
-                  {section.items.map(renderMenuItem)}
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Footer */}
-        {/* <div className="border-t border-gray-100 pt-4 mt-8">
-          <div className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-gray-50">
-            <div className="w-8 h-8 bg-gradient-to-r from-forest-500 to-forest-700 rounded-full flex items-center justify-center">
-              <span className="text-sm text-white font-semibold">AD</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">Administrateur</p>
-              <p className="text-xs text-gray-500 truncate">Université de Lomé</p>
-            </div>
-          </div>
-        </div> */}
+              </div>
+            );
+          })}
+        </div>
       </nav>
     </div>
   );
