@@ -1,8 +1,8 @@
 import React from "react";
 import SignInForm from "../sign-in/_components/signin-form";
 import PraxisCard from "../_component/Praxis-Card";
-import SideBar from "../../(dashboard)/_components/sidebar";
-import DashboardHeader from "../../(dashboard)/_components/header";
+import SideBar from "../../dashboard/_components/sidebar";
+import DashboardHeader from "../../dashboard/_components/header";
 
 export default function SignInPage() {
   return (
