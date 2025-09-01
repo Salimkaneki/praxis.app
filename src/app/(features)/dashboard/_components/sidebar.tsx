@@ -1,6 +1,8 @@
 'use client'
 import React, { useState } from "react";
-import { 
+import { useRouter } from "next/navigation";
+
+import {
   HomeIcon,
   AcademicCapIcon,
   BookOpenIcon,
@@ -17,9 +19,18 @@ import {
 } from "@heroicons/react/24/outline";
 
 type SectionKey = 'pedagogie' | 'evaluations' | 'rapports' | 'administration';
-type ActiveSection = 'dashboard' | 'professeurs' | 'etudiants' | 'formations' | 'planning' |
-  'evaluations-live' | 'evaluations-programmees' | 'resultats' | 
-  'analytics' | 'utilisateurs' | 'parametres';
+type ActiveSection =
+  | 'dashboard'
+  | 'professeurs'
+  | 'etudiant'
+  | 'formation' 
+  | 'planning'
+  | 'evaluations-live'
+  | 'evaluations-programmees'
+  | 'resultats'
+  | 'analytics'
+  | 'utilisateurs'
+  | 'parametres';
 
 export default function SimplifiedSideBar() {
   const [activeSection, setActiveSection] = useState<ActiveSection>('dashboard');
@@ -27,14 +38,40 @@ export default function SimplifiedSideBar() {
     pedagogie: true,
     evaluations: false,
     rapports: false,
-    administration: false
+    administration: false,
   });
 
+  const router = useRouter();
+
   const toggleSection = (sectionKey: SectionKey) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
-      [sectionKey]: !prev[sectionKey]
+      [sectionKey]: !prev[sectionKey],
     }));
+  };
+
+  const handleNavigation = (key: ActiveSection) => {
+    setActiveSection(key);
+
+    // ✅ Corrigé : Gestion cohérente de toutes les routes
+    const routes = {
+      'dashboard': '/dashboard',
+      'professeurs': '/dashboard/teacher',
+      'etudiant': '/dashboard/student', 
+      'formation': '/dashboard/formation', 
+      'planning': '/dashboard/planning',
+      'evaluations-live': '/dashboard/evaluations/live',
+      'evaluations-programmees': '/dashboard/evaluations/programmees',
+      'resultats': '/dashboard/evaluations/resultats',
+      'analytics': '/dashboard/analytics',
+      'utilisateurs': '/dashboard/administration/utilisateurs',
+      'parametres': '/dashboard/administration/parametres'
+    };
+
+    const route = routes[key];
+    if (route) {
+      router.push(route);
+    }
   };
 
   const menuSections = [
@@ -44,32 +81,32 @@ export default function SimplifiedSideBar() {
       icon: AcademicCapIcon,
       items: [
         { key: 'professeurs' as ActiveSection, label: 'Professeurs', icon: UserIcon },
-        { key: 'etudiants' as ActiveSection, label: 'Étudiants', icon: UsersIcon },
-        { key: 'formations' as ActiveSection, label: 'Formations', icon: BookOpenIcon },
-        { key: 'planning' as ActiveSection, label: 'Planning', icon: CalendarDaysIcon }
-      ]
+        { key: 'etudiant' as ActiveSection, label: 'Étudiants', icon: UsersIcon },
+        { key: 'formation' as ActiveSection, label: 'Formations', icon: BookOpenIcon }, // ✅ Clé au singulier
+        { key: 'planning' as ActiveSection, label: 'Planning', icon: CalendarDaysIcon },
+      ],
     },
     {
       key: 'evaluations' as SectionKey,
       title: 'Évaluations',
       icon: PresentationChartLineIcon,
       items: [
-        { 
-          key: 'evaluations-live' as ActiveSection, 
-          label: 'En cours', 
-          icon: () => <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+        {
+          key: 'evaluations-live' as ActiveSection,
+          label: 'En cours',
+          icon: () => <div className="w-2 h-2 bg-green-500 rounded-full"></div>,
         },
         { key: 'evaluations-programmees' as ActiveSection, label: 'Programmées', icon: ClockIcon },
-        { key: 'resultats' as ActiveSection, label: 'Résultats', icon: DocumentChartBarIcon }
-      ]
+        { key: 'resultats' as ActiveSection, label: 'Résultats', icon: DocumentChartBarIcon },
+      ],
     },
     {
       key: 'rapports' as SectionKey,
       title: 'Analytics',
       icon: ChartBarIcon,
       items: [
-        { key: 'analytics' as ActiveSection, label: 'Rapports & Statistiques', icon: ChartBarIcon }
-      ]
+        { key: 'analytics' as ActiveSection, label: 'Rapports & Statistiques', icon: ChartBarIcon },
+      ],
     },
     {
       key: 'administration' as SectionKey,
@@ -77,29 +114,30 @@ export default function SimplifiedSideBar() {
       icon: Cog6ToothIcon,
       items: [
         { key: 'utilisateurs' as ActiveSection, label: 'Utilisateurs', icon: UsersIcon },
-        { key: 'parametres' as ActiveSection, label: 'Paramètres', icon: Cog6ToothIcon }
-      ]
-    }
+        { key: 'parametres' as ActiveSection, label: 'Paramètres', icon: Cog6ToothIcon },
+      ],
+    },
   ];
 
   const renderMenuItem = (item: any) => {
     const IconComponent = item.icon;
     const isActive = activeSection === item.key;
-    
+
     return (
       <button
         key={item.key}
-        onClick={() => setActiveSection(item.key)}
+        onClick={() => handleNavigation(item.key)}
         className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors flex items-center space-x-2 ${
-          isActive 
-            ? 'bg-forest-50 text-forest-700 border border-forest-200' 
+          isActive
+            ? 'bg-forest-50 text-forest-700 border border-forest-200'
             : 'text-gray-600 hover:bg-gray-50'
         }`}
       >
-        {typeof IconComponent === 'function' ? 
-          <IconComponent /> : 
+        {typeof IconComponent === 'function' ? (
+          <IconComponent />
+        ) : (
           <IconComponent className="w-4 h-4" />
-        }
+        )}
         <span className="font-poppins">{item.label}</span>
       </button>
     );
@@ -117,10 +155,10 @@ export default function SimplifiedSideBar() {
         {/* Dashboard */}
         <div className="mb-6">
           <button
-            onClick={() => setActiveSection('dashboard')}
+            onClick={() => handleNavigation('dashboard')}
             className={`w-full flex items-center space-x-3 px-3 py-2.5 text-sm rounded-lg transition-colors ${
-              activeSection === 'dashboard' 
-                ? 'bg-forest-50 text-forest-700 border border-forest-200' 
+              activeSection === 'dashboard'
+                ? 'bg-forest-50 text-forest-700 border border-forest-200'
                 : 'text-gray-600 hover:bg-gray-50'
             }`}
           >
@@ -134,7 +172,7 @@ export default function SimplifiedSideBar() {
           {menuSections.map((section) => {
             const SectionIcon = section.icon;
             const isExpanded = expandedSections[section.key];
-            
+
             return (
               <div key={section.key}>
                 <button
@@ -151,11 +189,9 @@ export default function SimplifiedSideBar() {
                     <ChevronRightIcon className="w-4 h-4 text-gray-400" />
                   )}
                 </button>
-                
+
                 {isExpanded && (
-                  <div className="ml-8 space-y-1">
-                    {section.items.map(renderMenuItem)}
-                  </div>
+                  <div className="ml-8 space-y-1">{section.items.map(renderMenuItem)}</div>
                 )}
               </div>
             );

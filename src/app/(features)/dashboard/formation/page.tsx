@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   BookOpen,
   Plus,
@@ -13,8 +13,33 @@ import {
   Users,
   GraduationCap,
   ChevronDown,
-  MoreVertical
+  MoreVertical,
+  Loader2
 } from "lucide-react";
+
+// Types
+interface Formation {
+  id: number;
+  name: string;
+  code: string;
+  duration_years: number;
+  is_active: boolean;
+  description?: string;
+  category?: string;
+  level?: string;
+  students_count?: number;
+  created_at?: string;
+}
+
+interface ApiResponse {
+  data: Formation[];
+  total: number;
+  last_page: number;
+  current_page: number;
+}
+
+// Import du service
+import { getFormations } from "../_services/formation.service";
 
 // Import du composant Input
 type InputProps = {
@@ -96,100 +121,53 @@ function Input({
 }
 
 export default function FormationsList() {
+  const [formations, setFormations] = useState<Formation[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [lastPage, setLastPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const formations = [
-    {
-      id: 1,
-      title: "Licence en Informatique",
-      category: "Informatique",
-      level: "Licence",
-      duration: "3 ans",
-      students: 245,
-      status: "Actif",
-      startDate: "2024-09-15",
-      description: "Formation complète en développement logiciel et systèmes d'information"
-    },
-    {
-      id: 2,
-      title: "Master en Génie Civil",
-      category: "Ingénierie",
-      level: "Master",
-      duration: "2 ans",
-      students: 87,
-      status: "Actif",
-      startDate: "2024-10-01",
-      description: "Spécialisation en construction et infrastructure"
-    },
-    {
-      id: 3,
-      title: "Doctorat en Médecine",
-      category: "Médecine",
-      level: "Doctorat",
-      duration: "6 ans",
-      students: 156,
-      status: "Actif",
-      startDate: "2024-09-01",
-      description: "Formation médicale complète avec stages hospitaliers"
-    },
-    {
-      id: 4,
-      title: "Licence en Économie",
-      category: "Sciences Économiques",
-      level: "Licence",
-      duration: "3 ans",
-      students: 312,
-      status: "Actif",
-      startDate: "2024-09-20",
-      description: "Fondamentaux de l'économie et de la gestion"
-    },
-    {
-      id: 5,
-      title: "Master en Droit des Affaires",
-      category: "Droit",
-      level: "Master",
-      duration: "2 ans",
-      students: 98,
-      status: "Suspendu",
-      startDate: "2024-11-15",
-      description: "Spécialisation en droit commercial et des sociétés"
-    },
-    {
-      id: 6,
-      title: "Licence en Lettres Modernes",
-      category: "Lettres",
-      level: "Licence",
-      duration: "3 ans",
-      students: 189,
-      status: "Actif",
-      startDate: "2024-09-10",
-      description: "Étude de la littérature française et francophone"
-    }
-  ];
+  // Récupération des données
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const response = await getFormations(page, searchTerm);
+        setFormations(response.data);
+        setTotal(response.total);
+        setLastPage(response.last_page);
+        setCurrentPage(response.current_page);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [page, searchTerm]);
 
-  const categories = [
-    { value: "all", label: "Toutes les catégories" },
-    { value: "Informatique", label: "Informatique" },
-    { value: "Ingénierie", label: "Ingénierie" },
-    { value: "Médecine", label: "Médecine" },
-    { value: "Sciences Économiques", label: "Sciences Économiques" },
-    { value: "Droit", label: "Droit" },
-    { value: "Lettres", label: "Lettres" }
-  ];
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPage(1); // reset page quand on recherche
+    setSearchTerm(e.target.value);
+  };
 
-  const filteredFormations = formations.filter(formation => {
-    const matchesSearch = formation.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         formation.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || formation.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const handlePreviousPage = () => {
+    setPage(prev => Math.max(1, prev - 1));
+  };
 
+  const handleNextPage = () => {
+    setPage(prev => Math.min(lastPage, prev + 1));
+  };
+
+  // Calcul des statistiques
   const stats = {
-    total: formations.length,
-    active: formations.filter(f => f.status === "Actif").length,
-    suspended: formations.filter(f => f.status === "Suspendu").length,
-    totalStudents: formations.reduce((sum, f) => sum + f.students, 0)
+    total: total,
+    active: formations.filter(f => f.is_active).length,
+    suspended: formations.filter(f => !f.is_active).length,
+    totalStudents: formations.reduce((sum, f) => sum + (f.students_count || 0), 0)
   };
 
   return (
@@ -212,14 +190,14 @@ export default function FormationsList() {
                 <Plus className="w-4 h-4 mr-2" />
                 Nouvelle Formation
               </button>
-              <button className="inline-flex items-center px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+              {/* <button className="inline-flex items-center px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                 <Filter className="w-4 h-4 mr-2" />
                 Filtrer
               </button>
               <button className="inline-flex items-center px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                 <Download className="w-4 h-4 mr-2" />
                 Exporter
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -247,13 +225,15 @@ export default function FormationsList() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-poppins font-medium text-gray-600">Total Étudiants</p>
-                <p className="text-2xl font-poppins font-light text-gray-900">{stats.totalStudents.toLocaleString()}</p>
+                <p className="text-2xl font-poppins font-light text-gray-900">
+                  {loading ? "..." : stats.totalStudents.toLocaleString()}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Search and Filter Bar */}
+        {/* Search Bar */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
             <div className="flex-1">
@@ -261,29 +241,14 @@ export default function FormationsList() {
                 placeholder="Rechercher une formation..."
                 leftIcon={Search}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
                 width="w-full"
               />
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="relative">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 font-poppins text-sm focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-                >
-                  {categories.map(category => (
-                    <option key={category.value} value={category.value}>
-                      {category.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              </div>
-              
               <div className="text-sm font-poppins text-gray-500">
-                {filteredFormations.length} formation{filteredFormations.length > 1 ? 's' : ''} trouvée{filteredFormations.length > 1 ? 's' : ''}
+                {loading ? "Recherche..." : `${total} formation${total > 1 ? 's' : ''} trouvée${total > 1 ? 's' : ''}`}
               </div>
             </div>
           </div>
@@ -292,9 +257,17 @@ export default function FormationsList() {
         {/* Formations List */}
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-lg font-poppins font-medium text-gray-900">
-              Liste des Formations
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-poppins font-medium text-gray-900">
+                Liste des Formations
+              </h2>
+              {loading && (
+                <div className="flex items-center text-sm text-gray-500">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Chargement...
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="overflow-x-auto">
@@ -305,13 +278,13 @@ export default function FormationsList() {
                     Formation
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
-                    Catégorie
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
-                    Niveau
+                    Code
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
                     Durée
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
+                    Étudiants
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
                     Statut
@@ -322,61 +295,91 @@ export default function FormationsList() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredFormations.map((formation) => (
-                  <tr key={formation.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 w-10 h-10 bg-forest-100 rounded-lg flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-forest-600" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-poppins font-medium text-gray-900">
-                            {formation.title}
-                          </div>
-                          <div className="text-sm font-poppins text-gray-500 max-w-xs truncate">
-                            {formation.description}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium bg-gray-100 text-gray-800">
-                        {formation.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-poppins text-gray-900">
-                      {formation.level}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-poppins text-gray-900">
-                      {formation.duration}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium ${
-                        formation.status === 'Actif' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {formation.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-smooth">
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-forest-600 hover:bg-forest-50 rounded-lg transition-smooth">
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-smooth">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-smooth">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center">
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 mr-3 animate-spin text-forest-600" />
+                        <span className="text-gray-600 font-poppins">Chargement des formations...</span>
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : formations.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center">
+                      <div className="text-gray-500 font-poppins">
+                        <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p className="text-lg font-medium">Aucune formation trouvée</p>
+                        <p className="text-sm">Essayez de modifier vos critères de recherche</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  formations.map((formation) => (
+                    <tr key={formation.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 w-10 h-10 bg-forest-100 rounded-lg flex items-center justify-center">
+                            <BookOpen className="w-5 h-5 text-forest-600" />
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-poppins font-medium text-gray-900">
+                              {formation.name}
+                            </div>
+                            {formation.description && (
+                              <div className="text-sm font-poppins text-gray-500 max-w-xs truncate">
+                                {formation.description}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium bg-gray-100 text-gray-800">
+                          {formation.code}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-poppins text-gray-900">
+                        {formation.duration_years} {formation.duration_years > 1 ? 'ans' : 'an'}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-poppins text-gray-900">
+                        {formation.students_count ? (
+                          <div className="flex items-center">
+                            <Users className="w-4 h-4 mr-1 text-gray-400" />
+                            {formation.students_count}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium ${
+                          formation.is_active 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {formation.is_active ? 'Actif' : 'Inactif'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-smooth">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 text-gray-400 hover:text-forest-600 hover:bg-forest-50 rounded-lg transition-smooth">
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-smooth">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-smooth">
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -385,18 +388,33 @@ export default function FormationsList() {
         {/* Pagination */}
         <div className="mt-6 flex items-center justify-between">
           <div className="text-sm font-poppins text-gray-700">
-            Affichage de <span className="font-medium">1</span> à <span className="font-medium">{filteredFormations.length}</span> sur{' '}
-            <span className="font-medium">{filteredFormations.length}</span> résultats
+            {loading ? (
+              "Chargement..."
+            ) : total > 0 ? (
+              <>
+                Page <span className="font-medium">{currentPage}</span> sur <span className="font-medium">{lastPage}</span> — Total : <span className="font-medium">{total}</span> formation{total > 1 ? 's' : ''}
+              </>
+            ) : (
+              "Aucun résultat"
+            )}
           </div>
           
           <div className="flex items-center space-x-2">
-            <button className="px-3 py-2 text-sm font-poppins font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50">
+            <button 
+              onClick={handlePreviousPage}
+              disabled={loading || page === 1}
+              className="px-3 py-2 text-sm font-poppins font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Précédent
             </button>
             <button className="px-3 py-2 text-sm font-poppins font-medium text-white bg-forest-600 border border-transparent rounded-md">
-              1
+              {currentPage}
             </button>
-            <button className="px-3 py-2 text-sm font-poppins font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+            <button 
+              onClick={handleNextPage}
+              disabled={loading || page >= lastPage}
+              className="px-3 py-2 text-sm font-poppins font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Suivant
             </button>
           </div>
