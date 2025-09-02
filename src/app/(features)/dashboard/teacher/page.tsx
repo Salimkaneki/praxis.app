@@ -6,7 +6,6 @@ import {
   Edit3,
   Eye,
   Trash2,
-  Filter,
   Download,
   Search,
   Clock,
@@ -256,10 +255,6 @@ export default function TeachersList() {
                 Nouvel Enseignant
               </button>
               <button className="inline-flex items-center px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                <Filter className="w-4 h-4 mr-2" />
-                Filtrer
-              </button>
-              <button className="inline-flex items-center px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                 <Download className="w-4 h-4 mr-2" />
                 Exporter
               </button>
@@ -393,7 +388,7 @@ export default function TeachersList() {
                     Expérience
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
-                    Cours/Étudiants
+                    Cours
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
                     Statut
@@ -439,15 +434,9 @@ export default function TeachersList() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm font-poppins text-gray-900">
-                      <div className="flex flex-col space-y-1">
-                        <div className="flex items-center">
-                          <BookOpen className="w-4 h-4 text-blue-500 mr-1" />
-                          {teacher.courses} cours
-                        </div>
-                        <div className="flex items-center">
-                          <GraduationCap className="w-4 h-4 text-green-500 mr-1" />
-                          {teacher.students} étudiants
-                        </div>
+                      <div className="flex items-center">
+                        <BookOpen className="w-4 h-4 text-blue-500 mr-1" />
+                        {teacher.courses} cours
                       </div>
                     </td>
                     <td className="px-6 py-4">
