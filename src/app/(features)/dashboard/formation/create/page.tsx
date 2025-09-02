@@ -5,12 +5,14 @@ import {
   ArrowLeft,
   Save
 } from "lucide-react";
+import { createFormation } from "../_services/formation.service"; // <-- importe ton service
+import { useRouter } from "next/navigation";
 
-// Composant Input simplifié
+// Composant Input
 type InputProps = {
   label?: string;
   placeholder?: string;
-  value?: string;
+  value?: string | number;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
   required?: boolean;
@@ -53,7 +55,7 @@ function Input({
   );
 }
 
-// Composant Textarea simplifié
+// Composant Textarea
 type TextareaProps = {
   label?: string;
   placeholder?: string;
@@ -102,6 +104,7 @@ function Textarea({
 }
 
 export default function SimpleFormationForm() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -111,20 +114,16 @@ export default function SimpleFormationForm() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const value = field === 'duration_years' ? parseInt(e.target.value) || "" : e.target.value;
+    const value = field === 'duration_years' ? e.target.value : e.target.value;
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-    
-    // Clear error when user starts typing
     if (errors[field]) {
-      // setErrors(prev => ({
-      //   ...prev,
-      //   [field]: undefined
-      // }));
+      setErrors(prev => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -135,7 +134,7 @@ export default function SimpleFormationForm() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -146,9 +145,10 @@ export default function SimpleFormationForm() {
     if (!formData.duration_years) newErrors.duration_years = "La durée est requise";
     
     setErrors(newErrors);
-    
-    if (Object.keys(newErrors).length === 0) {
-      // Préparer les données pour l'API
+    if (Object.keys(newErrors).length > 0) return;
+
+    try {
+      setLoading(true);
       const apiData = {
         name: formData.name,
         code: formData.code,
@@ -156,9 +156,16 @@ export default function SimpleFormationForm() {
         duration_years: parseInt(formData.duration_years),
         is_active: formData.is_active
       };
-      
-      console.log("Formation à créer:", apiData);
-      // Appel API ici
+
+      const res = await createFormation(apiData);
+      console.log("✅ Formation créée :", res);
+
+      // Après création -> redirection vers la liste
+      router.push("/dashboard/formation");
+    } catch (err: any) {
+      console.error("❌ Erreur lors de la création :", err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -169,7 +176,11 @@ export default function SimpleFormationForm() {
         <div className="px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <button className="mr-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-smooth">
+              <button 
+                type="button"
+                onClick={() => router.back()}
+                className="mr-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-smooth"
+              >
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
@@ -185,22 +196,25 @@ export default function SimpleFormationForm() {
             <div className="flex items-center space-x-3">
               <button 
                 type="button"
+                onClick={() => router.push("/dashboard/formation")}
                 className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-smooth"
               >
                 Annuler
               </button>
               <button 
                 onClick={handleSubmit}
-                className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-smooth"
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-smooth disabled:opacity-50"
               >
                 <Save className="w-4 h-4 mr-2" />
-                Créer la Formation
+                {loading ? "Création..." : "Créer la Formation"}
               </button>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Form */}
       <div className="px-8 py-8 flex-1">
         <div className="max-w-4xl mx-auto h-full">
           <form onSubmit={handleSubmit} className="h-full">

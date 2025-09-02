@@ -13,6 +13,7 @@ type InputProps = {
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
+  name?: string; // ✅ ajouté
 };
 
 export default function Input({ 
@@ -25,7 +26,8 @@ export default function Input({
   onRightIconClick,
   value,
   onChange,
-  type = "text"
+  type = "text",
+  name, // ✅ récupéré
 }: InputProps) {
   return (
     <div className={`flex flex-col gap-2 ${width}`}>
@@ -50,6 +52,7 @@ export default function Input({
         {/* Input */}
         <input
           type={type}
+          name={name} // ✅ utilisé
           value={value}
           onChange={onChange}
           placeholder={placeholder || "Enter text"}
