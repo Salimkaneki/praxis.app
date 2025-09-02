@@ -11,7 +11,7 @@ import {
   Loader2,
   Search
 } from "lucide-react";
-import { getFormations } from "./_services/formation.service";
+import { getFormations, deleteFormation } from "./_services/formation.service";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Inputs/Input";
 
@@ -73,6 +73,27 @@ export default function FormationsList() {
     suspended: formations.filter(f => !f.is_active).length,
     totalStudents: formations.reduce((sum, f) => sum + (f.students_count || 0), 0)
   }), [formations, total]);
+
+    const handleDelete = async (id: number) => {
+    const confirm = window.confirm("Êtes-vous sûr de vouloir supprimer cette formation ?");
+    if (!confirm) return;
+
+    try {
+      setLoading(true);
+      await deleteFormation(id);
+      // Après suppression, rafraîchir la liste
+      const response = await getFormations(page, searchTerm);
+      setFormations(response.data);
+      setTotal(response.total);
+      setLastPage(response.last_page);
+      setCurrentPage(response.current_page);
+    } catch (err) {
+      console.error("Erreur lors de la suppression :", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-white">
@@ -222,16 +243,19 @@ export default function FormationsList() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
-                          <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-smooth">
+                          {/* <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-smooth">
                             <Eye className="w-4 h-4" />
-                          </button>
+                          </button> */}
                           <button
                             className="p-2 text-gray-400 hover:text-forest-600 hover:bg-forest-50 rounded-lg transition-smooth"
                             onClick={() => router.push(`/dashboard/formation/edit/${formation.id}`)}
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
-                          <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-smooth">
+                          <button
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-smooth"
+                            onClick={() => handleDelete(formation.id)}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </button>
                           <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-smooth">

@@ -3,6 +3,7 @@ import SignInForm from "../sign-in/_components/signin-form";
 import PraxisCard from "../_component/Praxis-Card";
 import SideBar from "../../dashboard/_components/sidebar";
 import DashboardHeader from "../../dashboard/_components/header";
+import SelectInput from "@/components/ui/Inputs/Select";
 
 export default function SignInPage() {
   return (
@@ -28,6 +29,9 @@ export default function SignInPage() {
           {/* <div className="flex-1 flex items-center justify-center">
             <PraxisCard />
           </div> */}
+
+
+          
         </main>
       </div>
     </div>

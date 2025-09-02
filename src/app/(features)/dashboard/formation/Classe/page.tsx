@@ -1,247 +1,260 @@
 'use client'
-import React, { useState } from "react";
-import { 
-  Home, MapPin, Users, Monitor, Wifi, Search, Plus, Filter, 
-  ArrowUpRight, ArrowDownRight, MoreHorizontal, Calendar, Clock
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Home, Search, Plus, Filter, MoreHorizontal, Edit3, Trash2, Eye, MoreVertical } from "lucide-react";
+import ClasseService, { Classe, PaginatedResponse } from "./_services/classe.service";
+import { useRouter } from "next/navigation";
 
-interface Classroom {
-  id: number;
-  name: string;
-  code: string;
-  capacity: number;
-  building: string;
-  status: 'available' | 'occupied' | 'maintenance';
-}
 
 export default function ClassroomsPage() {
+  const router = useRouter();
+
+
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [classrooms, setClassrooms] = useState<Classe[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const classrooms: Classroom[] = [
-    {
-      id: 1,
-      name: "Classe A1",
-      code: "CL-A1",
-      capacity: 35,
-      building: "Bâtiment Principal",
-      status: "available"
-    },
-    {
-      id: 2,
-      name: "Classe A2",
-      code: "CL-A2",
-      capacity: 40,
-      building: "Bâtiment Principal",
-      status: "occupied"
-    },
-    {
-      id: 3,
-      name: "Classe B1",
-      code: "CL-B1",
-      capacity: 30,
-      building: "Bâtiment Sciences",
-      status: "available"
-    },
-    {
-      id: 4,
-      name: "Classe B2",
-      code: "CL-B2",
-      capacity: 38,
-      building: "Bâtiment Sciences",
-      status: "maintenance"
-    },
-    {
-      id: 5,
-      name: "Classe C1",
-      code: "CL-C1",
-      capacity: 42,
-      building: "Bâtiment Technologie",
-      status: "available"
-    }
-  ];
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [lastPage, setLastPage] = useState<number>(1);
+  const [total, setTotal] = useState<number>(0);
 
-  const totalRooms = classrooms.length;
-  const availableRooms = classrooms.filter(room => room.status === 'available').length;
-  const occupiedRooms = classrooms.filter(room => room.status === 'occupied').length;
-  const occupancyRate = ((occupiedRooms / totalRooms) * 100).toFixed(1);
+  // Statistiques calculées
+  const stats = {
+    total: classrooms.length,
+    available: classrooms.filter(r => r.is_active).length,
+    occupied: classrooms.filter(r => !r.is_active).length,
+    get occupancyRate() { return ((this.occupied / this.total) * 100 || 0).toFixed(1); }
+  };
 
-  const getStatusBadge = (status: Classroom['status']): string => {
-    switch (status) {
-      case 'available':
-        return 'bg-green-100 text-green-800';
-      case 'occupied':
-        return 'bg-red-100 text-red-800';
-      case 'maintenance':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const statusConfig = {
+    available: { bg: 'bg-green-100 text-green-800', text: 'Disponible', dot: 'bg-green-400' },
+    occupied: { bg: 'bg-red-100 text-red-800', text: 'Inactive', dot: 'bg-red-400' },
+    maintenance: { bg: 'bg-orange-100 text-orange-800', text: 'Maintenance', dot: 'bg-orange-400' }
+  };
+
+  // Fonction pour récupérer les classes depuis l'API
+  const fetchClasses = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data: PaginatedResponse<Classe> = await ClasseService.getClasses(searchTerm, currentPage);
+      setClassrooms(data.data);
+      setCurrentPage(data.current_page);
+      setLastPage(data.last_page);
+      setTotal(data.total);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Erreur lors de la récupération des classes.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusText = (status: Classroom['status']): string => {
-    switch (status) {
-      case 'available':
-        return 'Disponible';
-      case 'occupied':
-        return 'Occupée';
-      case 'maintenance':
-        return 'Maintenance';
-      default:
-        return 'Inconnu';
-    }
+  // Recharger les classes à chaque changement de recherche ou de page
+  useEffect(() => {
+    fetchClasses();
+  }, [searchTerm, currentPage]);
+
+  // Pagination
+  const handlePreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(prev => prev - 1);
   };
 
-  const filteredClassrooms = classrooms.filter(room => 
-    room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    room.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    room.building.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleNextPage = () => {
+    if (currentPage < lastPage) setCurrentPage(prev => prev + 1);
+  };
+
+  // Filtrage local pour la recherche (optionnel si API filtre déjà)
+  const filteredClassrooms = classrooms.filter(room =>
+    [room.name, room.formation?.name].some(field =>
+      field?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
+
+  const StatCard = ({ title, value, subtitle, icon: Icon, dotColor }: any) => (
+    <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-poppins font-medium text-gray-600">{title}</h3>
+        {Icon ? <Icon className="w-5 h-5 text-gray-400" /> :
+          dotColor && <div className={`w-3 h-3 ${dotColor} rounded-full`}></div>}
+      </div>
+      <div className="text-3xl font-poppins font-light text-gray-900 mb-1">{value}</div>
+      <div className="text-sm text-gray-500 font-poppins">{subtitle}</div>
+    </div>
+  );
+
+  // Navigation vers la page de création
+  const handleCreateClass = () => {
+      router.push("/dashboard/formation/classe/create");
+  };
+
+  // Dans ton composant ClassroomsPage
+  const handleDeleteClass = async (id: number) => {
+    const confirmDelete = window.confirm("Voulez-vous vraiment supprimer cette classe ?");
+    if (!confirmDelete) return;
+
+    try {
+      setLoading(true);
+      await ClasseService.deleteClasse(id);
+      // Recharger la liste après suppression
+      await fetchClasses();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Erreur lors de la suppression de la classe.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white">
-        <div className="px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-poppins font-semibold text-gray-900">Salles de Classes</h1>
-              <p className="text-sm font-poppins text-gray-600 mt-1">Gestion et suivi des espaces d'enseignement</p>
+        <div className="px-8 py-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-poppins font-semibold text-gray-900">Salles de Classes</h1>
+            <p className="text-sm font-poppins text-gray-600 mt-1">Gestion et suivi des espaces d'enseignement</p>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Rechercher une salle..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors font-poppins text-sm"
+              />
             </div>
-            
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Rechercher une salle..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-4 py-2 w-64 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors font-poppins text-sm"
-                />
-              </div>
-              <button className="inline-flex items-center px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                <Filter className="w-4 h-4 mr-2" />
-                Filtrer
-              </button>
-              <button className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-smooth">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvelle Salle
-              </button>
-            </div>
+            <button className="inline-flex items-center px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+              <Filter className="w-4 h-4 mr-2" />Filtrer
+            </button>
+            <button 
+              onClick={handleCreateClass}
+              className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-smooth"
+            >
+              <Plus className="w-4 h-4 mr-2" />Nouvelle Classe
+            </button>
           </div>
         </div>
       </div>
 
       <div className="px-8 py-8">
-        {/* Stats Overview */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-poppins font-medium text-gray-600">Total Salles</h3>
-              <Home className="w-5 h-5 text-gray-400" />
-            </div>
-            <div className="text-3xl font-poppins font-light text-gray-900 mb-1">{totalRooms}</div>
-            <div className="text-sm text-gray-500 font-poppins">Espaces d'enseignement</div>
-          </div>
-          
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-poppins font-medium text-gray-600">Disponibles</h3>
-              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-            </div>
-            <div className="text-3xl font-poppins font-light text-gray-900 mb-1">{availableRooms}</div>
-            <div className="text-sm text-gray-500 font-poppins">Prêtes à utiliser</div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-poppins font-medium text-gray-600">Occupées</h3>
-              <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-            </div>
-            <div className="text-3xl font-poppins font-light text-gray-900 mb-1">{occupiedRooms}</div>
-            <div className="text-sm text-gray-500 font-poppins">En cours d'utilisation</div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-poppins font-medium text-gray-600">Taux d'Occupation</h3>
-              <MoreHorizontal className="w-4 h-4 text-gray-400" />
-            </div>
-            <div className="text-3xl font-poppins font-light text-gray-900 mb-1">{occupancyRate}%</div>
-            <div className="text-sm text-gray-500 font-poppins">En temps réel</div>
-          </div>
+          <StatCard title="Classes" value={stats.total} subtitle="Espaces d'enseignement" icon={Home} />
+          <StatCard title="Disponibles" value={stats.available} subtitle="Prêtes à utiliser" dotColor="bg-green-400" />
+          <StatCard title="Inactives" value={stats.occupied} subtitle="En cours d'utilisation" dotColor="bg-red-400" />
+          <StatCard title="Taux d'Occupation" value={`${stats.occupancyRate}%`} subtitle="En temps réel" icon={MoreHorizontal} />
         </div>
 
-        {/* Classrooms List */}
+        {/* Table */}
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h2 className="text-lg font-poppins font-semibold text-gray-900">Liste des Classes</h2>
           </div>
-          
+
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
-                    Classe
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
-                    Code
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
-                    Capacité
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
-                    Bâtiment
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
-                    Statut
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredClassrooms.map((classroom) => (
-                  <tr key={classroom.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-poppins font-medium text-gray-900">{classroom.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-poppins text-gray-600">{classroom.code}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 text-gray-400 mr-2" />
-                        <span className="font-poppins text-gray-900">{classroom.capacity} places</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                        <span className="font-poppins text-gray-600">{classroom.building}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-poppins font-medium rounded-full ${getStatusBadge(classroom.status)}`}>
-                        {getStatusText(classroom.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button className="text-forest-600 hover:text-forest-900 font-poppins font-medium">
-                          Modifier
-                        </button>
-                        <button className="text-blue-600 hover:text-blue-900 font-poppins font-medium">
-                          Réserver
-                        </button>
-                      </div>
-                    </td>
+            {loading ? (
+              <div className="p-6 text-center text-gray-500">Chargement des classes...</div>
+            ) : error ? (
+              <div className="p-6 text-center text-red-500">{error}</div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    {['Classe', 'Formation', 'Année', 'Statut', 'Actions'].map((header, i) => (
+                      <th key={i} className={`px-6 py-3 text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider ${i === 4 ? 'text-right' : 'text-left'}`}>
+                        {header}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredClassrooms.map((room) => (
+                    <tr key={room.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-3 text-sm font-poppins font-medium text-gray-900">{room.name}</td>
+                      <td className="px-6 py-3 text-sm font-poppins text-gray-600">{room.formation?.name}</td>
+                      <td className="px-6 py-3 text-sm font-poppins text-gray-600">{room.academic_year}</td>
+                      <td className="px-6 py-3">
+                        <span className={`inline-flex px-2 py-1 text-xs font-poppins font-medium rounded-full ${room.is_active ? statusConfig.available.bg : statusConfig.occupied.bg}`}>
+                          {room.is_active ? statusConfig.available.text : statusConfig.occupied.text}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3">
+                        <div className="flex items-center justify-end space-x-1">
+                          {/* <button 
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-smooth"
+                            title="Voir les détails"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button> */}
+                          <button 
+                            className="p-2 text-gray-400 hover:text-forest-600 hover:bg-forest-50 rounded-lg transition-smooth"
+                            title="Modifier"
+                            onClick={() => router.push(`/dashboard/formation/classe/edit/${room.id}`)}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+
+                          <button 
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-smooth"
+                            title="Supprimer"
+                            onClick={() => handleDeleteClass(room.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+
+                          <button 
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-smooth"
+                            title="Plus d'options"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        {/* Pagination */}
+        <div className="mt-6 flex items-center justify-between">
+          <div className="text-sm font-poppins text-gray-700">
+            {loading ? (
+              "Chargement..."
+            ) : total > 0 ? (
+              <>Page <span className="font-medium">{currentPage}</span> sur <span className="font-medium">{lastPage}</span> — Total : <span className="font-medium">{total}</span> formation{total > 1 ? 's' : ''}</>
+            ) : (
+              "Aucun résultat"
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handlePreviousPage}
+              disabled={loading || currentPage === 1}
+              className="px-3 py-2 text-sm font-poppins font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              Précédent
+            </button>
+
+            <button
+              className="w-8 h-8 flex items-center justify-center text-sm font-poppins font-medium text-white bg-forest-600 rounded-md"
+            >
+              {currentPage}
+            </button>
+
+            <button
+              onClick={handleNextPage}
+              disabled={loading || currentPage >= lastPage}
+              className="px-3 py-2 text-sm font-poppins font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              Suivant
+            </button>
           </div>
         </div>
       </div>
