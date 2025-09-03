@@ -8,7 +8,7 @@ type Option = {
 
 type SelectInputProps = {
   label?: string;
-  name: string;
+  name?: string;
   placeholder?: string;
   value?: string | number;
   onChange?: (e: React.ChangeEvent<HTMLSelectElement> | { target: { value: string } }) => void;
@@ -17,6 +17,7 @@ type SelectInputProps = {
   width?: string;
   error?: string;
   required?: boolean;
+  disabled?: boolean; // ⭐ Ajout de la propriété disabled
 };
 
 export default function SelectInput({
@@ -30,8 +31,10 @@ export default function SelectInput({
   width = "w-full",
   error,
   required = false,
+  disabled = false, // ⭐ Valeur par défaut
 }: SelectInputProps) {
   const [open, setOpen] = useState(false);
+  const [dropUp, setDropUp] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fermer le dropdown si on clique en dehors
@@ -45,9 +48,30 @@ export default function SelectInput({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Gérer la position du dropdown selon viewport
+  useEffect(() => {
+    if (open && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBottom = window.innerHeight - rect.bottom;
+      const spaceTop = rect.top;
+
+      if (spaceBottom < 200 && spaceTop > spaceBottom) {
+        setDropUp(true);
+      } else {
+        setDropUp(false);
+      }
+    }
+  }, [open]);
+
   const handleSelect = (val: string) => {
+    if (disabled) return; // ⭐ Empêcher la sélection si disabled
     if (onChange) onChange({ target: { value: val } } as any);
     setOpen(false);
+  };
+
+  const handleToggle = () => {
+    if (disabled) return; // ⭐ Empêcher l'ouverture si disabled
+    setOpen(!open);
   };
 
   // Placeholder si aucune option sélectionnée
@@ -70,18 +94,28 @@ export default function SelectInput({
                     border ${error ? "border-red-300 bg-red-50" : "border-gray-300 bg-gray-50"}
                     text-gray-700 placeholder-gray-400
                     flex items-center justify-between
-                    cursor-pointer
-                    hover:bg-gray-100 hover:border-gray-400
                     transition-smooth
-                    relative`}
-        onClick={() => setOpen(!open)}
+                    relative
+                    ${disabled 
+                      ? "cursor-not-allowed bg-gray-100 text-gray-400 border-gray-200" 
+                      : "cursor-pointer hover:bg-gray-100 hover:border-gray-400"
+                    }`} // ⭐ Styles conditionnels pour disabled
+        onClick={handleToggle}
       >
-        {Icon && <Icon className="w-5 h-5 text-gray-400 absolute left-3" />}
-        <span className={`${!selectedLabel ? "text-gray-400" : ""}`}>
+        {Icon && (
+          <Icon 
+            className={`w-5 h-5 absolute left-3 ${
+              disabled ? "text-gray-300" : "text-gray-400"
+            }`} 
+          />
+        )}
+        <span className={`${!selectedLabel ? "text-gray-400" : ""} ${disabled ? "text-gray-400" : ""}`}>
           {selectedLabel || placeholder}
         </span>
         <svg
-          className={`h-4 w-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 transition-transform ${
+            disabled ? "text-gray-300" : "text-gray-400"
+          } ${open ? "rotate-180" : ""}`}
           viewBox="0 0 20 20"
           fill="currentColor"
         >
@@ -93,16 +127,19 @@ export default function SelectInput({
         </svg>
       </div>
 
-      {/* Dropdown custom */}
-      {open && (
-        <ul className="absolute left-0 top-full z-50 w-full mt-0.5 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-auto">
+      {/* Dropdown custom - ne s'affiche que si pas disabled */}
+      {open && !disabled && (
+        <ul
+          className={`absolute left-0 z-50 w-full mt-0.5 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-auto
+            ${dropUp ? "bottom-full mb-1" : "top-full mt-1"}`}
+        >
           {options.map((opt, idx) => (
             <li
               key={opt.value}
               onClick={() => handleSelect(opt.value)}
-              className={`px-4 py-2 cursor-pointer hover:bg-forest-100 ${
-                idx === 0 ? "rounded-t-xl" : ""
-              } ${idx === options.length - 1 ? "rounded-b-xl" : ""}`}
+              className={`px-4 py-2 cursor-pointer hover:bg-forest-100 
+                ${idx === 0 ? "rounded-t-xl" : ""} 
+                ${idx === options.length - 1 ? "rounded-b-xl" : ""}`}
             >
               {opt.label}
             </li>

@@ -1,21 +1,25 @@
-// teacher.service.ts
+'use client';
 import api from "@/lib/server/interceptor/axios";
 
+// Interface adaptée à ton API (ajuste si besoin selon ta réponse JSON)
 export interface Teacher {
   id: number;
-  name: string;          // Ajouté pour correspondre à page.tsx
-  email: string;
-  phone?: string;
-  department?: string;
-  speciality?: string;
-  status?: string;
-  experience?: string;
-  students?: number;
-  courses?: number;
-  joinDate?: string;
-  avatar?: string;
-  created_at?: string;
-  updated_at?: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    phone?: string;
+  };
+  institution: {
+    id: number;
+    name: string;
+  };
+  specialization: string;
+  grade: string;
+  is_permanent: boolean;
+  metadata?: any;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -26,33 +30,35 @@ export interface PaginatedResponse<T> {
   last_page: number;
 }
 
-export const TeacherService = {
-  getAll: async (): Promise<Teacher[]> => {
-    const { data } = await api.get("/teachers");
-    return data; // Assure-toi que l'API renvoie bien un tableau d'objets avec `name`
-  },
+export async function fetchTeachers(
+  page: number = 1,
+  filters?: { grade?: string; specialization?: string; is_permanent?: boolean }
+): Promise<PaginatedResponse<Teacher>> {
+  const response = await api.get("/admin/teachers", {
+    params: {
+      page,
+      ...filters,
+    },
+  });
+  return response.data;
+}
 
-  getPaginated: async (page: number = 1, perPage: number = 10): Promise<PaginatedResponse<Teacher>> => {
-    const { data } = await api.get(`/teachers?page=${page}&per_page=${perPage}`);
-    return data;
-  },
+export async function fetchTeacher(id: number): Promise<Teacher> {
+  const response = await api.get(`/admin/teachers/${id}`);
+  return response.data;
+}
 
-  getById: async (id: number): Promise<Teacher> => {
-    const { data } = await api.get(`/teachers/${id}`);
-    return data;
-  },
+export async function createTeacher(data: Partial<Teacher>) {
+  const response = await api.post("/admin/teachers", data);
+  return response.data;
+}
 
-  create: async (teacher: Partial<Teacher>): Promise<Teacher> => {
-    const { data } = await api.post("/teachers", teacher);
-    return data;
-  },
+export async function updateTeacher(id: number, data: Partial<Teacher>) {
+  const response = await api.put(`/admin/teachers/${id}`, data);
+  return response.data;
+}
 
-  update: async (id: number, teacher: Partial<Teacher>): Promise<Teacher> => {
-    const { data } = await api.put(`/teachers/${id}`, teacher);
-    return data;
-  },
-
-  delete: async (id: number): Promise<void> => {
-    await api.delete(`/teachers/${id}`);
-  },
-};
+export async function deleteTeacher(id: number) {
+  const response = await api.delete(`/admin/teachers/${id}`);
+  return response.data;
+}
