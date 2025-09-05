@@ -1,3 +1,4 @@
+'use client'
 import React, { useEffect, useState } from "react";
 import {
   Users,
@@ -5,57 +6,40 @@ import {
   Save,
   UserCheck,
   BookOpen,
-  GraduationCap,
   Calendar,
   School,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import SelectInput from "@/components/ui/Inputs/Select";
+import Input from "@/components/ui/Inputs/Input";
 
-// Composant SelectInput réutilisé de votre application
-function SelectInput({ 
-  label,
-  name,
-  placeholder,
-  value,
-  onChange,
-  options,
-  required = false,
-  error,
-  disabled = false,
-  icon: Icon
-}) {
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-gray-700">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      <div className="relative">
-        <select
-          name={name}
-          value={value}
-          onChange={onChange}
-          disabled={disabled}
-          className="h-[50px] px-4 py-2 rounded-xl font-medium text-base border border-gray-300 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-green-500 text-gray-700 transition-all hover:bg-gray-100 hover:border-gray-400 w-full appearance-none pr-10"
-        >
-          <option value="">{placeholder}</option>
-          {options.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        {Icon && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-            <Icon className="w-5 h-5" />
-          </div>
-        )}
-      </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-    </div>
-  );
+// Types pour les options de sélection
+interface Option {
+  value: string;
+  label: string;
+}
+
+// Type pour les données du formulaire
+interface FormData {
+  teacher_id: string;
+  subject_id: string;
+  classe_id: string;
+  academic_year: string;
+  is_active: boolean;
+}
+
+// Type pour les erreurs
+interface FormErrors {
+  teacher_id?: string;
+  subject_id?: string;
+  classe_id?: string;
+  academic_year?: string;
 }
 
 export default function TeacherSubjectAssignment() {
-  const [formData, setFormData] = useState({
+  const router = useRouter();
+  
+  const [formData, setFormData] = useState<FormData>({
     teacher_id: "",
     subject_id: "",
     classe_id: "",
@@ -63,34 +47,34 @@ export default function TeacherSubjectAssignment() {
     is_active: true,
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   
   // Options pour les enseignants
-  const [teacherOptions, setTeacherOptions] = useState([]);
+  const [teacherOptions, setTeacherOptions] = useState<Option[]>([]);
   const [loadingTeachers, setLoadingTeachers] = useState(true);
   
   // Options pour les matières
-  const [subjectOptions, setSubjectOptions] = useState([]);
+  const [subjectOptions, setSubjectOptions] = useState<Option[]>([]);
   const [loadingSubjects, setLoadingSubjects] = useState(true);
   
   // Options pour les classes
-  const [classeOptions, setClasseOptions] = useState([]);
+  const [classeOptions, setClasseOptions] = useState<Option[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
 
   // Options pour les années académiques
-  const academicYearOptions = [
+  const academicYearOptions: Option[] = [
     { value: "2023-2024", label: "2023-2024" },
     { value: "2024-2025", label: "2024-2025" },
     { value: "2025-2026", label: "2025-2026" },
   ];
 
   // Simulation de récupération des enseignants
-  const fetchTeachers = async () => {
+  const fetchTeachers = async (): Promise<void> => {
     try {
       setLoadingTeachers(true);
       setTimeout(() => {
-        const mockTeachers = [
+        const mockTeachers: Option[] = [
           { value: "1", label: "Dr. Marie DUPONT - Informatique" },
           { value: "2", label: "Prof. Jean MARTIN - Mathématiques" },
           { value: "3", label: "Dr. Sophie BERNARD - Design" },
@@ -107,11 +91,11 @@ export default function TeacherSubjectAssignment() {
   };
 
   // Simulation de récupération des matières
-  const fetchSubjects = async () => {
+  const fetchSubjects = async (): Promise<void> => {
     try {
       setLoadingSubjects(true);
       setTimeout(() => {
-        const mockSubjects = [
+        const mockSubjects: Option[] = [
           { value: "1", label: "UX-ERG-001 - Ergonomie et Expérience Utilisateur" },
           { value: "2", label: "INFO-ALG-001 - Algorithmique Avancée" },
           { value: "3", label: "MATH-STAT-001 - Statistiques Appliquées" },
@@ -129,11 +113,11 @@ export default function TeacherSubjectAssignment() {
   };
 
   // Simulation de récupération des classes
-  const fetchClasses = async () => {
+  const fetchClasses = async (): Promise<void> => {
     try {
       setLoadingClasses(true);
       setTimeout(() => {
-        const mockClasses = [
+        const mockClasses: Option[] = [
           { value: "1", label: "L1 Informatique - Groupe A" },
           { value: "2", label: "L1 Informatique - Groupe B" },
           { value: "3", label: "L2 Design UX/UI - Groupe A" },
@@ -156,20 +140,33 @@ export default function TeacherSubjectAssignment() {
     fetchClasses();
   }, []);
 
-  // Gestion des inputs
-  const handleSelectChange = (field) => (e) => {
+  // Gestion des inputs select - version compatible avec SelectInput
+  const handleSelectChange = (field: keyof FormData) => (e: React.ChangeEvent<HTMLSelectElement> | { target: { value: string } }) => {
     const value = e.target.value;
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: "" }));
+    if (errors[field as keyof FormErrors]) {
+      setErrors(prev => ({ ...prev, [field]: "" }));
+    }
   };
 
-  const handleCheckboxChange = (e) => {
+  // Gestion des inputs text
+  const handleInputChange = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field as keyof FormErrors]) {
+      setErrors(prev => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  // Gestion de la checkbox
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, is_active: e.target.checked }));
   };
 
-  const handleSubmit = async (e) => {
+  // Soumission du formulaire
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newErrors = {};
+    const newErrors: FormErrors = {};
     
     if (!formData.teacher_id) newErrors.teacher_id = "L'enseignant est requis";
     if (!formData.subject_id) newErrors.subject_id = "La matière est requise";
@@ -194,14 +191,8 @@ export default function TeacherSubjectAssignment() {
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         alert("Attribution créée avec succès !");
-        // Reset du formulaire
-        setFormData({
-          teacher_id: "",
-          subject_id: "",
-          classe_id: "",
-          academic_year: "2024-2025",
-          is_active: true,
-        });
+        // Redirection vers la liste des attributions
+        router.push("/dashboard/attributions");
       } catch (error) {
         console.error("Erreur création:", error);
         alert("Erreur lors de la création de l'attribution.");
@@ -211,152 +202,133 @@ export default function TeacherSubjectAssignment() {
     }
   };
 
-  const handleBack = () => {
-    console.log("Retour à la liste des attributions");
-  };
-
   const handleCancel = () => {
-    console.log("Annulation - retour à la liste");
+    router.push("/dashboard/attributions");
   };
 
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white">
-        <div className="px-8 py-6 flex items-center justify-between">
-          <div className="flex items-center">
-            <button 
-              onClick={handleBack} 
-              className="mr-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Attribution des Matières</h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Attribuer une matière à un enseignant pour une classe spécifique
-              </p>
+        <div className="px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <button 
+                type="button"
+                onClick={() => router.back()}
+                className="mr-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-smooth"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-poppins font-semibold text-gray-900">
+                  Nouvelle Attribution
+                </h1>
+                <p className="text-sm font-poppins text-gray-600 mt-1">
+                  Attribuer une matière à un enseignant pour une classe spécifique
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button 
-              type="button" 
-              onClick={handleCancel} 
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Annuler
-            </button>
-            <button 
-              onClick={handleSubmit} 
-              disabled={loading} 
-              className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg flex items-center disabled:opacity-50 transition-colors"
-            >
-              <Save className="w-4 h-4 mr-2" /> 
-              {loading ? "Attribution..." : "Créer l'Attribution"}
-            </button>
+            
+            <div className="flex items-center space-x-3">
+              <button 
+                type="button"
+                onClick={handleCancel}
+                className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-smooth"
+              >
+                Annuler
+              </button>
+              <button 
+                type="submit"
+                form="attribution-form"
+                disabled={loading}
+                className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-smooth disabled:opacity-50"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {loading ? "Attribution..." : "Créer l'Attribution"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Form */}
       <div className="px-8 py-8 flex-1">
-        <div className="max-w-4xl mx-auto h-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-          
-          {/* Sélection de l'Enseignant */}
-          <div className="p-8 border-b border-gray-200">
-            <div className="flex items-center mb-6">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                <Users className="w-4 h-4 text-blue-600" />
+        <div className="max-w-4xl mx-auto h-full">
+          <form id="attribution-form" onSubmit={handleSubmit} className="h-full">
+            <div className="bg-white border border-gray-200 rounded-lg p-8 h-full flex flex-col">
+              <div className="flex items-center mb-8">
+                <div className="w-8 h-8 bg-forest-100 rounded-lg flex items-center justify-center mr-3">
+                  <Users className="w-4 h-4 text-forest-600" />
+                </div>
+                <h2 className="text-lg font-poppins font-medium text-gray-900">
+                  Informations de l'attribution
+                </h2>
               </div>
-              <h2 className="text-lg font-medium text-gray-900">Sélection de l'enseignant</h2>
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              <SelectInput
-                label="Enseignant"
-                name="teacher_id"
-                placeholder={loadingTeachers ? "Chargement des enseignants..." : "Sélectionner un enseignant"}
-                value={formData.teacher_id}
-                onChange={handleSelectChange("teacher_id")}
-                options={teacherOptions}
-                required
-                error={errors.teacher_id}
-                disabled={loadingTeachers}
-                icon={UserCheck}
-              />
-            </div>
-          </div>
-
-          {/* Sélection de la Matière et Classe */}
-          <div className="p-8 border-b border-gray-200">
-            <div className="flex items-center mb-6">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                <BookOpen className="w-4 h-4 text-green-600" />
-              </div>
-              <h2 className="text-lg font-medium text-gray-900">Matière et classe</h2>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SelectInput
-                label="Matière"
-                name="subject_id"
-                placeholder={loadingSubjects ? "Chargement des matières..." : "Sélectionner une matière"}
-                value={formData.subject_id}
-                onChange={handleSelectChange("subject_id")}
-                options={subjectOptions}
-                required
-                error={errors.subject_id}
-                disabled={loadingSubjects}
-                icon={BookOpen}
-              />
-              <SelectInput
-                label="Classe"
-                name="classe_id"
-                placeholder={loadingClasses ? "Chargement des classes..." : "Sélectionner une classe"}
-                value={formData.classe_id}
-                onChange={handleSelectChange("classe_id")}
-                options={classeOptions}
-                required
-                error={errors.classe_id}
-                disabled={loadingClasses}
-                icon={School}
-              />
-            </div>
-          </div>
-
-          {/* Configuration de l'Attribution */}
-          <div className="p-8">
-            <div className="flex items-center mb-6">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                <Calendar className="w-4 h-4 text-purple-600" />
-              </div>
-              <h2 className="text-lg font-medium text-gray-900">Configuration de l'attribution</h2>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
-              <SelectInput
-                label="Année académique"
-                name="academic_year"
-                placeholder="Sélectionner l'année académique"
-                value={formData.academic_year}
-                onChange={handleSelectChange("academic_year")}
-                options={academicYearOptions}
-                required
-                error={errors.academic_year}
-                icon={Calendar}
-              />
-              <div className="flex items-center pb-2">
-                <input 
-                  type="checkbox" 
-                  id="is_active" 
-                  checked={formData.is_active} 
-                  onChange={handleCheckboxChange} 
-                  className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
-                />
-                <label htmlFor="is_active" className="ml-3 text-sm text-gray-700 font-medium">
-                  Attribution active
-                </label>
+              
+              <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <SelectInput
+                    label="Enseignant"
+                    placeholder={loadingTeachers ? "Chargement des enseignants..." : "Sélectionner un enseignant"}
+                    value={formData.teacher_id}
+                    onChange={handleSelectChange("teacher_id")}
+                    options={teacherOptions}
+                    required
+                    error={errors.teacher_id}
+                    disabled={loadingTeachers}
+                  />
+                  
+                  <SelectInput
+                    label="Matière"
+                    placeholder={loadingSubjects ? "Chargement des matières..." : "Sélectionner une matière"}
+                    value={formData.subject_id}
+                    onChange={handleSelectChange("subject_id")}
+                    options={subjectOptions}
+                    required
+                    error={errors.subject_id}
+                    disabled={loadingSubjects}
+                  />
+                  
+                  <SelectInput
+                    label="Classe"
+                    placeholder={loadingClasses ? "Chargement des classes..." : "Sélectionner une classe"}
+                    value={formData.classe_id}
+                    onChange={handleSelectChange("classe_id")}
+                    options={classeOptions}
+                    required
+                    error={errors.classe_id}
+                    disabled={loadingClasses}
+                  />
+                </div>
+                
+                <div className="space-y-6">
+                  <SelectInput
+                    label="Année académique"
+                    placeholder="Sélectionner l'année académique"
+                    value={formData.academic_year}
+                    onChange={handleSelectChange("academic_year")}
+                    options={academicYearOptions}
+                    required
+                    error={errors.academic_year}
+                  />
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="is_active"
+                      checked={formData.is_active}
+                      onChange={handleCheckboxChange}
+                      className="w-4 h-4 text-forest-600 bg-gray-100 border-gray-300 rounded focus:ring-forest-500 focus:ring-2"
+                    />
+                    <label htmlFor="is_active" className="ml-3 font-poppins text-sm text-gray-700">
+                      Attribution active
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-
+          </form>
         </div>
       </div>
     </div>
