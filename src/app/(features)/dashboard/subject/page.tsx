@@ -15,20 +15,9 @@ import {
   GraduationCap
 } from "lucide-react";
 import Input from "@/components/ui/Inputs/Input";
+import { getSubjects, deleteSubject, Subject, PaginatedResponse } from "./_services/subject.service";
+import { useRouter } from "next/navigation";
 
-// Types simplifiés pour l'administration
-interface Subject {
-  id: number;
-  name: string;
-  code: string;
-  credits: number;
-  coefficient: number;
-  type: string;
-  semester: number;
-  formation_id: number;
-  is_active: boolean;
-  description?: string;
-}
 
 // Fonction utilitaire pour les badges de type
 function getTypeBadge(type: string): string {
@@ -47,62 +36,19 @@ function getTypeBadge(type: string): string {
 }
 
 export default function AdminSubjectsList() {
-  // Données simulées avec le format spécifié
-  const [subjects, setSubjects] = useState<Subject[]>([
-    {
-      id: 1,
-      name: "Ergonomie et Expérience Utilisateur",
-      code: "UX-ERG-001",
-      description: "Méthodologies UX Design, recherche utilisateur, prototypage et test d'utilisabilité.",
-      credits: 4,
-      coefficient: 2,
-      type: "projet",
-      formation_id: 1,
-      semester: 2,
-      is_active: true
-    },
-    {
-      id: 2,
-      name: "Algorithmes Avancés",
-      code: "ALG-ADV-002",
-      description: "Étude des algorithmes complexes et optimisation des performances",
-      credits: 6,
-      coefficient: 3,
-      type: "cours",
-      formation_id: 1,
-      semester: 3,
-      is_active: true
-    },
-    {
-      id: 3,
-      name: "Base de Données NoSQL",
-      code: "BD-NOSQL-003",
-      description: "MongoDB, Redis, ElasticSearch et architectures distribuées",
-      credits: 5,
-      coefficient: 2,
-      type: "tp",
-      formation_id: 2,
-      semester: 4,
-      is_active: false
-    },
-    {
-      id: 4,
-      name: "Intelligence Artificielle",
-      code: "IA-ML-004",
-      description: "Machine Learning, Deep Learning et applications pratiques",
-      credits: 8,
-      coefficient: 4,
-      type: "cours",
-      formation_id: 1,
-      semester: 5,
-      is_active: true
-    }
-  ]);
+  const router = useRouter(); 
 
+  // États pour l'API
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  
+  // États pour les filtres
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedSemester, setSelectedSemester] = useState("all");
-  const [loading, setLoading] = useState(false);
 
   // Options pour les filtres
   const typeOptions = [
@@ -121,40 +67,58 @@ export default function AdminSubjectsList() {
     }))
   ];
 
-  // Filtres appliqués
+  // Charger les matières depuis l'API
+  const fetchSubjects = async (page = 1, search?: string) => {
+    try {
+      setLoading(true);
+      const res: PaginatedResponse<Subject> = await getSubjects(page, search);
+      setSubjects(res.data);
+      setCurrentPage(res.current_page);
+      setLastPage(res.last_page);
+      setTotal(res.total);
+    } catch (error) {
+      console.error("Erreur lors du chargement des matières:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSubjects(currentPage, searchTerm);
+  }, [currentPage, searchTerm]);
+
+  // Filtres appliqués localement (type + semestre)
   const filteredSubjects = useMemo(() => {
     return subjects.filter((subject) => {
-      const matchesSearch = 
-        subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        subject.code.toLowerCase().includes(searchTerm.toLowerCase());
-
       const matchesType = selectedType === "all" || subject.type === selectedType;
       const matchesSemester = selectedSemester === "all" || subject.semester.toString() === selectedSemester;
-
-      return matchesSearch && matchesType && matchesSemester;
+      return matchesType && matchesSemester;
     });
-  }, [subjects, searchTerm, selectedType, selectedSemester]);
+  }, [subjects, selectedType, selectedSemester]);
 
   // Statistiques
   const stats = useMemo(() => ({
-    total: subjects.length,
+    total: total,
     active: subjects.filter(s => s.is_active).length,
     inactive: subjects.filter(s => !s.is_active).length,
     totalCredits: subjects.reduce((sum, s) => sum + s.credits, 0)
-  }), [subjects]);
+  }), [subjects, total]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset à la première page lors d'une nouvelle recherche
   };
 
-  // Actions
+  // Suppression avec API
   const handleDelete = async (id: number) => {
     const confirm = window.confirm("Êtes-vous sûr de vouloir supprimer cette matière ?");
     if (!confirm) return;
 
     try {
       setLoading(true);
+      await deleteSubject(id);
       setSubjects(prev => prev.filter(s => s.id !== id));
+      setTotal(prev => prev - 1);
     } catch (error) {
       console.error("Erreur suppression matière:", error);
     } finally {
@@ -177,7 +141,10 @@ export default function AdminSubjectsList() {
           </div>
           
           <div className="flex items-center space-x-3">
-            <button className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-smooth">
+            <button 
+              onClick={() => router.push('/dashboard/subject/create')}
+              className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-smooth"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Nouvelle Matière
             </button>
@@ -246,7 +213,7 @@ export default function AdminSubjectsList() {
               />
             </div>
             <div className="text-sm font-poppins text-gray-500">
-              {filteredSubjects.length} matière{filteredSubjects.length > 1 ? 's' : ''} trouvée{filteredSubjects.length > 1 ? 's' : ''}
+              {filteredSubjects.length} / {total} matière{total > 1 ? 's' : ''} trouvée{total > 1 ? 's' : ''}
             </div>
           </div>
 
@@ -343,19 +310,33 @@ export default function AdminSubjectsList() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm font-poppins text-gray-900">S{subject.semester}</td>
-                        <td className="px-6 py-4 text-sm font-poppins font-medium text-gray-900">{subject.credits}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <span className="text-sm font-poppins font-medium text-gray-900">{subject.credits}</span>
+                            <span className="text-xs font-poppins text-gray-500 ml-1">crédits</span>
+                          </div>
+                        </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-2">
-                            <button className="p-2 text-gray-400 hover:text-forest-600 hover:bg-forest-50 rounded-lg transition-smooth">
+                            <button 
+                              className="p-2 text-gray-400 hover:text-forest-600 hover:bg-forest-50 rounded-lg transition-smooth"
+                              title="Modifier"
+                              onClick={() => router.push(`/dashboard/subject/edit/${subject.id}`)}
+                            >
                               <Edit3 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDelete(subject.id)}
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-smooth"
+                              title="Supprimer"
+                              disabled={loading}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-smooth">
+                            <button 
+                              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-smooth"
+                              title="Plus d'options"
+                            >
                               <MoreVertical className="w-4 h-4" />
                             </button>
                           </div>
@@ -372,19 +353,21 @@ export default function AdminSubjectsList() {
         {/* Pagination */}
         <div className="mt-6 flex items-center justify-between">
           <div className="text-sm font-poppins text-gray-700">
-            Affichage page <span className="font-medium">1</span> sur{" "}
-            <span className="font-medium">1</span> — Total : <span className="font-medium">{filteredSubjects.length}</span> matière{filteredSubjects.length > 1 ? 's' : ''}
+            Affichage page <span className="font-medium">{currentPage}</span> sur{" "}
+            <span className="font-medium">{lastPage}</span> — Total : <span className="font-medium">{total}</span> matière{total > 1 ? 's' : ''}
           </div>
           <div className="flex items-center space-x-2">
             <button
-              disabled={true}
-              className="px-3 py-2 text-sm font-poppins font-medium text-gray-500 bg-white border border-gray-300 rounded-md opacity-50 cursor-not-allowed"
+              disabled={currentPage === 1 || loading}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              className="px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-smooth"
             >
               Précédent
             </button>
             <button
-              disabled={true}
-              className="px-3 py-2 text-sm font-poppins font-medium text-gray-500 bg-white border border-gray-300 rounded-md opacity-50 cursor-not-allowed"
+              disabled={currentPage === lastPage || loading}
+              onClick={() => setCurrentPage(p => Math.min(lastPage, p + 1))}
+              className="px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-smooth"
             >
               Suivant
             </button>

@@ -7,13 +7,20 @@ import {
   Award,
   GraduationCap,
   Hash,
+  Loader,
 } from "lucide-react";
 import Input from "@/components/ui/Inputs/Input";
 import SelectInput from "@/components/ui/Inputs/Select";
-import { getFormations } from "../../formation/_services/formation.service";
-import { createSubject } from "../_services/subject.service";
+import { getFormations } from "../../../formation/_services/formation.service";
+import { getSubject, updateSubject } from "../../_services/subject.service";
+import { useRouter } from "next/navigation";
 
-export default function SubjectCreationForm() {
+interface SubjectEditFormProps {
+  subjectId: string; // ID passé en paramètre de route
+}
+
+export default function SubjectEditForm({ subjectId }: SubjectEditFormProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -28,8 +35,10 @@ export default function SubjectCreationForm() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [loadingSubject, setLoadingSubject] = useState(true);
   const [formationOptions, setFormationOptions] = useState<{ value: string; label: string }[]>([]);
   const [loadingFormations, setLoadingFormations] = useState(true);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   // Options pour les types de matière
   const typeOptions = [
@@ -62,11 +71,11 @@ export default function SubjectCreationForm() {
     label: `Coefficient ${i + 1}`,
   }));
 
-  // 🔹 Récupération réelle des formations depuis l’API
+  // 🔹 Récupération des formations
   const fetchFormations = async () => {
     try {
       setLoadingFormations(true);
-      const res = await getFormations(1); // page 1 par défaut
+      const res = await getFormations(1);
       const formatted = res.data.map((f) => ({
         value: f.id.toString(),
         label: f.name,
@@ -79,9 +88,52 @@ export default function SubjectCreationForm() {
     }
   };
 
+  // 🔹 Récupération des données de la matière à modifier
+  const fetchSubject = async () => {
+    try {
+      setLoadingSubject(true);
+      setPageError(null);
+      
+      console.log("Subject ID reçu:", subjectId, "Type:", typeof subjectId);
+      
+      // Vérifier si subjectId est défini et non vide
+      if (!subjectId || subjectId.trim() === "") {
+        throw new Error("ID de matière non fourni");
+      }
+      
+      // Convertir et valider l'ID
+      const id = parseInt(subjectId);
+      if (isNaN(id) || id <= 0) {
+        throw new Error("ID de matière invalide");
+      }
+      
+      const subject = await getSubject(id);
+      
+      setFormData({
+        name: subject.name || "",
+        code: subject.code || "",
+        description: subject.description || "",
+        credits: subject.credits?.toString() || "",
+        coefficient: subject.coefficient?.toString() || "",
+        type: subject.type || "",
+        formation_id: subject.formation_id?.toString() || "",
+        semester: subject.semester?.toString() || "",
+        is_active: subject.is_active ?? true,
+      });
+    } catch (error: any) {
+      console.error("Erreur récupération de la matière :", error);
+      setPageError(error.message || "Erreur lors du chargement de la matière");
+    } finally {
+      setLoadingSubject(false);
+    }
+  };
+
   useEffect(() => {
-    fetchFormations();
-  }, []);
+    if (subjectId) {
+      fetchFormations();
+      fetchSubject();
+    }
+  }, [subjectId]);
 
   // Gestion des inputs
   const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,6 +173,13 @@ export default function SubjectCreationForm() {
     if (Object.keys(newErrors).length === 0) {
       try {
         setLoading(true);
+        
+        // Convertir et valider l'ID
+        const id = parseInt(subjectId);
+        if (isNaN(id) || id <= 0) {
+          throw new Error("ID de matière invalide");
+        }
+        
         const apiData = {
           name: formData.name,
           code: formData.code,
@@ -133,12 +192,12 @@ export default function SubjectCreationForm() {
           is_active: formData.is_active,
         };
 
-        await createSubject(apiData);
-        alert("✅ Matière créée avec succès !");
-        // router.push("/dashboard/subjects");
+        await updateSubject(id, apiData);
+        alert("✅ Matière modifiée avec succès !");
+        router.push("/dashboard/subjects");
       } catch (error: any) {
-        console.error("Erreur création:", error);
-        alert(error.message || "Erreur lors de la création de la matière.");
+        console.error("Erreur modification:", error);
+        alert(error.message || "Erreur lors de la modification de la matière.");
       } finally {
         setLoading(false);
       }
@@ -146,14 +205,44 @@ export default function SubjectCreationForm() {
   };
 
   const handleBack = () => {
-    console.log("Retour à la liste des matières");
-    // router.back();
+    router.back();
   };
 
   const handleCancel = () => {
-    console.log("Annulation - retour à la liste");
-    // router.push("/dashboard/subjects");
+    router.push("/dashboard/subjects");
   };
+
+  // Affichage des erreurs de page
+  if (pageError) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-poppins font-semibold text-red-600">
+            Erreur
+          </h1>
+          <p className="text-gray-600 mt-2">{pageError}</p>
+          <button
+            onClick={handleBack}
+            className="mt-4 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Retour
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Affichage du loader pendant le chargement
+  if (loadingSubject) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <Loader className="w-8 h-8 animate-spin text-forest-600 mb-4" />
+          <p className="text-gray-600 font-poppins">Chargement de la matière...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -169,10 +258,10 @@ export default function SubjectCreationForm() {
             </button>
             <div>
               <h1 className="text-2xl font-poppins font-semibold text-gray-900">
-                Nouvelle Matière
+                Modifier la Matière
               </h1>
               <p className="text-sm font-poppins text-gray-600 mt-1">
-                Ajouter une nouvelle matière au programme de formation
+                {formData.name ? `Modification de "${formData.name}"` : "Modification de la matière sélectionnée"}
               </p>
             </div>
           </div>
@@ -190,7 +279,7 @@ export default function SubjectCreationForm() {
               className="px-4 py-2 text-sm font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg flex items-center disabled:opacity-50"
             >
               <Save className="w-4 h-4 mr-2" />
-              {loading ? "Création..." : "Créer la Matière"}
+              {loading ? "Modification..." : "Sauvegarder"}
             </button>
           </div>
         </div>
