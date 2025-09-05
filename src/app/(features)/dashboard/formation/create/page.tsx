@@ -5,103 +5,10 @@ import {
   ArrowLeft,
   Save
 } from "lucide-react";
-import { createFormation } from "../_services/formation.service"; // <-- importe ton service
+import { createFormation } from "../_services/formation.service";
 import { useRouter } from "next/navigation";
-
-// Composant Input
-type InputProps = {
-  label?: string;
-  placeholder?: string;
-  value?: string | number;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  type?: string;
-  required?: boolean;
-  error?: string;
-};
-
-function Input({ 
-  label, 
-  placeholder, 
-  value,
-  onChange,
-  type = "text",
-  required = false,
-  error
-}: InputProps) {
-  return (
-    <div className="flex flex-col gap-2">
-      {label && (
-        <label className="font-poppins text-sm font-medium text-gray-600">
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
-      )}
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className={`h-[50px] px-4 py-2 rounded-xl 
-                   font-poppins font-medium text-base
-                   border ${error ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-gray-50'}
-                   focus:outline-none focus:ring-2 focus:ring-forest-300 focus:border-forest-500
-                   text-gray-700 placeholder-gray-400
-                   transition-smooth
-                   hover:bg-gray-100 hover:border-gray-400 w-full`}
-      />
-      {error && (
-        <span className="text-sm text-red-500 font-poppins">{error}</span>
-      )}
-    </div>
-  );
-}
-
-// Composant Textarea
-type TextareaProps = {
-  label?: string;
-  placeholder?: string;
-  value?: string;
-  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  required?: boolean;
-  error?: string;
-  rows?: number;
-};
-
-function Textarea({ 
-  label, 
-  placeholder, 
-  value,
-  onChange,
-  required = false,
-  error,
-  rows = 4
-}: TextareaProps) {
-  return (
-    <div className="flex flex-col gap-2">
-      {label && (
-        <label className="font-poppins text-sm font-medium text-gray-600">
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
-      )}
-      <textarea
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        rows={rows}
-        className={`px-4 py-3 rounded-xl 
-                   font-poppins font-medium text-base
-                   border ${error ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-gray-50'}
-                   focus:outline-none focus:ring-2 focus:ring-forest-300 focus:border-forest-500
-                   text-gray-700 placeholder-gray-400
-                   transition-smooth
-                   hover:bg-gray-100 hover:border-gray-400 w-full
-                   resize-none`}
-      />
-      {error && (
-        <span className="text-sm text-red-500 font-poppins">{error}</span>
-      )}
-    </div>
-  );
-}
+import Input from "@/components/ui/Inputs/Input";
+import Textarea from "@/components/ui/Inputs/Textarea";
 
 export default function SimpleFormationForm() {
   const router = useRouter();
@@ -116,8 +23,19 @@ export default function SimpleFormationForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const value = field === 'duration_years' ? e.target.value : e.target.value;
+  const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  const handleTextareaChange = (field: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -277,7 +195,7 @@ export default function SimpleFormationForm() {
                     label="Description"
                     placeholder="ex: Formation de trois ans en informatique générale avec spécialisation progressive."
                     value={formData.description}
-                    onChange={handleInputChange('description')}
+                    onChange={handleTextareaChange('description')}
                     required
                     error={errors.description}
                     rows={8}

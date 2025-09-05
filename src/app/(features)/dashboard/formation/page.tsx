@@ -173,7 +173,7 @@ export default function FormationsList() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {["Formation", "Code", "Durée", "Étudiants", "Statut", "Actions"].map((col) => (
+                  {["Formation", "Code", "Durée",  "Statut", "Actions"].map((col) => (
                     <th key={col} className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
                       {col}
                     </th>
@@ -223,16 +223,6 @@ export default function FormationsList() {
                       </td>
                       <td className="px-6 py-4 text-sm font-poppins text-gray-900">
                         {formation.duration_years} {formation.duration_years > 1 ? 'ans' : 'an'}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-poppins text-gray-900">
-                        {formation.students_count ? (
-                          <div className="flex items-center">
-                            <Users className="w-4 h-4 mr-1 text-gray-400" />
-                            {formation.students_count}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium ${
