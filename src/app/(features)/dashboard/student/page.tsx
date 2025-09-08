@@ -1,16 +1,79 @@
 'use client'
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import { 
   Users, GraduationCap, BookOpen, Search, Plus, Filter, Download, 
   ArrowUpRight, ArrowDownRight, MoreHorizontal, ChevronDown, Edit3, 
-  Trash2, MoreVertical, Mail, Phone, Calendar, User
+  Trash2, MoreVertical, Mail, Phone, Calendar, User, Loader2
 } from "lucide-react";
+import axios from "@/lib/server/interceptor/axios"; 
+import { deleteStudent } from "./_services/student.service";
+
+
+// Types
+export interface Student {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  student_number: string;
+  class_id: number;
+  institution_id: number;
+  birth_date: string;
+  is_active: boolean;
+  user?: {
+    id: number;
+    email: string;
+    is_active: boolean;
+  };
+  classe?: {
+    id: number;
+    name: string;
+    code: string;
+    formation?: {
+      id: number;
+      name: string;
+    };
+  };
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  current_page: number;
+  last_page: number;
+  total: number;
+}
+
+// API Functions
+export const fetchStudents = async (params?: {
+  search?: string;
+  page?: number;
+  per_page?: number;
+}): Promise<PaginatedResponse<Student>> => {
+  const response = await axios.get("/admin/students", { params });
+  return response.data;
+};
 
 export default function StudentPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
   const [studentSearchTerm, setStudentSearchTerm] = useState("");
+  
+  // États pour l'API
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    total: 0
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage] = useState(10);
 
+  // Données mockées pour les classes (à remplacer par une API si nécessaire)
   const classes = [
     {
       id: 1,
@@ -70,103 +133,54 @@ export default function StudentPage() {
     }
   ];
 
-  // Mock data pour les étudiants
-  const students = [
-    {
-      id: 1,
-      firstName: "Jean",
-      lastName: "Dupont",
-      email: "jean.dupont@univ-lome.tg",
-      phone: "+228 90 12 34 56",
-      studentNumber: "L3-INFO-001",
-      classId: 1,
-      className: "Licence 3 Informatique",
-      classCode: "L3-INFO",
-      average: 14.5,
-      status: "active",
-      birthDate: "1999-03-15",
-      enrollmentDate: "2022-09-01"
-    },
-    {
-      id: 2,
-      firstName: "Marie",
-      lastName: "Koffi",
-      email: "marie.koffi@univ-lome.tg",
-      phone: "+228 90 23 45 67",
-      studentNumber: "L3-INFO-002",
-      classId: 1,
-      className: "Licence 3 Informatique",
-      classCode: "L3-INFO",
-      average: 16.2,
-      status: "active",
-      birthDate: "1998-07-22",
-      enrollmentDate: "2022-09-01"
-    },
-    {
-      id: 3,
-      firstName: "Kwame",
-      lastName: "Asante",
-      email: "kwame.asante@univ-lome.tg",
-      phone: "+228 90 34 56 78",
-      studentNumber: "M1-GC-001",
-      classId: 2,
-      className: "Master 1 Génie Civil",
-      classCode: "M1-GC",
-      average: 15.8,
-      status: "active",
-      birthDate: "1997-11-10",
-      enrollmentDate: "2023-09-01"
-    },
-    {
-      id: 4,
-      firstName: "Fatou",
-      lastName: "Diallo",
-      email: "fatou.diallo@univ-lome.tg",
-      phone: "+228 90 45 67 89",
-      studentNumber: "L2-MED-001",
-      classId: 3,
-      className: "Licence 2 Médecine",
-      classCode: "L2-MED",
-      average: 13.7,
-      status: "active",
-      birthDate: "2000-01-05",
-      enrollmentDate: "2023-09-01"
-    },
-    {
-      id: 5,
-      firstName: "Ibrahim",
-      lastName: "Sow",
-      email: "ibrahim.sow@univ-lome.tg",
-      phone: "+228 90 56 78 90",
-      studentNumber: "M2-ECO-001",
-      classId: 4,
-      className: "Master 2 Économie",
-      classCode: "M2-ECO",
-      average: 17.1,
-      status: "active",
-      birthDate: "1996-05-18",
-      enrollmentDate: "2022-09-01"
-    },
-    {
-      id: 6,
-      firstName: "Adjoa",
-      lastName: "Mensah",
-      email: "adjoa.mensah@univ-lome.tg",
-      phone: "+228 90 67 89 01",
-      studentNumber: "L3-INFO-003",
-      classId: 1,
-      className: "Licence 3 Informatique",
-      classCode: "L3-INFO",
-      average: 12.8,
-      status: "inactive",
-      birthDate: "1999-09-12",
-      enrollmentDate: "2022-09-01"
+  // Fonction pour charger les étudiants
+  const loadStudents = async (page = 1, search = "") => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params: any = {
+        page,
+        per_page: perPage
+      };
+      
+      if (search.trim()) {
+        params.search = search.trim();
+      }
+      
+      const response = await fetchStudents(params);
+      setStudents(response.data);
+      setPagination({
+        current_page: response.current_page,
+        last_page: response.last_page,
+        total: response.total
+      });
+    } catch (err) {
+      console.error('Erreur lors du chargement des étudiants:', err);
+      setError("Erreur lors du chargement des étudiants");
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const totalStudents = classes.reduce((sum, cls) => sum + cls.studentCount, 0);
+  // Charger les étudiants au montage du composant
+  useEffect(() => {
+    loadStudents(currentPage, studentSearchTerm);
+  }, [currentPage]);
+
+  // Gérer la recherche avec debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1);
+      loadStudents(1, studentSearchTerm);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [studentSearchTerm]);
+
+  const totalStudents = pagination.total;
   const totalCapacity = classes.reduce((sum, cls) => sum + cls.capacity, 0);
-  const occupationRate = ((totalStudents / totalCapacity) * 100).toFixed(1);
+  const occupationRate = totalCapacity > 0 ? ((totalStudents / totalCapacity) * 100).toFixed(1) : "0.0";
 
   const filteredClasses = classes.filter(cls => 
     cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,30 +196,57 @@ export default function StudentPage() {
     }))
   ];
 
-  // Filtrage des étudiants
+  // Filtrage des étudiants par classe (côté client pour le filtre de classe)
   const filteredStudents = useMemo(() => {
-    return students.filter((student) => {
-      const matchesClass = selectedClass === "all" || student.classId.toString() === selectedClass;
-      const matchesSearch = studentSearchTerm === "" || 
-        student.firstName.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-        student.lastName.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-        student.email.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-        student.studentNumber.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-        student.className.toLowerCase().includes(studentSearchTerm.toLowerCase());
-      
-      return matchesClass && matchesSearch;
-    });
-  }, [students, selectedClass, studentSearchTerm]);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+    if (selectedClass === "all") {
+      return students;
     }
+    
+    return students.filter(student => 
+      student.classe?.id?.toString() === selectedClass
+    );
+  }, [students, selectedClass]);
+
+  const getStatusBadge = (isActive: boolean) => {
+    return isActive 
+      ? 'bg-green-100 text-green-800'
+      : 'bg-red-100 text-red-800';
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < pagination.last_page) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  // Fonction pour supprimer un étudiant
+  const handleDeleteStudent = async (studentId: number) => {
+    if (!confirm("Voulez-vous vraiment supprimer cet étudiant ?")) return;
+
+    try {
+      await deleteStudent(studentId);
+      setStudents(prev => prev.filter(student => student.id !== studentId));
+      alert("Étudiant supprimé avec succès !");
+    } catch (err) {
+      console.error("Erreur lors de la suppression de l'étudiant:", err);
+      alert("Une erreur est survenue lors de la suppression.");
+    }
+  };
+
+  // Fonction pour naviguer vers la page d'édition
+  const handleEditStudent = (studentId: number) => {
+    router.push(`/dashboard/student/edit/${studentId}`);
+  };
+
+  // Fonction pour naviguer vers la page de création
+  const handleCreateStudent = () => {
+    router.push('/dashboard/student/registration');
   };
 
   return (
@@ -234,7 +275,10 @@ export default function StudentPage() {
                 <Filter className="w-4 h-4 mr-2" />
                 Filtrer
               </button>
-              <button className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-colors">
+              <button 
+                onClick={handleCreateStudent}
+                className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-colors"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Nouveau Étudiant
               </button>
@@ -266,7 +310,13 @@ export default function StudentPage() {
               <h3 className="text-sm font-poppins font-medium text-gray-600">Total Étudiants</h3>
               <MoreHorizontal className="w-4 h-4 text-gray-400" />
             </div>
-            <div className="text-3xl font-poppins font-light text-gray-900 mb-1">{totalStudents}</div>
+            <div className="text-3xl font-poppins font-light text-gray-900 mb-1">
+              {loading ? (
+                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              ) : (
+                totalStudents
+              )}
+            </div>
             <div className="flex items-center text-sm">
               <span className="inline-flex items-center font-poppins font-medium text-green-700">
                 <ArrowUpRight className="w-3 h-3 mr-1" />
@@ -292,6 +342,21 @@ export default function StudentPage() {
           </div>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="text-red-800 font-poppins text-sm">{error}</div>
+              <button 
+                onClick={() => loadStudents(currentPage, studentSearchTerm)}
+                className="ml-auto text-red-600 hover:text-red-800 font-poppins text-sm font-medium"
+              >
+                Réessayer
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Students Section */}
         <div className="bg-white border border-gray-200 rounded-lg mb-6">
           {/* Search and Filters */}
@@ -310,7 +375,7 @@ export default function StudentPage() {
                 </div>
               </div>
               <div className="text-sm font-poppins text-gray-500">
-                {filteredStudents.length} / {students.length} étudiant{students.length > 1 ? 's' : ''} trouvé{students.length > 1 ? 's' : ''}
+                {filteredStudents.length} / {totalStudents} étudiant{totalStudents > 1 ? 's' : ''} trouvé{totalStudents > 1 ? 's' : ''}
               </div>
             </div>
 
@@ -355,7 +420,14 @@ export default function StudentPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredStudents.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500 font-poppins">
+                      <Loader2 className="w-12 h-12 mx-auto mb-4 text-gray-300 animate-spin" />
+                      <p className="text-lg font-medium">Chargement des étudiants...</p>
+                    </td>
+                  </tr>
+                ) : filteredStudents.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-8 text-center text-gray-500 font-poppins">
                       <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -372,39 +444,46 @@ export default function StudentPage() {
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-poppins font-medium text-gray-900">
-                            {student.firstName} {student.lastName}
+                            {student.first_name} {student.last_name}
                           </div>
                           <div className="text-sm font-poppins text-gray-500">{student.email}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium bg-gray-100 text-gray-800">
-                          {student.studentNumber}
+                          {student.student_number}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-poppins font-medium text-gray-900">{student.classCode}</div>
-                        <div className="text-sm font-poppins text-gray-500">{student.className}</div>
+                        <div className="text-sm font-poppins font-medium text-gray-900">
+                          {student.classe?.code || 'N/A'}
+                        </div>
+                        <div className="text-sm font-poppins text-gray-500">
+                          {student.classe?.name || 'Aucune classe'}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium ${getStatusBadge(student.status)}`}>
-                          {student.status === 'active' ? 'Actif' : 'Inactif'}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium ${getStatusBadge(student.is_active)}`}>
+                          {student.is_active ? 'Actif' : 'Inactif'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
                           <button 
+                            onClick={() => handleEditStudent(student.id)}
                             className="p-2 text-gray-400 hover:text-forest-600 hover:bg-forest-50 rounded-lg transition-colors"
                             title="Modifier"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
+                            onClick={() => handleDeleteStudent(student.id)}
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Supprimer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
+
                           <button 
                             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                             title="Plus d'options"
@@ -422,22 +501,29 @@ export default function StudentPage() {
         </div>
 
         {/* Pagination for Students */}
-        {filteredStudents.length > 0 && (
+        {!loading && filteredStudents.length > 0 && (
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm font-poppins text-gray-700">
-              Affichage de <span className="font-medium">1</span> à{" "}
-              <span className="font-medium">{filteredStudents.length}</span> sur{" "}
-              <span className="font-medium">{filteredStudents.length}</span> étudiant{filteredStudents.length > 1 ? 's' : ''}
+              Affichage de <span className="font-medium">{((pagination.current_page - 1) * perPage) + 1}</span> à{" "}
+              <span className="font-medium">
+                {Math.min(pagination.current_page * perPage, pagination.total)}
+              </span> sur{" "}
+              <span className="font-medium">{pagination.total}</span> étudiant{pagination.total > 1 ? 's' : ''}
             </div>
             <div className="flex items-center space-x-2">
               <button
-                disabled={true}
+                onClick={handlePreviousPage}
+                disabled={pagination.current_page <= 1}
                 className="px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Précédent
               </button>
+              <span className="px-3 py-2 text-sm font-poppins text-gray-700">
+                Page {pagination.current_page} sur {pagination.last_page}
+              </span>
               <button
-                disabled={true}
+                onClick={handleNextPage}
+                disabled={pagination.current_page >= pagination.last_page}
                 className="px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Suivant
