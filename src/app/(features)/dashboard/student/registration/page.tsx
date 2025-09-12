@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import { 
   User, Mail, Phone, Calendar, MapPin, 
   Save, ArrowLeft, AlertCircle, CheckCircle,
@@ -42,6 +43,7 @@ interface FormErrors {
 type SubmitStatus = 'success' | 'error' | null;
 
 export default function StudentRegistration() {
+  const router = useRouter();
   const [formData, setFormData] = useState<FormData>({
     student_number: "",
     first_name: "",
@@ -180,8 +182,14 @@ export default function StudentRegistration() {
     }
   };
 
-  const handleNavigateToImport = () => {};
-  const handleCancel = () => {};
+  const handleCancel = () => {
+    router.back(); // Reviens à la vue précédente
+  };
+
+  const handleNavigateToImport = () => {
+  router.push('/dashboard/student/import');
+};
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -192,6 +200,7 @@ export default function StudentRegistration() {
             <button onClick={handleCancel} className="p-2 hover:bg-gray-100 rounded-lg">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
+
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">Nouvel Étudiant</h1>
               <p className="text-sm text-gray-600 mt-1">Enregistrement d'un nouvel étudiant dans le système</p>
@@ -201,7 +210,6 @@ export default function StudentRegistration() {
             <button onClick={handleNavigateToImport} type="button" className="inline-flex items-center px-4 py-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg">
               <Upload className="w-4 h-4 mr-2" /> Importer fichier
             </button>
-            <button onClick={handleCancel} type="button" className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg">Annuler</button>
             <button onClick={handleSubmit} disabled={isSubmitting || loadingClasses} className="inline-flex items-center px-4 py-2 text-sm text-white bg-forest-600 hover:bg-forest-700 rounded-lg disabled:opacity-50">
               {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin"/>Enregistrement...</> : <><Save className="w-4 h-4 mr-2"/>Enregistrer</>}
             </button>

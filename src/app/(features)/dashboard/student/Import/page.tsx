@@ -7,9 +7,8 @@ import {
 } from "lucide-react";
 import Papa from 'papaparse';
 import ClasseService, { Classe } from "@/app/(features)/dashboard/formation/classe/_services/classe.service";
-import { importStudentsCSV } from "../_services/student.service";
+import { importStudents } from "../_services/student.service";
 
-// Types pour les données d'import
 interface ImportedStudent {
   student_number?: string;
   first_name: string;
@@ -18,8 +17,6 @@ interface ImportedStudent {
   birth_date: string;
   phone: string;
   class_id: string;
-  gender: string;
-  address?: string;
   errors?: string[];
 }
 
@@ -42,13 +39,6 @@ export default function StudentImport() {
   const [loadingClasses, setLoadingClasses] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Options pour le genre
-  const genderOptions = [
-    { value: "M", label: "Masculin" },
-    { value: "F", label: "Féminin" }
-  ];
-
-  // Charger les classes au montage
   useEffect(() => {
     const loadClasses = async () => {
       try {
@@ -68,7 +58,6 @@ export default function StudentImport() {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    // Vérifier le type de fichier
     if (!selectedFile.name.toLowerCase().endsWith('.csv')) {
       alert("Veuillez sélectionner un fichier CSV valide.");
       return;
@@ -78,21 +67,39 @@ export default function StudentImport() {
     processCSVFile(selectedFile);
   };
 
-const processCSVFile = (selectedFile: File) => {
+  const processCSVFile = (selectedFile: File) => {
     setIsProcessing(true);
     setPreviewData([]);
     setImportResult(null);
     setImportStatus(null);
 
-    Papa.parse(selectedFile, {
-      header: true,
-      skipEmptyLines: true,
-      encoding: 'UTF-8',
-      complete: (results) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const csvText = e.target?.result as string;
+        console.log("Contenu brut du CSV:", csvText.substring(0, 200));
+        
+        const cleanText = csvText.replace(/^\uFEFF/, '').trim();
+        
+        const results = Papa.parse(cleanText, {
+          header: true,
+          skipEmptyLines: true,
+          delimiter: ";", // ← Changez pour point-virgule
+        });
+
+        console.log("Résultats du parsing:", results);
+        
+        if (results.errors.length > 0) {
+          console.error("Erreurs de parsing:", results.errors);
+          alert("Erreur de format CSV: " + results.errors[0].message);
+          setIsProcessing(false);
+          return;
+        }
+
         const processedData = results.data.map((row: any, index: number) => {
           const errors: string[] = [];
-          
-          // Validation des champs requis selon le controller Laravel
+
           if (!row.student_number?.trim()) errors.push("Numéro étudiant requis");
           if (!row.first_name?.trim()) errors.push("Prénom requis");
           if (!row.last_name?.trim()) errors.push("Nom requis");
@@ -101,25 +108,11 @@ const processCSVFile = (selectedFile: File) => {
           if (!row.phone?.trim()) errors.push("Téléphone requis");
           if (!row.class_id?.trim()) errors.push("ID classe requis");
 
-          // Validation format email
-          if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
-            errors.push("Format d'email invalide");
-          }
+          if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) errors.push("Format d'email invalide");
+          if (row.phone && !/^\+228\s?\d{8}$/.test(row.phone)) errors.push("Format téléphone invalide (+228 90123456)");
+          if (row.birth_date && isNaN(Date.parse(row.birth_date))) errors.push("Format de date invalide (YYYY-MM-DD)");
 
-          // Validation format téléphone
-          if (row.phone && !/^\+228\s?\d{8}$/.test(row.phone)) {
-            errors.push("Format téléphone invalide (+228 90123456)");
-          }
-
-          // Validation date
-          if (row.birth_date && isNaN(Date.parse(row.birth_date))) {
-            errors.push("Format de date invalide (YYYY-MM-DD)");
-          }
-
-          // Validation class_id
-          if (row.class_id && !classes.find(c => c.id.toString() === row.class_id.toString())) {
-            errors.push("ID classe inexistant");
-          }
+          if (row.class_id && !classes.find(c => c.id.toString() === row.class_id.toString())) errors.push("ID classe inexistant");
 
           return {
             student_number: row.student_number?.trim() || '',
@@ -129,20 +122,25 @@ const processCSVFile = (selectedFile: File) => {
             birth_date: row.birth_date?.trim() || '',
             phone: row.phone?.trim() || '',
             class_id: row.class_id?.toString() || '',
-            // ❌ Supprimer gender et address - Laravel ne les accepte pas
             errors: errors.length > 0 ? errors : undefined
           } as ImportedStudent;
         });
 
         setPreviewData(processedData);
-        setIsProcessing(false);
-      },
-      error: (error) => {
-        console.error("Erreur lors du parsing CSV:", error);
-        alert("Erreur lors de la lecture du fichier CSV.");
+      } catch (error) {
+        console.error("Erreur lors du traitement du fichier:", error);
+        alert("Erreur lors de la lecture du fichier.");
+      } finally {
         setIsProcessing(false);
       }
-    });
+    };
+
+    reader.onerror = () => {
+      alert("Erreur lors de la lecture du fichier.");
+      setIsProcessing(false);
+    };
+
+    reader.readAsText(selectedFile, 'UTF-8');
   };
 
   const handleRemoveFile = () => {
@@ -158,30 +156,24 @@ const processCSVFile = (selectedFile: File) => {
   const handleImport = async () => {
     if (!file || previewData.length === 0) return;
 
-    // Vérifier s'il y a des erreurs
     const hasErrors = previewData.some(student => student.errors);
-    if (hasErrors) {
-      if (!confirm("Certaines données contiennent des erreurs. Voulez-vous continuer l'import pour les données valides uniquement ?")) {
-        return;
-      }
-    }
+    if (hasErrors && !confirm("Certaines données contiennent des erreurs. Voulez-vous continuer l'import pour les données valides uniquement ?")) return;
 
     setIsImporting(true);
     setImportStatus(null);
 
     try {
-      const result = await importStudentsCSV(file);
-      
+      const result = await importStudents(file);
+
       setImportResult({
         success: result.imported || 0,
         errors: result.errors?.length || 0,
         total: previewData.length,
         errorDetails: result.errors
       });
-      
+
       setImportStatus('success');
-      
-      // Redirection après succès
+
       setTimeout(() => {
         window.location.href = '/dashboard/student';
       }, 3000);
@@ -189,16 +181,16 @@ const processCSVFile = (selectedFile: File) => {
     } catch (error: any) {
       console.error("Erreur lors de l'importation:", error);
       setImportStatus('error');
-      
-      // Essayer d'extraire les détails d'erreur de l'API
-      if (error?.response?.data) {
-        setImportResult({
-          success: 0,
-          errors: 1,
-          total: previewData.length,
-          errorDetails: [error.response.data.message || "Erreur inconnue"]
-        });
-      }
+
+      // Message d'erreur détaillé
+      const errorMessage = error.message || "Une erreur inconnue s'est produite";
+
+      setImportResult({
+        success: 0,
+        errors: 1,
+        total: previewData.length,
+        errorDetails: [errorMessage]
+      });
     } finally {
       setIsImporting(false);
     }
@@ -209,31 +201,26 @@ const processCSVFile = (selectedFile: File) => {
     return foundClass ? foundClass.name : `ID: ${classId}`;
   };
 
-  const getGenderLabel = (gender: string) => {
-    return genderOptions.find(opt => opt.value === gender)?.label || gender;
+  const handleNavigateBack = () => {
+    window.history.back();
   };
 
-  const handleNavigateBack = () => {
-    window.location.href = '/dashboard/student';
-  };
 
   const downloadTemplate = () => {
     const headers = [
-      'first_name',
-      'last_name', 
-      'email',
-      'birth_date',
-      'phone',
-      'class_id',
-      'gender',
-      'address',
-      'student_number'
-    ];
-    
-    const csvContent = headers.join(',') + '\n' + 
-      'Jean,Dupont,jean.dupont@univ-lome.tg,2000-05-15,+228 90123456,1,M,Lomé Quartier Administratif,\n' +
-      'Marie,Koné,marie.kone@univ-lome.tg,2001-08-22,+228 90234567,2,F,Lomé Nyékonakpoè,';
-    
+      "student_number",
+      "first_name", 
+      "last_name",
+      "birth_date",
+      "email",
+      "phone",
+      "class_id"
+    ].join(";"); // ← Utilisez des points-virgules
+
+    const csvContent = headers + "\n" +
+      "ETU2024-001;Jean;Dupont;2000-05-15;jean.dupont@example.com;+22890123456;1\n" +
+      "ETU2024-002;Marie;Kone;2001-08-22;marie.kone@example.com;+22890234567;2";
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -437,6 +424,9 @@ const processCSVFile = (selectedFile: File) => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Numéro Étudiant
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Nom & Prénom
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -449,9 +439,6 @@ const processCSVFile = (selectedFile: File) => {
                         Classe
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Genre
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Statut
                       </th>
                     </tr>
@@ -459,6 +446,9 @@ const processCSVFile = (selectedFile: File) => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {previewData.map((student, index) => (
                       <tr key={index} className={student.errors ? "bg-red-50" : ""}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {student.student_number}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
                             {student.first_name} {student.last_name}
@@ -475,9 +465,6 @@ const processCSVFile = (selectedFile: File) => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {getClassLabel(student.class_id)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {getGenderLabel(student.gender)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {student.errors ? (
