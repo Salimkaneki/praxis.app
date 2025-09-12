@@ -1,6 +1,13 @@
 'use client'
 import React from "react";
-import { Filter, Download } from "lucide-react";
+import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+interface ActionButtonProps {
+  label: string;
+  icon?: React.ReactNode;
+  onClick?: () => void;
+}
 
 interface TeacherPageHeaderProps {
   title: string;
@@ -11,6 +18,7 @@ interface TeacherPageHeaderProps {
   onFilter?: () => void;
   onExport?: () => void;
   children?: React.ReactNode;
+  actionButton?: ActionButtonProps; // 👈 bouton configurable
 }
 
 export default function TeacherPageHeader({
@@ -21,12 +29,16 @@ export default function TeacherPageHeader({
   showDate = true,
   onFilter,
   onExport,
-  children
+  children,
+  actionButton
 }: TeacherPageHeaderProps) {
+  const router = useRouter();
+
   return (
     <div className="border-b border-gray-200 bg-white">
       <div className="px-8 py-6">
         <div className="flex items-center justify-between">
+          {/* Titre + sous-titre */}
           <div>
             <h1 className="text-2xl font-poppins font-semibold text-gray-900">
               {title}
@@ -37,40 +49,19 @@ export default function TeacherPageHeader({
               </p>
             )}
           </div>
-          
-          {/* <div className="flex items-center space-x-3">
-            {showFilters && (
-              <button 
-                onClick={onFilter}
-                className="inline-flex items-center px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500"
+
+          {/* Bouton d’action */}
+          {actionButton && (
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={actionButton.onClick}
+                className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-smooth"
               >
-                <Filter className="w-4 h-4 mr-2" />
-                Filtrer
+                {actionButton.icon ?? <Plus className="w-4 h-4 mr-2" />}
+                {actionButton.label}
               </button>
-            )}
-            
-            {showExport && (
-              <button 
-                onClick={onExport}
-                className="inline-flex items-center px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Exporter
-              </button>
-            )}
-            
-            {children}
-            
-            {showDate && (
-              <div className="text-sm font-poppins text-gray-500">
-                {new Date().toLocaleDateString('fr-FR', { 
-                  day: 'numeric', 
-                  month: 'long', 
-                  year: 'numeric' 
-                })}
-              </div>
-            )}
-          </div> */} 
+            </div>
+          )}
         </div>
       </div>
     </div>

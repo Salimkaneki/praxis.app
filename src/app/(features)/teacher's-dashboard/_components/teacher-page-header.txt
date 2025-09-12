@@ -1,0 +1,9 @@
+<TeacherPageHeader
+  title="Quiz & Examens"
+  subtitle="Gérez vos quiz et évaluations pour vos classes"
+  actionButton={{
+    label: "Nouveau Quiz",
+    icon: <Plus className="w-4 h-4 mr-2" />,
+    onClick: () => router.push("/dashboard/teacher/quizzes/create"),
+  }}
+/>
