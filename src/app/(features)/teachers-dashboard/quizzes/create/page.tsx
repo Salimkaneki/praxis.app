@@ -13,13 +13,11 @@ import Select from "@/components/ui/Inputs/Select";
 import Textarea from "@/components/ui/Inputs/Textarea";
 import TeacherPageHeader from "../../_components/page-header";
 
-// Types pour les subjects (à adapter selon votre API)
-interface Subject {
-  id: number;
-  name: string;
-  code?: string;
-}
+// Import des services - CORRECTION ICI
+import { SubjectService, TeacherSubject } from "../_services/subjects.service";
+import { QuizzesService } from "../_services/quizzes.service";
 
+// Types pour le formulaire
 interface FormData {
   title: string;
   description: string;
@@ -29,7 +27,7 @@ interface FormData {
   shuffle_questions: boolean;
   show_results_immediately: boolean;
   allow_review: boolean;
-  status: string;
+  status: "draft" | "published" | "archived"; // CORRECTION ICI
   difficulty: string;
   negative_marking: boolean;
   require_all_questions: boolean;
@@ -68,7 +66,7 @@ export default function CreateQuizPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>(null);
 
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjects, setSubjects] = useState<TeacherSubject[]>([]);
   const [loadingSubjects, setLoadingSubjects] = useState(true);
   const [subjectsError, setSubjectsError] = useState<string | null>(null);
 
@@ -84,27 +82,17 @@ export default function CreateQuizPage() {
     { value: "hard", label: "Difficile" }
   ];
 
-  // Charger les matières
+  // Charger les matières du professeur - CORRECTION ICI
   useEffect(() => {
     const loadSubjects = async () => {
       try {
         setLoadingSubjects(true);
         setSubjectsError(null);
-        // Remplacez par votre service API
-        // const response = await SubjectService.getSubjects();
-        // setSubjects(response.data);
-        
-        // Données mockées pour l'exemple
-        const mockSubjects = [
-          { id: 1, name: "UX/UI Design", code: "UX101" },
-          { id: 2, name: "Développement Web", code: "WEB201" },
-          { id: 3, name: "Base de données", code: "DB301" },
-          { id: 4, name: "Algorithmes", code: "ALG401" }
-        ];
-        setSubjects(mockSubjects);
+        const teacherSubjects = await SubjectService.getMySubjects(); // CORRECTION ICI
+        setSubjects(teacherSubjects);
       } catch (err) {
         console.error("Erreur lors du chargement des matières", err);
-        setSubjectsError("Erreur lors du chargement des matières");
+        setSubjectsError("Erreur lors du chargement des matières. Veuillez réessayer.");
       } finally {
         setLoadingSubjects(false);
       }
@@ -113,8 +101,8 @@ export default function CreateQuizPage() {
   }, []);
 
   const subjectOptions = subjects.map(subject => ({
-    value: subject.id.toString(),
-    label: `${subject.name} ${subject.code ? `(${subject.code})` : ''}`
+    value: subject.subject_id.toString(),
+    label: `${subject.subject_name}${subject.classe_name ? ` - ${subject.classe_name}` : ''}`
   }));
 
   const handleInputChange = (field: keyof FormData) => 
@@ -176,14 +164,13 @@ export default function CreateQuizPage() {
         }
       };
 
-      // Remplacez par votre service API
-      // await createQuiz(quizData);
-      console.log("Quiz data:", quizData);
+      // Utilisation du service de création de quiz
+      await QuizzesService.create(quizData);
       
       setSubmitStatus('success');
-      // Reset form ou redirection
+      // Redirection après 2 secondes
       setTimeout(() => {
-        router.push('/dashboard/teacher/quizzes');
+        router.push('/teachers-dashboard/quizzes');
       }, 2000);
 
     } catch (error: any) {
@@ -200,18 +187,18 @@ export default function CreateQuizPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-poppins">
-      {/* Header */}
+      {/* Header - RETIRER backButton SI NÉCESSAIRE */}
       <TeacherPageHeader
         title="Créer un Quiz"
         subtitle="Remplissez les informations ci-dessous pour créer un nouveau quiz."
         actionButton={{
           label: isSubmitting ? "Création..." : "Créer le Quiz",
           icon: isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />,
-        //   onClick: handleSubmit,
-        //   disabled: isSubmitting || loadingSubjects
-        // }}
-        // backButton={{
-        //   onClick: handleCancel
+          onClick: handleSubmit,
+          // disabled: isSubmitting || loadingSubjects
+        }}
+        backButton={{ // RETIRER CETTE LIGNE SI TeacherPageHeader N'A PAS CETTE PROP
+          onClick: handleCancel
         }}
       />
 
@@ -230,6 +217,16 @@ export default function CreateQuizPage() {
               <span className="text-sm text-red-800">Une erreur est survenue lors de la création.</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Message d'erreur pour le chargement des matières */}
+      {subjectsError && (
+        <div className="px-8 py-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
+            <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
+            <span className="text-sm text-red-800">{subjectsError}</span>
+          </div>
         </div>
       )}
 
