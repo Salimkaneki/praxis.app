@@ -1,0 +1,595 @@
+'use client';
+import React, { useState } from "react";
+import { useRouter } from 'next/navigation';
+import { 
+  FileText, BookOpen, Clock, Star, Settings, 
+  Edit, Trash2, Users, Target, Eye, AlertCircle,
+  Plus, ChevronRight, MoreVertical, Play, Copy,
+  CheckCircle, XCircle, Shuffle, RotateCcw, GripVertical,
+  Move, ChevronUp, ChevronDown, Search, Filter,
+  ArrowUp, ArrowDown, BarChart3
+} from "lucide-react";
+import TeacherPageHeader from "../../_components/page-header";
+
+// Types
+interface Question {
+  id: string;
+  question_text: string;
+  type: 'multiple_choice' | 'true_false' | 'short_answer';
+  points: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  options_count?: number;
+  order: number;
+  is_required: boolean;
+}
+
+const QuizDetailsPage = () => {
+  const router = useRouter();
+  const [showActions, setShowActions] = useState(false);
+  const [activeView, setActiveView] = useState<'list' | 'grid'>('list');
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'multiple_choice' | 'true_false' | 'short_answer'>('all');
+  const [filterDifficulty, setFilterDifficulty] = useState<'all' | 'easy' | 'medium' | 'hard'>('all');
+
+  // Données statiques du quiz
+  const quiz = {
+    id: "1",
+    title: "Quiz UX Design - Méthodologies et Prototypage",
+    description: "Évaluation des connaissances sur les principes UX/UI, méthodologies de recherche utilisateur et techniques de prototypage. Ce quiz couvre les aspects essentiels du design centré utilisateur.",
+    subject: {
+      id: 1,
+      name: "UX/UI Design",
+      code: "UX101"
+    },
+    duration_minutes: 60,
+    total_points: 30,
+    status: "published" as const,
+    difficulty: "medium" as const,
+    shuffle_questions: true,
+    show_results_immediately: false,
+    allow_review: true,
+    negative_marking: false,
+    require_all_questions: true,
+    randomize_options: true,
+    created_at: "2024-01-15T10:00:00Z",
+    updated_at: "2024-01-16T14:30:00Z",
+    questions_count: 7,
+    attempts_count: 12
+  };
+
+  // Données statiques des questions étendues
+  const allQuestions: Question[] = [
+    {
+      id: "1",
+      question_text: "Quelle est la première étape du processus de Design Thinking ?",
+      type: "multiple_choice",
+      points: 3,
+      difficulty: "easy",
+      options_count: 4,
+      order: 1,
+      is_required: true
+    },
+    {
+      id: "2", 
+      question_text: "Les personas sont-ils basés sur des données réelles d'utilisateurs ?",
+      type: "true_false",
+      points: 2,
+      difficulty: "medium",
+      order: 2,
+      is_required: true
+    },
+    {
+      id: "3",
+      question_text: "Qu'est-ce qu'un wireframe et à quoi sert-il dans le processus de design ?",
+      type: "short_answer",
+      points: 5,
+      difficulty: "medium",
+      order: 3,
+      is_required: true
+    },
+    {
+      id: "4",
+      question_text: "Parmi ces méthodes, lesquelles sont utilisées pour la recherche utilisateur ?",
+      type: "multiple_choice",
+      points: 4,
+      difficulty: "hard",
+      options_count: 6,
+      order: 4,
+      is_required: false
+    },
+    {
+      id: "5",
+      question_text: "Définissez le concept d'affordance en UX Design",
+      type: "short_answer", 
+      points: 6,
+      difficulty: "hard",
+      order: 5,
+      is_required: true
+    },
+    {
+      id: "6",
+      question_text: "Quels sont les principes de base de l'accessibilité web ?",
+      type: "multiple_choice",
+      points: 4,
+      difficulty: "medium",
+      options_count: 5,
+      order: 6,
+      is_required: false
+    },
+    {
+      id: "7",
+      question_text: "L'utilisabilité et l'expérience utilisateur sont-elles identiques ?",
+      type: "true_false",
+      points: 2,
+      difficulty: "easy",
+      order: 7,
+      is_required: true
+    }
+  ];
+
+  // Filtrage des questions
+  const filteredQuestions = allQuestions.filter(question => {
+    const matchesSearch = question.question_text.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === 'all' || question.type === filterType;
+    const matchesDifficulty = filterDifficulty === 'all' || question.difficulty === filterDifficulty;
+    return matchesSearch && matchesType && matchesDifficulty;
+  });
+
+  const getStatusConfig = (status: typeof quiz.status) => {
+    const configs = {
+      draft: {
+        label: "Brouillon",
+        className: "bg-gray-100 text-gray-800 border-gray-200",
+        icon: FileText
+      },
+      published: {
+        label: "Publié",
+        className: "bg-green-100 text-green-800 border-green-200", 
+        icon: CheckCircle
+      },
+      archived: {
+        label: "Archivé",
+        className: "bg-red-100 text-red-800 border-red-200",
+        icon: XCircle
+      }
+    };
+    return configs[status];
+  };
+
+  const getDifficultyConfig = (difficulty: Question['difficulty']) => {
+    const configs = {
+      easy: { label: "Facile", className: "bg-green-100 text-green-800", color: "text-green-600" },
+      medium: { label: "Moyen", className: "bg-yellow-100 text-yellow-800", color: "text-yellow-600" },
+      hard: { label: "Difficile", className: "bg-red-100 text-red-800", color: "text-red-600" }
+    };
+    return configs[difficulty];
+  };
+
+  const getQuestionTypeConfig = (type: Question['type']) => {
+    const configs = {
+      multiple_choice: { 
+        label: "QCM", 
+        className: "bg-blue-100 text-blue-800",
+        icon: CheckCircle,
+        description: "Choix multiple"
+      },
+      true_false: { 
+        label: "Vrai/Faux", 
+        className: "bg-purple-100 text-purple-800",
+        icon: Target,
+        description: "Question binaire"
+      },
+      short_answer: { 
+        label: "Réponse courte", 
+        className: "bg-emerald-100 text-emerald-800",
+        icon: Edit,
+        description: "Réponse libre"
+      }
+    };
+    return configs[type];
+  };
+
+  const handleEditQuiz = () => {
+    router.push(`/dashboard/teacher/quizzes/${quiz.id}/edit`);
+  };
+
+  const handleAddQuestion = () => {
+    router.push(`/dashboard/teacher/quizzes/${quiz.id}/questions/create`);
+  };
+
+  const handleEditQuestion = (questionId: string) => {
+    router.push(`/dashboard/teacher/quizzes/${quiz.id}/questions/${questionId}/edit`);
+  };
+
+  const handleDuplicateQuestion = (questionId: string) => {
+    // Logique de duplication
+    console.log('Dupliquer question:', questionId);
+  };
+
+  const handleDeleteQuestion = (questionId: string) => {
+    // Logique de suppression
+    console.log('Supprimer question:', questionId);
+  };
+
+  const handlePreviewQuiz = () => {
+    router.push(`/dashboard/teacher/quizzes/${quiz.id}/preview`);
+  };
+
+  const handleBulkDelete = () => {
+    // Supprimer les questions sélectionnées
+    console.log('Supprimer questions:', selectedQuestions);
+    setSelectedQuestions([]);
+  };
+
+  const handleSelectQuestion = (questionId: string) => {
+    setSelectedQuestions(prev => 
+      prev.includes(questionId) 
+        ? prev.filter(id => id !== questionId)
+        : [...prev, questionId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedQuestions.length === filteredQuestions.length) {
+      setSelectedQuestions([]);
+    } else {
+      setSelectedQuestions(filteredQuestions.map(q => q.id));
+    }
+  };
+
+  const statusConfig = getStatusConfig(quiz.status);
+  const difficultyConfig = getDifficultyConfig(quiz.difficulty);
+  const StatusIcon = statusConfig.icon;
+
+  const totalPoints = filteredQuestions.reduce((sum, q) => sum + q.points, 0);
+  const questionsByDifficulty = {
+    easy: filteredQuestions.filter(q => q.difficulty === 'easy').length,
+    medium: filteredQuestions.filter(q => q.difficulty === 'medium').length,
+    hard: filteredQuestions.filter(q => q.difficulty === 'hard').length,
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-poppins">
+      {/* Header */}
+      <TeacherPageHeader
+        title={quiz.title}
+        subtitle={`${quiz.questions_count} questions • ${quiz.attempts_count} tentatives`}
+        actionButton={{
+          label: "Modifier le quiz",
+          icon: <Edit className="w-4 h-4 mr-2" />,
+          onClick: handleEditQuiz
+        }}
+      />
+
+      <div className="px-8 py-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Résumé rapide */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{filteredQuestions.length}</p>
+                  <p className="text-sm text-gray-600">Questions</p>
+                </div>
+                <FileText className="w-8 h-8 text-blue-600" />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{totalPoints}</p>
+                  <p className="text-sm text-gray-600">Points total</p>
+                </div>
+                <Star className="w-8 h-8 text-yellow-600" />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{quiz.duration_minutes}</p>
+                  <p className="text-sm text-gray-600">Minutes</p>
+                </div>
+                <Clock className="w-8 h-8 text-green-600" />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{quiz.attempts_count}</p>
+                  <p className="text-sm text-gray-600">Tentatives</p>
+                </div>
+                <BarChart3 className="w-8 h-8 text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          {/* Section Questions avec outils améliorés */}
+          <div className="bg-white rounded-lg border border-gray-200">
+            {/* Header avec outils */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Questions du quiz</h2>
+                    <p className="text-sm text-gray-600">
+                      {filteredQuestions.length} question{filteredQuestions.length > 1 ? 's' : ''} • 
+                      Facile: {questionsByDifficulty.easy}, Moyen: {questionsByDifficulty.medium}, Difficile: {questionsByDifficulty.hard}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleAddQuestion}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2 text-sm font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Ajouter une question
+                  </button>
+                  
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowActions(!showActions)}
+                      className="p-2 hover:bg-gray-100 rounded-lg"
+                    >
+                      <MoreVertical className="w-5 h-5 text-gray-500" />
+                    </button>
+                    {showActions && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                        <button
+                          onClick={handlePreviewQuiz}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          <Play className="w-4 h-4" />
+                          Prévisualiser le quiz
+                        </button>
+                        <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                          <Copy className="w-4 h-4" />
+                          Importer des questions
+                        </button>
+                        <button className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                          <Shuffle className="w-4 h-4" />
+                          Réorganiser automatiquement
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Barre de recherche et filtres */}
+              <div className="flex flex-col md:flex-row gap-4 mb-4">
+                <div className="flex-1 relative">
+                  <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher dans les questions..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value as any)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="all">Tous les types</option>
+                    <option value="multiple_choice">QCM</option>
+                    <option value="true_false">Vrai/Faux</option>
+                    <option value="short_answer">Réponse courte</option>
+                  </select>
+                  
+                  <select
+                    value={filterDifficulty}
+                    onChange={(e) => setFilterDifficulty(e.target.value as any)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="all">Toutes difficultés</option>
+                    <option value="easy">Facile</option>
+                    <option value="medium">Moyen</option>
+                    <option value="hard">Difficile</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Actions en lot */}
+              {selectedQuestions.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-blue-900">
+                      {selectedQuestions.length} question{selectedQuestions.length > 1 ? 's' : ''} sélectionnée{selectedQuestions.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="px-3 py-1 text-sm text-blue-700 hover:bg-blue-100 rounded">
+                      Dupliquer
+                    </button>
+                    <button className="px-3 py-1 text-sm text-blue-700 hover:bg-blue-100 rounded">
+                      Déplacer
+                    </button>
+                    <button 
+                      onClick={handleBulkDelete}
+                      className="px-3 py-1 text-sm text-red-700 hover:bg-red-100 rounded"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6">
+              {filteredQuestions.length === 0 ? (
+                // État vide
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {searchTerm || filterType !== 'all' || filterDifficulty !== 'all' 
+                      ? 'Aucune question trouvée' 
+                      : 'Aucune question ajoutée'
+                    }
+                  </h3>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    {searchTerm || filterType !== 'all' || filterDifficulty !== 'all'
+                      ? 'Essayez de modifier vos critères de recherche ou de filtrage.'
+                      : 'Commencez par ajouter des questions à votre quiz pour permettre aux étudiants de le passer.'
+                    }
+                  </p>
+                  {!(searchTerm || filterType !== 'all' || filterDifficulty !== 'all') && (
+                    <button
+                      onClick={handleAddQuestion}
+                      className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2 mx-auto font-medium"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Créer ma première question
+                    </button>
+                  )}
+                </div>
+              ) : (
+                // Liste des questions améliorée
+                <div className="space-y-3">
+                  {/* Header avec sélection globale */}
+                  <div className="flex items-center gap-4 py-2 px-4 bg-gray-50 rounded-lg">
+                    <input
+                      type="checkbox"
+                      checked={selectedQuestions.length === filteredQuestions.length}
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div className="flex-1 grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      <div className="col-span-1">#</div>
+                      <div className="col-span-5">Question</div>
+                      <div className="col-span-2">Type</div>
+                      <div className="col-span-1">Difficulté</div>
+                      <div className="col-span-1">Points</div>
+                      <div className="col-span-1">Statut</div>
+                      <div className="col-span-1">Actions</div>
+                    </div>
+                  </div>
+
+                  {filteredQuestions.map((question, index) => {
+                    const typeConfig = getQuestionTypeConfig(question.type);
+                    const diffConfig = getDifficultyConfig(question.difficulty);
+                    const TypeIcon = typeConfig.icon;
+
+                    return (
+                      <div
+                        key={question.id}
+                        className={`border rounded-lg p-4 transition-all hover:border-gray-300 hover:shadow-sm ${
+                          selectedQuestions.includes(question.id) ? 'bg-blue-50 border-blue-200' : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          {/* Sélection */}
+                          <input
+                            type="checkbox"
+                            checked={selectedQuestions.includes(question.id)}
+                            onChange={() => handleSelectQuestion(question.id)}
+                            className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                          />
+
+                          {/* Contenu principal */}
+                          <div className="flex-1 grid grid-cols-12 gap-4 items-center">
+                            {/* Numéro */}
+                            <div className="col-span-1">
+                              <div className="flex items-center gap-2">
+                                <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
+                                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium">
+                                  {question.order}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Question */}
+                            <div className="col-span-5">
+                              <h4 className="font-medium text-gray-900 mb-1 line-clamp-1">
+                                {question.question_text}
+                              </h4>
+                              {question.options_count && (
+                                <p className="text-xs text-gray-500">
+                                  {question.options_count} options de réponse
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Type */}
+                            <div className="col-span-2">
+                              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${typeConfig.className}`}>
+                                <TypeIcon className="w-3 h-3" />
+                                {typeConfig.label}
+                              </div>
+                            </div>
+
+                            {/* Difficulté */}
+                            <div className="col-span-1">
+                              <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${diffConfig.className}`}>
+                                {diffConfig.label}
+                              </div>
+                            </div>
+
+                            {/* Points */}
+                            <div className="col-span-1">
+                              <span className="font-semibold text-gray-900">{question.points}</span>
+                              <span className="text-xs text-gray-500 ml-1">pts</span>
+                            </div>
+
+                            {/* Statut */}
+                            <div className="col-span-1">
+                              {question.is_required ? (
+                                <AlertCircle className="w-4 h-4 text-red-500" title="Obligatoire" />
+                              ) : (
+                                <div className="w-4 h-4" />
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="col-span-1">
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleEditQuestion(question.id)}
+                                  className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                  title="Modifier"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDuplicateQuestion(question.id)}
+                                  className="p-1.5 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded"
+                                  title="Dupliquer"
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteQuestion(question.id)}
+                                  className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default QuizDetailsPage;
