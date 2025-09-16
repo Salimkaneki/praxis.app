@@ -1,3 +1,4 @@
+// teachers-dashboard/quizzes/page.tsx
 'use client';
 import React, { useEffect, useState } from "react";
 import TeacherPageHeader from "../_components/page-header";
@@ -19,6 +20,7 @@ export default function QuizPage() {
 
         // Adapter le format API vers QuizCard utilisé par QuizGrid
         const formatted: QuizCard[] = data.map(q => ({
+          id: q.id, // Important : inclure l'ID pour la navigation
           title: q.title,
           description: q.description ?? "",
           duration_minutes: q.duration_minutes ?? 0,
@@ -54,8 +56,24 @@ export default function QuizPage() {
       />
 
       <div className="px-8 py-8">
-        {loading && <p>Chargement des quiz...</p>}
-        {error && <p className="text-red-500">{error}</p>}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-gray-600">Chargement des quiz...</span>
+          </div>
+        )}
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
+        
         {!loading && !error && <QuizGrid quizzes={quizzes} />}
       </div>
     </div>
