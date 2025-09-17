@@ -8,7 +8,29 @@ import {
   CheckCircle, XCircle, Shuffle, RotateCcw
 } from "lucide-react";
 import TeacherPageHeader from "../../../_components/page-header";
+import QuestionDetailsModal from "../../../_components/QuestionDetailsModal"; // Import du modal
 import { QuizzesService, Quiz, QuestionsService, Question } from "../../_services/quizzes.service";
+
+// Type pour les options du modal (ajustez selon votre interface dans le modal)
+interface ModalOption {
+  text: string;
+  is_correct: boolean;
+}
+
+// Type adapté pour le modal
+interface ModalQuestion {
+  id: number;
+  question_text: string;
+  type: Question['type'];
+  points: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  options: ModalOption[];
+  correct_answer: string;
+  explanation: string;
+  created_at: string;
+  updated_at: string;
+  order: number; // Propriété manquante requise par le modal
+}
 
 const QuizDetailsPage = () => {
   const router = useRouter();
@@ -20,6 +42,10 @@ const QuizDetailsPage = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // États pour le modal
+  const [selectedQuestion, setSelectedQuestion] = useState<ModalQuestion | null>(null);
+  const [showQuestionModal, setShowQuestionModal] = useState(false);
 
   // Récupération des données du quiz et des questions
   useEffect(() => {
@@ -38,7 +64,26 @@ const QuizDetailsPage = () => {
         ]);
         
         setQuiz(quizData);
-        setQuestions(questionsData);
+        
+        // CORRECTION: Trier les questions par ordre, puis par ID
+        const sortedQuestions = questionsData.sort((a, b) => {
+          // Si les deux ont un ordre défini, trier par ordre
+          if (a.order != null && b.order != null) {
+            return a.order - b.order;
+          }
+          // Si seulement a a un ordre, a vient en premier
+          if (a.order != null && b.order == null) {
+            return -1;
+          }
+          // Si seulement b a un ordre, b vient en premier
+          if (a.order == null && b.order != null) {
+            return 1;
+          }
+          // Si aucun n'a d'ordre, trier par ID (ou date de création)
+          return a.id - b.id;
+        });
+        
+        setQuestions(sortedQuestions);
       } catch (err: any) {
         console.error("Erreur lors de la récupération du quiz :", err);
         setError("Impossible de récupérer les détails du quiz");
@@ -49,6 +94,30 @@ const QuizDetailsPage = () => {
 
     fetchQuizAndQuestions();
   }, [quizId]);
+
+  // NOUVELLE FONCTION: Rafraîchir les questions après ajout/suppression
+  const refreshQuestions = async () => {
+    if (!quizId) return;
+    
+    try {
+      const questionsData = await QuestionsService.getAll(Number(quizId));
+      const sortedQuestions = questionsData.sort((a, b) => {
+        if (a.order != null && b.order != null) {
+          return a.order - b.order;
+        }
+        if (a.order != null && b.order == null) {
+          return -1;
+        }
+        if (a.order == null && b.order != null) {
+          return 1;
+        }
+        return a.id - b.id;
+      });
+      setQuestions(sortedQuestions);
+    } catch (error) {
+      console.error("Erreur lors du rafraîchissement des questions:", error);
+    }
+  };
 
   const getStatusConfig = (status: Quiz['status']) => {
     const configs = {
@@ -96,13 +165,44 @@ const QuizDetailsPage = () => {
   };
 
   const handleAddQuestion = () => {
-    // TODO: Implémenter quand la page de création de question sera créée
-    console.log("Ajouter une question");
+    // Chemin corrigé selon votre vraie structure de fichiers
+    router.push(`/teachers-dashboard/quizzes/quiz-details/add-questions/${quiz?.id}`);
   };
 
   const handleEditQuestion = (questionId: number) => {
     // TODO: Implémenter quand la page d'édition de question sera créée
     console.log("Éditer la question", questionId);
+  };
+
+  // Nouvelle fonction pour voir les détails de la question
+// Modifiez la fonction handleViewQuestion pour accepter l'index en paramètre
+  const handleViewQuestion = (question: Question, index: number) => {
+    // Adapter la question pour le modal en s'assurant du bon format
+    const adaptedQuestion: ModalQuestion = {
+      id: question.id,
+      question_text: question.question_text,
+      type: question.type,
+      points: question.points || 0,
+      difficulty: (question as any).difficulty || 'medium', // Utilisez un cast temporaire
+      options: Array.isArray(question.options) 
+        ? question.options.map((opt: any) => ({
+            text: opt.text || opt.option_text || String(opt),
+            is_correct: Boolean(opt.is_correct)
+          }))
+        : [],
+      correct_answer: question.correct_answer || "",
+      explanation: question.explanation || "",
+      created_at: question.created_at || new Date().toISOString(),
+      updated_at: question.updated_at || new Date().toISOString(),
+      order: (question as any).order || index + 1 // Utilisez l'index passé en paramètre
+    };
+    setSelectedQuestion(adaptedQuestion);
+    setShowQuestionModal(true);
+  };
+  // Nouvelle fonction pour fermer le modal
+  const handleCloseModal = () => {
+    setShowQuestionModal(false);
+    setSelectedQuestion(null);
   };
 
   const handlePreviewQuiz = () => {
@@ -131,8 +231,8 @@ const QuizDetailsPage = () => {
 
     try {
       await QuestionsService.delete(quiz.id, questionId);
-      // Mettre à jour la liste des questions localement
-      setQuestions(questions.filter(q => q.id !== questionId));
+      // CORRECTION: Rafraîchir depuis le serveur au lieu de filtrer localement
+      await refreshQuestions();
     } catch (error) {
       console.error("Erreur lors de la suppression de la question :", error);
       alert("Erreur lors de la suppression de la question");
@@ -173,12 +273,6 @@ const QuizDetailsPage = () => {
               </div>
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Quiz non trouvé</h2>
               <p className="text-gray-600 mb-6">{error || "Ce quiz n'existe pas ou n'est plus disponible."}</p>
-              <button
-                onClick={() => router.push("/teachers-dashboard/quizzes")}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Retour aux quiz
-              </button>
             </div>
           </div>
         </div>
@@ -196,6 +290,10 @@ const QuizDetailsPage = () => {
   
   const difficultyConfig = getDifficultyConfig(estimatedDifficulty);
 
+  const handleCancel = () => {
+    router.back();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-poppins">
       {/* Header */}
@@ -206,6 +304,9 @@ const QuizDetailsPage = () => {
           label: "Modifier le quiz",
           icon: <Edit className="w-4 h-4 mr-2" />,
           onClick: handleEditQuiz
+        }}
+        backButton={{
+          onClick: handleCancel
         }}
       />
 
@@ -409,8 +510,9 @@ const QuizDetailsPage = () => {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
+                          {/* CORRECTION: Utiliser l'index + 1 pour l'affichage séquentiel */}
                           <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
-                            {question.order || index + 1}
+                            {index + 1}
                           </span>
                           
                           <div className="flex-1">
@@ -432,6 +534,14 @@ const QuizDetailsPage = () => {
                         </div>
                         
                         <div className="flex items-center gap-1 ml-4">
+                          {/* NOUVEAU: Bouton œil pour voir les détails */}
+                          <button
+                            onClick={() => handleViewQuestion(question, index)}
+                            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Voir les détails"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => handleEditQuestion(question.id)}
                             className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
@@ -456,6 +566,24 @@ const QuizDetailsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* NOUVEAU: Modal de détails de question */}
+      {selectedQuestion && (
+        <QuestionDetailsModal
+          question={selectedQuestion}
+          quizId={quiz.id.toString()}
+          isOpen={showQuestionModal}
+          onClose={handleCloseModal}
+          onEdit={() => {
+            handleCloseModal();
+            handleEditQuestion(selectedQuestion.id);
+          }}
+          onDelete={async () => {
+            handleCloseModal();
+            await handleDeleteQuestion(selectedQuestion.id);
+          }}
+        />
+      )}
     </div>
   );
 };

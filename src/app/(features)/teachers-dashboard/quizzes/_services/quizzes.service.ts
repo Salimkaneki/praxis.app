@@ -58,19 +58,17 @@ export const QuizzesService = {
 export interface Question {
   id: number;
   question_text: string;
-  type: "multiple_choice" | "true_false" | "open_ended" | "fill_blank";
+  type: 'multiple_choice' | 'true_false' | 'open_ended' | 'fill_blank';
+  points?: number;
+  difficulty?: 'easy' | 'medium' | 'hard'; 
   options?: any[];
   correct_answer?: string;
-  points?: number;
+  explanation?: string;
+  created_at?: string;
+  updated_at?: string;
   order?: number;
-  explanation?: string | null;
-  image_url?: string | null;
-  time_limit?: number | null;
-  metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
+  time_limit?: number;
 }
-
 // =============================
 // Questions Service
 // =============================

@@ -185,7 +185,7 @@ const AddQuestionPage = () => {
     if (validateForm()) {
       // Logique de sauvegarde
       console.log('Question sauvegardée:', formData);
-      router.push('/dashboard/teacher/quizzes/1'); // Retour au quiz
+      // router.push('/dashboard/teacher/quizzes/1'); // Retour au quiz
     }
   };
 
@@ -202,6 +202,9 @@ const AddQuestionPage = () => {
           label: "Enregistrer la question",
           icon: <Save className="w-4 h-4 mr-2" />,
           onClick: handleSubmit
+        }}
+        backButton={{ // RETIRER CETTE LIGNE SI TeacherPageHeader N'A PAS CETTE PROP
+          onClick: handleCancel
         }}
       />
 
