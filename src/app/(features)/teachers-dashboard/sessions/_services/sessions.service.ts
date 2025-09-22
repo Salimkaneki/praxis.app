@@ -110,14 +110,36 @@ export const SessionsService = {
     }
   },
 
-  // Changer le statut d'une session
+  // CORRECTION: Changer le statut d'une session avec la bonne méthode HTTP
   changeStatus: async (id: number, action: string): Promise<Session> => {
     try {
-      const response = await api.post(`/teacher/sessions/${id}/${action}`);
-      return response.data;
+      // Utiliser PATCH au lieu de POST pour correspondre aux routes Laravel
+      const response = await api.patch(`/teacher/sessions/${id}/${action}`);
+      return response.data.session || response.data;
     } catch (error) {
       console.error(`Erreur lors de l'action ${action} sur la session:`, error);
       throw error;
     }
+  },
+
+  // Méthodes spécifiques pour chaque action (optionnel, pour plus de clarté)
+  activate: async (id: number): Promise<Session> => {
+    return SessionsService.changeStatus(id, 'activate');
+  },
+
+  pause: async (id: number): Promise<Session> => {
+    return SessionsService.changeStatus(id, 'pause');
+  },
+
+  resume: async (id: number): Promise<Session> => {
+    return SessionsService.changeStatus(id, 'resume');
+  },
+
+  complete: async (id: number): Promise<Session> => {
+    return SessionsService.changeStatus(id, 'complete');
+  },
+
+  cancel: async (id: number): Promise<Session> => {
+    return SessionsService.changeStatus(id, 'cancel');
   }
 };

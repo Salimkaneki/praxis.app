@@ -302,7 +302,6 @@ const SessionDetailsPage = () => {
           onClick: session.status === 'scheduled' ? handleActivateSession : handleEditSession
         }}
         backButton={{
-          label: "Retour aux sessions",
           onClick: () => router.push('/dashboard/teacher/sessions')
         }}
       />

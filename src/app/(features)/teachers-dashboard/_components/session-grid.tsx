@@ -7,15 +7,18 @@ import {
   Eye, 
   Edit, 
   Trash2, 
-  Users, 
   Clock, 
   Calendar,
   Play,
   CheckCircle,
   XCircle,
   AlertCircle,
-  PauseCircle
+  PauseCircle,
+  Loader2
 } from "lucide-react";
+
+// Import du service
+import { SessionsService } from "../sessions/_services/sessions.service";
 
 // Type SessionCard mis à jour pour correspondre à l'API
 export type SessionCard = {
@@ -40,11 +43,13 @@ export type SessionCard = {
 type SessionCardProps = {
   session: SessionCard;
   index: number;
+  onDelete: (sessionId: number) => void; // Callback pour rafraîchir la liste
 };
 
-const SessionCardComponent = ({ session, index }: SessionCardProps) => {
+const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) => {
   const router = useRouter();
   const [showActions, setShowActions] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const getStatusConfig = (status: string = "scheduled") => {
     switch (status) {
@@ -108,17 +113,6 @@ const SessionCardComponent = ({ session, index }: SessionCardProps) => {
     });
   };
 
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   const calculateDuration = () => {
     const start = new Date(session.starts_at);
     const end = new Date(session.ends_at);
@@ -133,17 +127,21 @@ const SessionCardComponent = ({ session, index }: SessionCardProps) => {
 
   // Navigation vers la page de détails avec le bon chemin
   const handleCardClick = () => {
+    if (isDeleting) return; // Empêcher le clic pendant la suppression
     router.push(`/teachers-dashboard/sessions/session-details/${session.id}`);
   };
 
   const handleMoreClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDeleting) return;
     setShowActions(!showActions);
   };
 
   const handleActionClick = (e: React.MouseEvent, action: string) => {
     e.stopPropagation();
     setShowActions(false);
+    
+    if (isDeleting) return;
     
     switch (action) {
       case 'view':
@@ -153,36 +151,83 @@ const SessionCardComponent = ({ session, index }: SessionCardProps) => {
         router.push(`/teachers-dashboard/sessions/${session.id}/edit`);
         break;
       case 'delete':
-        if (window.confirm(`Êtes-vous sûr de vouloir supprimer la session "${session.title}" ?`)) {
-          console.log("Supprimer la session:", session.id);
-          // Ici vous pouvez appeler votre service de suppression
-          // SessionsService.delete(session.id);
-        }
+        handleDelete();
         break;
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmMessage = `Êtes-vous sûr de vouloir supprimer la session "${session.title}" ?\n\nCette action est irréversible.`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await SessionsService.delete(session.id);
+      
+      // Afficher un message de succès (optionnel)
+      console.log(`Session "${session.title}" supprimée avec succès`);
+      
+      // Appeler le callback pour rafraîchir la liste
+      onDelete(session.id);
+      
+    } catch (error: any) {
+      console.error("Erreur lors de la suppression de la session:", error);
+      
+      // Afficher un message d'erreur à l'utilisateur
+      const errorMessage = error?.response?.data?.message || "Une erreur est survenue lors de la suppression";
+      alert(`Erreur: ${errorMessage}`);
+      
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
     <div 
       onClick={handleCardClick}
-      className="bg-white border border-gray-200 rounded-lg p-6 hover:border-blue-300 hover:shadow-lg transition-all duration-300 w-full aspect-square cursor-pointer group relative font-poppins"
+      className={`bg-white border border-gray-200 rounded-lg p-6 transition-all duration-300 w-full aspect-square cursor-pointer group relative font-poppins ${
+        isDeleting 
+          ? 'opacity-50 cursor-not-allowed' 
+          : 'hover:border-blue-300 hover:shadow-lg'
+      }`}
     >
+      {/* Overlay de chargement pendant la suppression */}
+      {isDeleting && (
+        <div className="absolute inset-0 bg-white bg-opacity-75 rounded-lg flex items-center justify-center z-10">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+            <span className="text-sm text-red-600 font-medium">Suppression...</span>
+          </div>
+        </div>
+      )}
+
       <div className="h-full flex flex-col justify-between">
         {/* Header */}
         <div className="flex items-start justify-between">
-          <h3 className="text-lg font-semibold text-gray-800 leading-tight pr-2 group-hover:text-blue-600 transition-colors line-clamp-2 font-poppins">
+          <h3 className={`text-lg font-semibold leading-tight pr-2 transition-colors line-clamp-2 font-poppins ${
+            isDeleting ? 'text-gray-500' : 'text-gray-800 group-hover:text-blue-600'
+          }`}>
             {session.title}
           </h3>
           <div className="relative">
             <button
               onClick={handleMoreClick}
-              className="w-8 h-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-colors"
+              disabled={isDeleting}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                isDeleting 
+                  ? 'text-gray-300 cursor-not-allowed' 
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              }`}
             >
               <MoreHorizontal className="w-4 h-4" />
             </button>
             
             {/* Menu d'actions */}
-            {showActions && (
+            {showActions && !isDeleting && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 font-poppins">
                 <button
                   onClick={(e) => handleActionClick(e, 'view')}
@@ -216,12 +261,16 @@ const SessionCardComponent = ({ session, index }: SessionCardProps) => {
           {/* Code de session */}
           {session.session_code && (
             <div className="flex items-center gap-2 text-sm font-mono">
-              <span className="font-medium text-blue-600">Code: {session.session_code}</span>
+              <span className={`font-medium ${isDeleting ? 'text-gray-400' : 'text-blue-600'}`}>
+                Code: {session.session_code}
+              </span>
             </div>
           )}
 
           {/* Date et heure sur la même ligne */}
-          <div className="flex items-center gap-2 text-sm text-gray-600 font-poppins">
+          <div className={`flex items-center gap-2 text-sm font-poppins ${
+            isDeleting ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <span>
               {formatDate(session.starts_at)} • {formatTime(session.starts_at)} - {formatTime(session.ends_at)}
@@ -229,25 +278,17 @@ const SessionCardComponent = ({ session, index }: SessionCardProps) => {
           </div>
 
           {/* Durée */}
-          <div className="flex items-center gap-2 text-sm text-gray-600 font-poppins">
+          <div className={`flex items-center gap-2 text-sm font-poppins ${
+            isDeleting ? 'text-gray-400' : 'text-gray-600'
+          }`}>
             <Clock className="w-4 h-4 text-gray-400" />
-            <span className="font-medium text-gray-700">Durée:</span>
+            <span className={`font-medium ${isDeleting ? 'text-gray-400' : 'text-gray-700'}`}>Durée:</span>
             <span>{duration} minutes</span>
           </div>
 
-          {/* Participants */}
-          {session.max_participants && (
-            <div className="flex items-center gap-2 text-sm text-gray-600 font-poppins">
-              <Users className="w-4 h-4 text-gray-400" />
-              <span>
-                {session.current_participants || 0}/{session.max_participants} participants
-              </span>
-            </div>
-          )}
-
           {/* Quiz associé */}
           {session.quiz && (
-            <div className="text-xs text-gray-500 font-poppins">
+            <div className={`text-xs font-poppins ${isDeleting ? 'text-gray-400' : 'text-gray-500'}`}>
               <span className="font-medium">Quiz:</span> {session.quiz.title}
             </div>
           )}
@@ -255,10 +296,14 @@ const SessionCardComponent = ({ session, index }: SessionCardProps) => {
 
         {/* Footer avec statut */}
         <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-          <span className="text-xs text-gray-400 font-poppins">
+          <span className={`text-xs font-poppins ${isDeleting ? 'text-gray-300' : 'text-gray-400'}`}>
             Session #{session.id}
           </span>
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border} border ml-auto font-poppins`}>
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ml-auto font-poppins ${
+            isDeleting 
+              ? 'bg-gray-100 text-gray-400 border-gray-200'
+              : `${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`
+          }`}>
             <StatusIcon className="w-3 h-3 mr-1" />
             {statusConfig.label}
           </span>
@@ -266,24 +311,45 @@ const SessionCardComponent = ({ session, index }: SessionCardProps) => {
       </div>
 
       {/* Overlay pour indiquer que c'est cliquable */}
-      <div className="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-5 transition-opacity rounded-lg pointer-events-none"></div>
+      {!isDeleting && (
+        <div className="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-5 transition-opacity rounded-lg pointer-events-none"></div>
+      )}
     </div>
   );
 };
 
 type SessionGridProps = {
   sessions: SessionCard[];
+  onSessionDeleted?: (sessionId: number) => void; // Callback optionnel pour le parent
 };
 
-export const SessionGrid = ({ sessions }: SessionGridProps) => {
+export const SessionGrid = ({ sessions, onSessionDeleted }: SessionGridProps) => {
   const router = useRouter();
+  const [localSessions, setLocalSessions] = useState(sessions);
 
-  if (sessions.length === 0) {
+  // Synchroniser les sessions locales avec les props
+  React.useEffect(() => {
+    setLocalSessions(sessions);
+  }, [sessions]);
+
+  const handleSessionDelete = (sessionId: number) => {
+    // Supprimer la session de l'état local pour un feedback immédiat
+    setLocalSessions(prevSessions => 
+      prevSessions.filter(session => session.id !== sessionId)
+    );
+
+    // Appeler le callback du parent si fourni
+    if (onSessionDeleted) {
+      onSessionDeleted(sessionId);
+    }
+  };
+
+  if (localSessions.length === 0) {
     return (
       <div className="text-center py-16 font-poppins">
         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
           </svg>
         </div>
         <h3 className="text-xl font-semibold text-gray-900 mb-3 font-poppins">Aucune session planifiée</h3>
@@ -305,8 +371,13 @@ export const SessionGrid = ({ sessions }: SessionGridProps) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 font-poppins">
-      {sessions.map((session, index) => (
-        <SessionCardComponent key={session.id} session={session} index={index} />
+      {localSessions.map((session, index) => (
+        <SessionCardComponent 
+          key={session.id} 
+          session={session} 
+          index={index}
+          onDelete={handleSessionDelete}
+        />
       ))}
     </div>
   );

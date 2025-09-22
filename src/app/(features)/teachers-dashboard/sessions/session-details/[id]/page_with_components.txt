@@ -1,0 +1,634 @@
+'use client';
+import React, { useState, useEffect } from "react";
+import { useRouter, useParams } from 'next/navigation';
+import { 
+  RefreshCw, Eye, UserCheck, Settings, Target,
+  Download, Timer, Users, FileText, BookOpen,
+  Play, Edit, AlertCircle, CheckCircle, Shield,
+  Shuffle, Pause, RotateCcw, // Ajout des icônes manquantes
+  ChevronRight, XCircle, MoreVertical, Copy, Share2, Trash2 // Ajout des autres icônes utilisées
+} from "lucide-react";
+import TeacherPageHeader from "../../../_components/page-header";
+import { SessionsService, Session } from "../../_services/sessions.service";
+import ActionMenu from "../../_components/ActionsMenu";
+import SessionInfoCard from "../../_components/SessionInfoCard";
+import StudentTable, { Student } from "../../_components/StudentTable";
+
+const SessionDetailsPage = () => {
+  const router = useRouter();
+  const params = useParams();
+  const sessionId = params.id as string;
+  
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Données simulées des étudiants
+  const [students, setStudents] = useState<Student[]>([
+    {
+      id: 1,
+      name: "Marie Dubois",
+      email: "marie.dubois@email.com",
+      status: "completed",
+      started_at: "2025-09-05T09:05:00Z",
+      submitted_at: "2025-09-05T09:45:00Z",
+      score: 85,
+      time_spent: 40
+    },
+    {
+      id: 2,
+      name: "Jean Martin",
+      email: "jean.martin@email.com", 
+      status: "in_progress",
+      started_at: "2025-09-05T09:10:00Z",
+      time_spent: 25
+    },
+    {
+      id: 3,
+      name: "Sophie Laurent",
+      email: "sophie.laurent@email.com",
+      status: "completed",
+      started_at: "2025-09-05T09:02:00Z",
+      submitted_at: "2025-09-05T09:52:00Z",
+      score: 92,
+      time_spent: 50
+    }
+  ]);
+
+  // Fonction pour charger les données de la session
+  const fetchSession = async () => {
+    try {
+      setError(null);
+      const sessionData = await SessionsService.getById(parseInt(sessionId));
+      setSession(sessionData);
+    } catch (err: any) {
+      console.error('Erreur lors de la récupération de la session:', err);
+      
+      if (err.response?.status === 401) {
+        setError('Votre session a expiré. Veuillez vous reconnecter.');
+      } else if (err.response?.status === 403) {
+        setError('Accès non autorisé. Cette session ne vous appartient pas.');
+      } else if (err.response?.status === 404) {
+        setError('Session non trouvée.');
+      } else {
+        setError(err.response?.data?.error || err.message || 'Une erreur est survenue lors du chargement de la session');
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Chargement initial
+  useEffect(() => {
+    if (sessionId) {
+      fetchSession();
+    }
+  }, [sessionId]);
+
+  // Fonction de rafraîchissement
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchSession();
+  };
+
+  // Fonctions d'actions
+  const handleActivateSession = async () => {
+    if (!session) return;
+    
+    try {
+      await SessionsService.changeStatus(session.id, 'activate');
+      await fetchSession();
+    } catch (error: any) {
+      console.error('Erreur lors de l\'activation:', error);
+      setError(error.response?.data?.error || 'Erreur lors de l\'activation de la session');
+    }
+  };
+
+  const handlePauseSession = async () => {
+    if (!session) return;
+    
+    try {
+      await SessionsService.changeStatus(session.id, 'pause');
+      await fetchSession();
+    } catch (error: any) {
+      console.error('Erreur lors de la pause:', error);
+      setError(error.response?.data?.error || 'Erreur lors de la mise en pause de la session');
+    }
+  };
+
+  const handleResumeSession = async () => {
+    if (!session) return;
+    
+    try {
+      await SessionsService.changeStatus(session.id, 'resume');
+      await fetchSession();
+    } catch (error: any) {
+      console.error('Erreur lors de la reprise:', error);
+      setError(error.response?.data?.error || 'Erreur lors de la reprise de la session');
+    }
+  };
+
+  const handleCancelSession = async () => {
+    if (!session) return;
+    
+    if (!confirm('Êtes-vous sûr de vouloir annuler cette session ?')) {
+      return;
+    }
+    
+    try {
+      await SessionsService.changeStatus(session.id, 'cancel');
+      await fetchSession();
+    } catch (error: any) {
+      console.error('Erreur lors de l\'annulation:', error);
+      setError(error.response?.data?.error || 'Erreur lors de l\'annulation de la session');
+    }
+  };
+
+  const handleEditSession = () => {
+    if (!session) return;
+    router.push(`/teachers-dashboard/sessions/${session.id}/edit`);
+  };
+
+  const handleDeleteSession = async () => {
+    if (!session) return;
+    
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette session ? Cette action est irréversible.')) {
+      return;
+    }
+    
+    try {
+      await SessionsService.delete(session.id);
+      router.push('/teachers-dashboard/sessions');
+    } catch (error: any) {
+      console.error('Erreur lors de la suppression:', error);
+      setError(error.response?.data?.error || 'Erreur lors de la suppression de la session');
+    }
+  };
+
+  const handleCopyCode = () => {
+    if (!session) return;
+    navigator.clipboard.writeText(session.session_code);
+  };
+
+  const handleShareCode = () => {
+    if (!session) return;
+    // Logique de partage
+    console.log('Partager le code:', session.session_code);
+  };
+
+  // Fonctions utilitaires
+  const getDifficultyConfig = (difficulty?: string) => {
+    const configs = {
+      easy: { label: "Facile", className: "bg-green-100 text-green-800" },
+      medium: { label: "Moyen", className: "bg-yellow-100 text-yellow-800" },
+      hard: { label: "Difficile", className: "bg-red-100 text-red-800" }
+    };
+    return configs[difficulty as keyof typeof configs] || { label: "Moyen", className: "bg-yellow-100 text-yellow-800" };
+  };
+
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // États de chargement et d'erreur
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="px-8 py-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-white rounded-lg border border-gray-200 p-8">
+              <div className="animate-pulse">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                    <div>
+                      <div className="h-8 bg-gray-200 rounded w-64 mb-2"></div>
+                      <div className="h-5 bg-gray-200 rounded w-48"></div>
+                    </div>
+                  </div>
+                  <div className="h-8 bg-gray-200 rounded w-24"></div>
+                </div>
+                <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    const isAuthError = error.includes('expiré') || error.includes('non autorisé');
+    
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <TeacherPageHeader
+          title="Erreur"
+          subtitle="Impossible de charger la session"
+          backButton={{
+            label: "Retour aux sessions",
+            onClick: () => router.push('/teachers-dashboard/sessions')
+          }}
+        />
+        <div className="px-8 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                {isAuthError ? 'Erreur d\'authentification' : 'Erreur de chargement'}
+              </h2>
+              <p className="text-gray-600 mb-6">{error}</p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {!isAuthError && (
+                  <button
+                    onClick={handleRefresh}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Réessayer
+                  </button>
+                )}
+                
+                {isAuthError && (
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem("teacher_token");
+                      localStorage.removeItem("teacher_data");
+                      window.location.href = "/auth/sign-in/teacher";
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                  >
+                    Se reconnecter
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null;
+  }
+
+  // Calculs des statistiques
+  const completedStudents = students.filter(s => s.status === 'completed').length;
+  const inProgressStudents = students.filter(s => s.status === 'in_progress').length;
+  const averageScore = students.filter(s => s.score !== undefined).reduce((acc, s) => acc + (s.score || 0), 0) / completedStudents || 0;
+
+  const difficultyConfig = getDifficultyConfig(session.quiz?.settings?.difficulty);
+  const allowedStudentsCount = session.allowed_students?.length || 0;
+  const timeLimit = session.settings?.time_limit || session.duration_minutes || 60;
+  const totalPoints = session.quiz?.total_points || 0;
+
+  const tabs = [
+    { id: 'overview', label: 'Vue d\'ensemble', icon: Eye },
+    { id: 'participants', label: 'Participants', icon: UserCheck },
+    { id: 'settings', label: 'Configuration', icon: Settings },
+    { id: 'results', label: 'Résultats', icon: Target }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-poppins">
+      {/* Header avec navigation */}
+      <TeacherPageHeader
+        title={session.title}
+        subtitle={`Code: ${session.session_code} • ${formatDateTime(session.starts_at)} • ${completedStudents}/${allowedStudentsCount} terminés`}
+        actionButton={{
+          label: session.status === 'scheduled' ? "Activer la session" : "Modifier",
+          icon: session.status === 'scheduled' ? <Play className="w-4 h-4 mr-2" /> : <Edit className="w-4 h-4 mr-2" />,
+          onClick: session.status === 'scheduled' ? handleActivateSession : handleEditSession
+        }}
+        backButton={{
+          label: "Retour aux sessions",
+          onClick: () => router.push('/teachers-dashboard/sessions')
+        }}
+      />
+
+      <div className="px-8 py-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Bouton de rafraîchissement */}
+          <div className="mb-6">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium inline-flex items-center gap-2 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? "Rafraîchissement..." : "Rafraîchir"}
+            </button>
+          </div>
+
+          {/* Carte d'information de session */}
+          <SessionInfoCard session={session} className="mb-8" />
+
+          {/* Menu d'actions */}
+          <div className="mb-8 flex justify-end">
+            <ActionMenu
+              session={session}
+              onActivate={handleActivateSession}
+              onPause={handlePauseSession}
+              onResume={handleResumeSession}
+              onCancel={handleCancelSession}
+              onEdit={handleEditSession}
+              onDelete={handleDeleteSession}
+              onCopyCode={handleCopyCode}
+              onShareCode={handleShareCode}
+            />
+          </div>
+
+          {/* Statistiques rapides */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div className="text-center p-4 bg-white border border-gray-200 rounded-lg">
+              <Timer className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-gray-900">{timeLimit}</p>
+              <p className="text-sm text-gray-600">minutes</p>
+            </div>
+            <div className="text-center p-4 bg-white border border-gray-200 rounded-lg">
+              <Users className="w-8 h-8 text-green-600 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-gray-900">{completedStudents}/{allowedStudentsCount}</p>
+              <p className="text-sm text-gray-600">terminés</p>
+            </div>
+            <div className="text-center p-4 bg-white border border-gray-200 rounded-lg">
+              <Target className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-gray-900">{Math.round(averageScore)}%</p>
+              <p className="text-sm text-gray-600">score moyen</p>
+            </div>
+            <div className="text-center p-4 bg-white border border-gray-200 rounded-lg">
+              <FileText className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-gray-900">{totalPoints}</p>
+              <p className="text-sm text-gray-600">points total</p>
+            </div>
+          </div>
+
+          {/* Onglets de contenu */}
+          <div className="bg-white rounded-lg border border-gray-200">
+            {/* Navigation des onglets */}
+            <div className="border-b border-gray-200">
+              <nav className="flex space-x-8 px-8 pt-6">
+                {tabs.map((tab) => {
+                  const TabIcon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`pb-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                        activeTab === tab.id
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      <TabIcon className="w-4 h-4" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Contenu des onglets */}
+            <div className="p-8">
+              {activeTab === 'overview' && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Vue d'ensemble de la session</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-medium text-blue-900 mb-2">Quiz associé</h4>
+                      <p className="text-blue-800 text-sm">{session.quiz?.title || "Quiz non défini"}</p>
+                      {session.quiz?.settings?.difficulty && (
+                        <div className="mt-2">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${difficultyConfig.className}`}>
+                            {difficultyConfig.label}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h4 className="font-medium text-green-900 mb-2">Progression</h4>
+                      <p className="text-green-800 text-sm">
+                        {completedStudents} terminés, {inProgressStudents} en cours
+                      </p>
+                      <div className="w-full bg-green-200 rounded-full h-2 mt-2">
+                        <div 
+                          className="bg-green-600 h-2 rounded-full" 
+                          style={{width: allowedStudentsCount > 0 ? `${(completedStudents / allowedStudentsCount) * 100}%` : '0%'}}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h4 className="font-medium text-purple-900 mb-2">Performance</h4>
+                      <p className="text-purple-800 text-sm">Score moyen: {Math.round(averageScore)}%</p>
+                      <p className="text-purple-700 text-xs mt-1">
+                        Basé sur {completedStudents} résultats
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="prose max-w-none">
+                    <p className="text-gray-700 leading-relaxed">
+                      Cette session de quiz permet aux étudiants de valider leurs connaissances sur {session.quiz?.title?.toLowerCase() || "le sujet défini"}. 
+                      La session est configurée avec un temps limite de {timeLimit} minutes et 
+                      {session.settings?.proctoring ? ' inclut la surveillance automatique' : ' fonctionne en mode libre'}.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'participants' && (
+                <StudentTable
+                  students={students}
+                  onExport={() => console.log('Export des participants')}
+                  onViewDetails={(student) => console.log('Voir détail:', student)}
+                />
+              )}
+
+              {activeTab === 'settings' && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-6">Configuration de la session</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-4">Paramètres de session</h4>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Questions mélangées</span>
+                            <p className="text-xs text-gray-500">Ordre des questions randomisé</p>
+                          </div>
+                          <Shuffle className={`w-4 h-4 ${session.settings?.shuffle_questions ? 'text-green-600' : 'text-gray-400'}`} />
+                        </div>
+                        <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Surveillance activée</span>
+                            <p className="text-xs text-gray-500">Proctoring automatique</p>
+                          </div>
+                          <Shield className={`w-4 h-4 ${session.settings?.proctoring ? 'text-green-600' : 'text-gray-400'}`} />
+                        </div>
+                        <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Pause autorisée</span>
+                            <p className="text-xs text-gray-500">Possibilité de mettre en pause</p>
+                          </div>
+                          <Pause className={`w-4 h-4 ${session.settings?.allow_pause ? 'text-green-600' : 'text-gray-400'}`} />
+                        </div>
+                        <div className="flex justify-between items-center py-3">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Temps limite</span>
+                            <p className="text-xs text-gray-500">Durée maximale autorisée</p>
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">{timeLimit} min</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-4">Paramètres du quiz</h4>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Résultats immédiats</span>
+                            <p className="text-xs text-gray-500">Affichage direct du score</p>
+                          </div>
+                          <CheckCircle className={`w-4 h-4 ${session.quiz?.show_results_immediately ? 'text-green-600' : 'text-gray-400'}`} />
+                        </div>
+                        <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Révision autorisée</span>
+                            <p className="text-xs text-gray-500">Possibilité de revoir les réponses</p>
+                          </div>
+                          <Eye className={`w-4 h-4 ${session.quiz?.allow_review ? 'text-green-600' : 'text-gray-400'}`} />
+                        </div>
+                        <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Options mélangées</span>
+                            <p className="text-xs text-gray-500">Ordre des réponses randomisé</p>
+                          </div>
+                          <RotateCcw className={`w-4 h-4 ${session.quiz?.settings?.randomize_options ? 'text-green-600' : 'text-gray-400'}`} />
+                        </div>
+                        <div className="flex justify-between items-center py-3">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">Points négatifs</span>
+                            <p className="text-xs text-gray-500">Pénalité pour mauvaises réponses</p>
+                          </div>
+                          <AlertCircle className={`w-4 h-4 ${session.quiz?.settings?.negative_marking ? 'text-red-600' : 'text-gray-400'}`} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'results' && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Résultats de la session</h3>
+                      <p className="text-sm text-gray-600">
+                        Analyse des performances et statistiques détaillées
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => console.log('Export des résultats')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      Exporter les résultats
+                    </button>
+                  </div>
+
+                  {completedStudents === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Target className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h4 className="text-lg font-medium text-gray-900 mb-2">Aucun résultat disponible</h4>
+                      <p className="text-gray-600 max-w-md mx-auto">
+                        Les résultats apparaîtront ici une fois que les étudiants auront terminé le quiz.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Statistiques globales */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-blue-50 p-4 rounded-lg text-center">
+                          <p className="text-2xl font-bold text-blue-600">{Math.round(averageScore)}%</p>
+                          <p className="text-sm text-blue-800">Score moyen</p>
+                        </div>
+                        <div className="bg-green-50 p-4 rounded-lg text-center">
+                          <p className="text-2xl font-bold text-green-600">
+                            {Math.max(...students.filter(s => s.score).map(s => s.score || 0))}%
+                          </p>
+                          <p className="text-sm text-green-800">Meilleur score</p>
+                        </div>
+                        <div className="bg-red-50 p-4 rounded-lg text-center">
+                          <p className="text-2xl font-bold text-red-600">
+                            {Math.min(...students.filter(s => s.score).map(s => s.score || 0))}%
+                          </p>
+                          <p className="text-sm text-red-800">Score le plus bas</p>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded-lg text-center">
+                          <p className="text-2xl font-bold text-purple-600">
+                            {Math.round(students.filter(s => s.time_spent).reduce((acc, s) => acc + (s.time_spent || 0), 0) / completedStudents)}
+                          </p>
+                          <p className="text-sm text-purple-800">Temps moyen (min)</p>
+                        </div>
+                      </div>
+
+                      {/* Distribution des scores */}
+                      <div className="bg-gray-50 p-6 rounded-lg">
+                        <h4 className="font-medium text-gray-900 mb-4">Distribution des scores</h4>
+                        <div className="space-y-2">
+                          {[
+                            { range: '90-100%', count: students.filter(s => s.score && s.score >= 90).length, color: 'bg-green-500' },
+                            { range: '80-89%', count: students.filter(s => s.score && s.score >= 80 && s.score < 90).length, color: 'bg-blue-500' },
+                            { range: '70-79%', count: students.filter(s => s.score && s.score >= 70 && s.score < 80).length, color: 'bg-yellow-500' },
+                            { range: '60-69%', count: students.filter(s => s.score && s.score >= 60 && s.score < 70).length, color: 'bg-orange-500' },
+                            { range: '0-59%', count: students.filter(s => s.score && s.score < 60).length, color: 'bg-red-500' }
+                          ].map(item => (
+                            <div key={item.range} className="flex items-center gap-4">
+                              <span className="text-sm font-medium text-gray-700 w-16">{item.range}</span>
+                              <div className="flex-1 bg-gray-200 rounded-full h-4 relative">
+                                <div 
+                                  className={`${item.color} h-4 rounded-full transition-all duration-500`}
+                                  style={{width: completedStudents > 0 ? `${(item.count / completedStudents) * 100}%` : '0%'}}
+                                ></div>
+                              </div>
+                              <span className="text-sm text-gray-600 w-8">{item.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Détail des résultats par étudiant */}
+                      <StudentTable
+                        students={students.filter(s => s.status === 'completed').sort((a, b) => (b.score || 0) - (a.score || 0))}
+                        onExport={() => console.log('Export des résultats détaillés')}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SessionDetailsPage;

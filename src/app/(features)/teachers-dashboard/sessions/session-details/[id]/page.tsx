@@ -273,8 +273,7 @@ const SessionDetailsPage = () => {
           title="Erreur"
           subtitle="Impossible de charger la session"
           backButton={{
-            label: "Retour aux sessions",
-            onClick: () => router.push('/teachers-dashboard/sessions')
+            onClick: () => router.back(),
           }}
         />
         <div className="px-8 py-8">
@@ -344,6 +343,71 @@ const SessionDetailsPage = () => {
     { id: 'results', label: 'Résultats', icon: Target }
   ];
 
+    // Fonction pour mettre en pause une session
+  const handlePauseSession = async () => {
+    if (!session) return;
+    
+    if (!confirm('Êtes-vous sûr de vouloir mettre en pause cette session ?')) {
+      return;
+    }
+    
+    try {
+      const updatedSession = await SessionsService.changeStatus(session.id, 'pause');
+      setSession(updatedSession);
+    } catch (error: any) {
+      console.error('Erreur lors de la mise en pause:', error);
+      setError(error.response?.data?.error || 'Erreur lors de la mise en pause de la session');
+    }
+  };
+
+  // Fonction pour reprendre une session
+  const handleResumeSession = async () => {
+    if (!session) return;
+    
+    try {
+      const updatedSession = await SessionsService.changeStatus(session.id, 'resume');
+      setSession(updatedSession);
+    } catch (error: any) {
+      console.error('Erreur lors de la reprise:', error);
+      setError(error.response?.data?.error || 'Erreur lors de la reprise de la session');
+    }
+  };
+
+  // Fonction pour terminer une session
+  const handleCompleteSession = async () => {
+    if (!session) return;
+    
+    if (!confirm('Êtes-vous sûr de vouloir terminer cette session ? Cette action est irréversible.')) {
+      return;
+    }
+    
+    try {
+      const updatedSession = await SessionsService.changeStatus(session.id, 'complete');
+      setSession(updatedSession);
+    } catch (error: any) {
+      console.error('Erreur lors de la finalisation:', error);
+      setError(error.response?.data?.error || 'Erreur lors de la finalisation de la session');
+    }
+  };
+
+  // Fonction pour annuler une session
+  const handleCancelSession = async () => {
+    if (!session) return;
+    
+    if (!confirm('Êtes-vous sûr de vouloir annuler cette session ? Cette action est irréversible.')) {
+      return;
+    }
+    
+    try {
+      const updatedSession = await SessionsService.changeStatus(session.id, 'cancel');
+      setSession(updatedSession);
+    } catch (error: any) {
+      console.error('Erreur lors de l\'annulation:', error);
+      setError(error.response?.data?.error || 'Erreur lors de l\'annulation de la session');
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50 font-poppins">
       {/* Header avec navigation */}
@@ -356,8 +420,7 @@ const SessionDetailsPage = () => {
           onClick: session.status === 'scheduled' ? handleActivateSession : handleEditSession
         }}
         backButton={{
-          label: "Retour aux sessions",
-          onClick: () => router.push('/teachers-dashboard/sessions')
+          onClick: () => router.back()
         }}
       />
 
@@ -407,41 +470,112 @@ const SessionDetailsPage = () => {
                   >
                     <MoreVertical className="w-5 h-5 text-gray-500" />
                   </button>
-                  {showActions && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(session.session_code);
-                          setShowActions(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                      >
-                        <Share2 className="w-4 h-4" />
-                        Partager le code
-                      </button>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(session.session_code);
-                          setShowActions(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                      >
-                        <Copy className="w-4 h-4" />
-                        Copier le code
-                      </button>
-                      <hr className="my-1" />
-                      <button
-                        onClick={() => {
-                          setShowActions(false);
-                          handleDeleteSession();
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Supprimer
-                      </button>
-                    </div>
-                  )}
+                    {showActions && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                        {session.status === 'scheduled' && (
+                          <button
+                            onClick={() => {
+                              setShowActions(false);
+                              handleActivateSession();
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-green-50 text-green-600 flex items-center gap-2"
+                          >
+                            <Play className="w-4 h-4" />
+                            Activer
+                          </button>
+                        )}
+                        
+                        {session.status === 'active' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setShowActions(false);
+                                handlePauseSession();
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-50 text-yellow-600 flex items-center gap-2"
+                            >
+                              <Pause className="w-4 h-4" />
+                              Mettre en pause
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowActions(false);
+                                handleCompleteSession();
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 text-blue-600 flex items-center gap-2"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              Terminer
+                            </button>
+                          </>
+                        )}
+                        
+                        {session.status === 'paused' && (
+                          <button
+                            onClick={() => {
+                              setShowActions(false);
+                              handleResumeSession();
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-green-50 text-green-600 flex items-center gap-2"
+                          >
+                            <Play className="w-4 h-4" />
+                            Reprendre
+                          </button>
+                        )}
+                        
+                        {['scheduled', 'active', 'paused'].includes(session.status) && (
+                          <button
+                            onClick={() => {
+                              setShowActions(false);
+                              handleCancelSession();
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Annuler
+                          </button>
+                        )}
+                        
+                        <hr className="my-1" />
+                        
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(session.session_code);
+                            setShowActions(false);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          <Share2 className="w-4 h-4" />
+                          Partager le code
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(session.session_code);
+                            setShowActions(false);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Copier le code
+                        </button>
+                        
+                        <hr className="my-1" />
+                        
+                        {!['active'].includes(session.status) && (
+                          <button
+                            onClick={() => {
+                              setShowActions(false);
+                              handleDeleteSession();
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Supprimer
+                          </button>
+                        )}
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
