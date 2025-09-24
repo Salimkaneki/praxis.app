@@ -11,7 +11,7 @@ export default function Layout({ children }: Readonly<{ children: React.ReactNod
     <main
       suppressHydrationWarning
       suppressContentEditableWarning
-      className="min-h-screen bg-white-change flex flex-col justify-center items-center w-full"
+      className="min-h-screen bg-white-change flex flex-col justify-center items-center w-full font-poppins"
     >
       {children}
     </main>
