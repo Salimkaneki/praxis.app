@@ -21,6 +21,7 @@ import {
 import { fetchTeachers, Teacher, PaginatedResponse, deleteTeacher} from "./_services/teacher.service";
 
 import { useRouter } from "next/navigation";
+import KPIGrid from "@/components/ui/Cards/kpi-grid";
 
 
 // -----------------------------
@@ -179,6 +180,33 @@ export default function TeachersList() {
     totalStudents: 0 // à remplacer quand dispo dans ton backend
   };
 
+  const kpis = [
+    {
+      label: "Total Enseignants",
+      value: stats.total,
+      trend: "positive" as const,
+      period: "ce mois"
+    },
+    {
+      label: "Enseignants Actifs",
+      value: stats.active,
+      trend: "positive" as const,
+      period: "ce mois"
+    },
+    {
+      label: "En Congé",
+      value: stats.onLeave,
+      trend: "negative" as const,
+      period: "ce mois"
+    },
+    {
+      label: "Total Étudiants",
+      value: stats.totalStudents,
+      trend: "positive" as const,
+      period: "ce mois"
+    }
+  ];
+
   const handleAction = (action: string) => {
     if (action) {
       console.log(`Action sélectionnée: ${action}`);
@@ -243,47 +271,7 @@ export default function TeachersList() {
 
       <div className="px-8 py-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-6 flex items-center">
-            <div className="w-8 h-8 bg-forest-100 rounded-lg flex items-center justify-center">
-              <Users className="w-4 h-4 text-forest-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-poppins text-gray-600">Total Enseignants</p>
-              <p className="text-2xl font-poppins text-gray-900">{stats.total}</p>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6 flex items-center">
-            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <User className="w-4 h-4 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-poppins text-gray-600">Actifs</p>
-              <p className="text-2xl font-poppins text-gray-900">{stats.active}</p>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6 flex items-center">
-            <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-4 h-4 text-orange-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-poppins text-gray-600">En Congé</p>
-              <p className="text-2xl font-poppins text-gray-900">{stats.onLeave}</p>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6 flex items-center">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-poppins text-gray-600">Total Étudiants</p>
-              <p className="text-2xl font-poppins text-gray-900">{stats.totalStudents}</p>
-            </div>
-          </div>
-        </div>
+        <KPIGrid kpis={kpis} />
 
         {/* Filtres */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -329,10 +317,14 @@ export default function TeachersList() {
 
         {/* Liste enseignants */}
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
             <h2 className="text-lg font-poppins font-medium text-gray-900">
               Liste des Enseignants
             </h2>
+            <button className="inline-flex items-center px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+              <Download className="w-4 h-4 mr-2" />
+              Exporter
+            </button>
           </div>
 
           {loading ? (
@@ -403,31 +395,36 @@ export default function TeachersList() {
         </div>
 
         {/* Pagination */}
-        <div className="mt-6 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
-            Affichage page <span className="font-medium">{pagination?.current_page}</span> sur{" "}
-            <span className="font-medium">{pagination?.last_page}</span>
+        {!loading && filteredTeachers.length > 0 && (
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm font-poppins text-gray-700">
+              Affichage de <span className="font-medium">{((pagination?.current_page || 1) - 1) * 10 + 1}</span> à{" "}
+              <span className="font-medium">
+                {Math.min((pagination?.current_page || 1) * 10, pagination?.total || 0)}
+              </span> sur{" "}
+              <span className="font-medium">{pagination?.total || 0}</span> enseignant{(pagination?.total || 0) > 1 ? 's' : ''}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Précédent
+              </button>
+              <span className="px-3 py-2 text-sm font-poppins text-gray-700">
+                Page {pagination?.current_page} sur {pagination?.last_page}
+              </span>
+              <button
+                onClick={() => setPage(p => (pagination && p < pagination.last_page ? p + 1 : p))}
+                disabled={pagination ? page >= pagination.last_page : true}
+                className="px-3 py-2 text-sm font-poppins font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Suivant
+              </button>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-            >
-              Précédent
-            </button>
-            <button className="px-3 py-2 text-sm font-medium text-white bg-forest-600 rounded-md">
-              {page}
-            </button>
-            <button
-              onClick={() => setPage(p => (pagination && p < pagination.last_page ? p + 1 : p))}
-              disabled={pagination ? page >= pagination.last_page : true}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-            >
-              Suivant
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

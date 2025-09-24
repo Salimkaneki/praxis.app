@@ -17,6 +17,7 @@ import {
 import Input from "@/components/ui/Inputs/Input";
 import { getSubjects, deleteSubject, Subject, PaginatedResponse } from "./_services/subject.service";
 import { useRouter } from "next/navigation";
+import KPIGrid from "@/components/ui/Cards/kpi-grid";
 
 
 // Fonction utilitaire pour les badges de type
@@ -104,6 +105,33 @@ export default function AdminSubjectsList() {
     totalCredits: subjects.reduce((sum, s) => sum + s.credits, 0)
   }), [subjects, total]);
 
+  const kpis = useMemo(() => [
+    {
+      label: "Total Matières",
+      value: stats.total,
+      trend: "positive" as const,
+      period: "ce mois"
+    },
+    {
+      label: "Matières Actives",
+      value: stats.active,
+      trend: "positive" as const,
+      period: "ce mois"
+    },
+    {
+      label: "Matières Inactives",
+      value: stats.inactive,
+      trend: "negative" as const,
+      period: "ce mois"
+    },
+    {
+      label: "Total Crédits",
+      value: stats.totalCredits,
+      trend: "positive" as const,
+      period: "ce mois"
+    }
+  ], [stats]);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1); // Reset à la première page lors d'une nouvelle recherche
@@ -159,47 +187,7 @@ export default function AdminSubjectsList() {
 
       <div className="px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-6 flex items-center">
-            <div className="flex-shrink-0 w-8 h-8 bg-forest-100 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-4 h-4 text-forest-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-poppins font-medium text-gray-600">Total Matières</p>
-              <p className="text-2xl font-poppins font-light text-gray-900">{stats.total}</p>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6 flex items-center">
-            <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <Award className="w-4 h-4 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-poppins font-medium text-gray-600">Actives</p>
-              <p className="text-2xl font-poppins font-light text-gray-900">{stats.active}</p>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6 flex items-center">
-            <div className="flex-shrink-0 w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-red-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-poppins font-medium text-gray-600">Inactives</p>
-              <p className="text-2xl font-poppins font-light text-gray-900">{stats.inactive}</p>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6 flex items-center">
-            <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-poppins font-medium text-gray-600">Total Crédits</p>
-              <p className="text-2xl font-poppins font-light text-gray-900">{stats.totalCredits}</p>
-            </div>
-          </div>
-        </div>
+        <KPIGrid kpis={kpis} />
 
         {/* Barre de recherche et filtres */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">

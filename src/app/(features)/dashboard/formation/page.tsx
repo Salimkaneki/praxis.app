@@ -1,10 +1,9 @@
 'use client';
 import React, { useState, useEffect, useMemo } from "react";
-import { 
+import {
   BookOpen,
   Plus,
   Edit3,
-  Eye,
   Trash2,
   Users,
   MoreVertical,
@@ -14,6 +13,15 @@ import {
 import { getFormations, deleteFormation } from "./_services/formation.service";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Inputs/Input";
+import KPIGrid from "@/components/ui/Cards/kpi-grid";
+import TeacherPageHeader from "@/components/ui/Headers/page-header";
+import DataTable from "@/components/ui/Tables/DataTable";
+import Pagination from "@/components/ui/Tables/Pagination";
+import TableActions from "@/components/ui/Actions/TableActions";
+import Alert from "@/components/ui/Feedback/Alert";
+import { useCrud } from "@/hooks/useCrud";
+import { usePagination } from "@/hooks/usePagination";
+import { useSearch } from "@/hooks/useSearch";
 
 // Types
 interface Formation {
@@ -31,42 +39,47 @@ interface Formation {
 
 export default function FormationsList() {
   const router = useRouter();
+
+  // Hooks personnalisés
+  const { currentPage, updatePagination, nextPage, previousPage } = usePagination();
+  const { query, updateQuery } = useSearch({
+    onSearch: () => updatePagination({ current_page: 1, last_page: 1, total: 0 })
+  });
+  const { loading: crudLoading, handleDelete } = useCrud({
+    deleteMessage: "Êtes-vous sûr de vouloir supprimer cette formation ?",
+    successMessage: "Formation supprimée avec succès !"
+  });
+
+  // États locaux
   const [formations, setFormations] = useState<Formation[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [lastPage, setLastPage] = useState(1);
-  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
 
   // Récupération des données
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
-        const response = await getFormations(page, searchTerm);
+        const response = await getFormations(currentPage, query);
         setFormations(response.data);
+        updatePagination({
+          current_page: response.current_page,
+          last_page: response.last_page,
+          total: response.total
+        });
         setTotal(response.total);
-        setLastPage(response.last_page);
-        setCurrentPage(response.current_page);
-      } catch (e) {
-        console.error(e);
+      } catch (e: any) {
+        setError(e?.response?.data?.message || "Erreur lors du chargement des formations");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [page, searchTerm]);
+  }, [currentPage, query, updatePagination]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPage(1);
-    setSearchTerm(e.target.value);
-  };
-
-  const handlePreviousPage = () => setPage(prev => Math.max(1, prev - 1));
-  const handleNextPage = () => setPage(prev => Math.min(lastPage, prev + 1));
-
-  // Calcul des stats optimisé avec useMemo
+  // Statistiques calculées avec useMemo
   const stats = useMemo(() => ({
     total,
     active: formations.filter(f => f.is_active).length,
@@ -74,224 +87,182 @@ export default function FormationsList() {
     totalStudents: formations.reduce((sum, f) => sum + (f.students_count || 0), 0)
   }), [formations, total]);
 
-    const handleDelete = async (id: number) => {
-    const confirm = window.confirm("Êtes-vous sûr de vouloir supprimer cette formation ?");
-    if (!confirm) return;
+  const kpis = useMemo(() => [
+    {
+      label: "Total Formations",
+      value: stats.total,
+      trend: "positive" as const,
+      period: "ce mois"
+    },
+    {
+      label: "Formations Actives",
+      value: stats.active,
+      trend: "positive" as const,
+      period: "ce mois"
+    },
+    {
+      label: "Formations Suspendues",
+      value: stats.suspended,
+      trend: "negative" as const,
+      period: "ce mois"
+    },
+    {
+      label: "Total Étudiants",
+      value: stats.totalStudents,
+      trend: "positive" as const,
+      period: "ce mois"
+    }
+  ], [stats]);
 
-    try {
-      setLoading(true);
+  // Gestionnaire de suppression
+  const onDeleteFormation = async (formation: Formation) => {
+    const success = await handleDelete(formation, async (id) => {
       await deleteFormation(id);
-      // Après suppression, rafraîchir la liste
-      const response = await getFormations(page, searchTerm);
+      // Recharger les données après suppression
+      const response = await getFormations(currentPage, query);
       setFormations(response.data);
+      updatePagination({
+        current_page: response.current_page,
+        last_page: response.last_page,
+        total: response.total
+      });
       setTotal(response.total);
-      setLastPage(response.last_page);
-      setCurrentPage(response.current_page);
-    } catch (err) {
-      console.error("Erreur lors de la suppression :", err);
-    } finally {
-      setLoading(false);
+    });
+
+    if (success) {
+      // La liste sera automatiquement mise à jour via le rechargement
     }
   };
 
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="px-8 py-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-poppins font-semibold text-gray-900">
-              Formations
-            </h1>
-            <p className="text-sm font-poppins text-gray-600 mt-1">
-              Université de Lomé - Catalogue des formations
-            </p>
-          </div>
-          <button
-            onClick={() => router.push("/dashboard/formation/create")}
-            className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-smooth"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nouvelle Formation
-          </button>
-        </div>
-      </div>
+      {/* Header avec le composant réutilisable */}
+      <TeacherPageHeader
+        title="Formations"
+        subtitle="Université de Lomé - Catalogue des formations"
+        actionButton={{
+          label: "Nouvelle Formation",
+          onClick: () => router.push("/dashboard/formation/create")
+        }}
+      />
 
       <div className="px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-6 flex items-center">
-            <div className="flex-shrink-0 w-8 h-8 bg-forest-100 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-4 h-4 text-forest-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-poppins font-medium text-gray-600">Total Formations</p>
-              <p className="text-2xl font-poppins font-light text-gray-900">{stats.total}</p>
-            </div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-6 flex items-center">
-            <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Users className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-poppins font-medium text-gray-600">Total Étudiants</p>
-              <p className="text-2xl font-poppins font-light text-gray-900">
-                {loading ? "..." : stats.totalStudents.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* KPIs */}
+        <KPIGrid kpis={kpis} />
 
-        {/* Search Bar */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        {/* Message d'erreur */}
+        {error && (
+          <Alert
+            type="error"
+            message={error}
+            onRetry={() => {
+              const fetchData = async () => {
+                setLoading(true);
+                setError(null);
+                try {
+                  const response = await getFormations(currentPage, query);
+                  setFormations(response.data);
+                  updatePagination({
+                    current_page: response.current_page,
+                    last_page: response.last_page,
+                    total: response.total
+                  });
+                  setTotal(response.total);
+                } catch (e: any) {
+                  setError(e?.response?.data?.message || "Erreur lors du chargement des formations");
+                } finally {
+                  setLoading(false);
+                }
+              };
+              fetchData();
+            }}
+            className="mb-6"
+          />
+        )}
+
+        {/* Barre de recherche */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
           <Input
             placeholder="Rechercher une formation..."
             leftIcon={Search}
-            value={searchTerm}
-            onChange={handleSearchChange}
+            value={query}
+            onChange={(e) => updateQuery(e.target.value)}
           />
-          <div className="text-sm font-poppins text-gray-500">
+          <div className="text-sm font-poppins text-gray-500 mt-2">
             {loading ? "Recherche..." : `${total} formation${total > 1 ? 's' : ''} trouvée${total > 1 ? 's' : ''}`}
           </div>
         </div>
 
-        {/* Liste des Formations */}
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-poppins font-medium text-gray-900">
-              Liste des Formations
-            </h2>
-            {loading && (
-              <div className="flex items-center text-sm text-gray-500">
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Chargement...
-              </div>
-            )}
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {["Formation", "Code", "Durée",  "Statut", "Actions"].map((col) => (
-                    <th key={col} className="px-6 py-3 text-left text-xs font-poppins font-medium text-gray-500 uppercase tracking-wider">
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center">
-                      <div className="flex items-center justify-center">
-                        <Loader2 className="w-6 h-6 mr-3 animate-spin text-forest-600" />
-                        <span className="text-gray-600 font-poppins">Chargement des formations...</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : formations.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500 font-poppins">
-                      <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p className="text-lg font-medium">Aucune formation trouvée</p>
-                      <p className="text-sm">Essayez de modifier vos critères de recherche</p>
-                    </td>
-                  </tr>
-                ) : (
-                  formations.map((formation) => (
-                    <tr key={formation.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 flex items-center">
-                        <div className="w-10 h-10 bg-forest-100 rounded-lg flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-forest-600" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-poppins font-medium text-gray-900">
-                            {formation.name}
-                          </div>
-                          {formation.description && (
-                            <div className="text-sm font-poppins text-gray-500 max-w-xs truncate">
-                              {formation.description}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium bg-gray-100 text-gray-800">
-                          {formation.code}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-poppins text-gray-900">
-                        {formation.duration_years} {formation.duration_years > 1 ? 'ans' : 'an'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium ${
-                          formation.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {formation.is_active ? 'Actif' : 'Inactif'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          {/* <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-smooth">
-                            <Eye className="w-4 h-4" />
-                          </button> */}
-                          <button
-                            className="p-2 text-gray-400 hover:text-forest-600 hover:bg-forest-50 rounded-lg transition-smooth"
-                            onClick={() => router.push(`/dashboard/formation/edit/${formation.id}`)}
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-smooth"
-                            onClick={() => handleDelete(formation.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-smooth">
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {/* Table des formations */}
+        <DataTable
+          title="Liste des Formations"
+          columns={[
+            { key: 'formation', label: 'Formation' },
+            { key: 'code', label: 'Code' },
+            { key: 'duree', label: 'Durée' },
+            { key: 'statut', label: 'Statut' },
+            { key: 'actions', label: 'Actions' }
+          ]}
+          data={formations}
+          loading={loading}
+          emptyMessage="Aucune formation trouvée"
+          emptyIcon={<BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />}
+          renderRow={(formation, index) => (
+            <tr key={formation.id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 flex items-center">
+                <div className="w-10 h-10 bg-forest-100 rounded-lg flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-forest-600" />
+                </div>
+                <div className="ml-4">
+                  <div className="text-sm font-poppins font-medium text-gray-900">
+                    {formation.name}
+                  </div>
+                  {formation.description && (
+                    <div className="text-sm font-poppins text-gray-500 max-w-xs truncate">
+                      {formation.description}
+                    </div>
+                  )}
+                </div>
+              </td>
+              <td className="px-6 py-4">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium bg-gray-100 text-gray-800">
+                  {formation.code}
+                </span>
+              </td>
+              <td className="px-6 py-4 text-sm font-poppins text-gray-900">
+                {formation.duration_years} {formation.duration_years > 1 ? 'ans' : 'an'}
+              </td>
+              <td className="px-6 py-4">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-poppins font-medium ${
+                  formation.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {formation.is_active ? 'Actif' : 'Inactif'}
+                </span>
+              </td>
+              <td className="px-6 py-4">
+                <TableActions
+                  onEdit={() => router.push(`/dashboard/formation/edit/${formation.id}`)}
+                  onDelete={() => onDeleteFormation(formation)}
+                  onMore={() => {/* Action supplémentaire */}}
+                />
+              </td>
+            </tr>
+          )}
+        />
 
         {/* Pagination */}
-        <div className="mt-6 flex items-center justify-between">
-          <div className="text-sm font-poppins text-gray-700">
-            {loading ? (
-              "Chargement..."
-            ) : total > 0 ? (
-              <>Page <span className="font-medium">{currentPage}</span> sur <span className="font-medium">{lastPage}</span> — Total : <span className="font-medium">{total}</span> formation{total > 1 ? 's' : ''}</>
-            ) : (
-              "Aucun résultat"
-            )}
-          </div>
-          <div className="flex items-center space-x-2">
-            <button 
-              onClick={handlePreviousPage}
-              disabled={loading || page === 1}
-              className="px-3 py-2 text-sm font-poppins font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-            >
-              Précédent
-            </button>
-            <button className="px-3 py-2 text-sm font-poppins font-medium text-white bg-forest-600 rounded-md">
-              {currentPage}
-            </button>
-            <button 
-              onClick={handleNextPage}
-              disabled={loading || page >= lastPage}
-              className="px-3 py-2 text-sm font-poppins font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-            >
-              Suivant
-            </button>
-          </div>
-        </div>
+        {formations.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            lastPage={Math.ceil(total / 10)}
+            total={total}
+            loading={loading}
+            itemName="formation"
+            onPrevious={previousPage}
+            onNext={nextPage}
+          />
+        )}
       </div>
     </div>
   );

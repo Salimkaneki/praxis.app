@@ -5,45 +5,37 @@ import {
   Users,
   BookOpen,
   GraduationCap,
-  ArrowUpRight,
-  ArrowDownRight,
-  MoreHorizontal,
   Filter,
   Download,
-  Search,
   Calendar,
-  ChevronDown
 } from "lucide-react";
+import KPIGrid from "@/components/ui/Cards/kpi-grid";
 
 export default function Dashboard() {
   const kpis = [
     {
       label: "Personnel Académique",
       value: "248",
-      previousValue: "235",
       period: "vs mois précédent",
-      trend: "positive"
+      trend: "positive" as const
     },
     {
       label: "Programmes Actifs",
       value: "47",
-      previousValue: "44",
       period: "vs mois précédent", 
-      trend: "positive"
+      trend: "positive" as const
     },
     {
       label: "Effectif Étudiant",
       value: "3,847",
-      previousValue: "3,720",
       period: "vs mois précédent",
-      trend: "positive"
+      trend: "positive" as const
     },
     {
       label: "Taux d'Occupation",
       value: "87.3%",
-      previousValue: "89.1%",
       period: "vs mois précédent",
-      trend: "negative"
+      trend: "negative" as const
     }
   ];
 
@@ -87,11 +79,6 @@ export default function Dashboard() {
     }
   ];
 
-//   const calculateChange = (current, previous) => {
-//     const change = ((parseFloat(current.replace(/[,%]/g, '')) - parseFloat(previous.replace(/[,%]/g, ''))) / parseFloat(previous.replace(/[,%]/g, '')) * 100);
-//     return change > 0 ? `+${change.toFixed(1)}%` : `${change.toFixed(1)}%`;
-//   };
-
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -130,37 +117,7 @@ export default function Dashboard() {
 
       <div className="px-8 py-8">
         {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {kpis.map((kpi, index) => (
-            <div key={index} className="bg-white border border-gray-200 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-poppins font-medium text-gray-600">
-                  {kpi.label}
-                </h3>
-                <MoreHorizontal className="w-4 h-4 text-gray-400" />
-              </div>
-              
-              <div className="mb-2">
-                <div className="text-3xl font-poppins font-light text-gray-900 mb-1">
-                  {kpi.value}
-                </div>
-                <div className="flex items-center text-sm">
-                  <span className={`inline-flex items-center font-poppins font-medium ${
-                    kpi.trend === 'positive' ? 'text-green-700' : 'text-red-700'
-                  }`}>
-                    {kpi.trend === 'positive' ? (
-                      <ArrowUpRight className="w-3 h-3 mr-1" />
-                    ) : (
-                      <ArrowDownRight className="w-3 h-3 mr-1" />
-                    )}
-                    {/* {calculateChange(kpi.value, kpi.previousValue)} */}
-                  </span>
-                  <span className="text-gray-500 font-poppins ml-2">{kpi.period}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <KPIGrid kpis={kpis} />
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -259,46 +216,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-8">
-          <div className="bg-white border border-gray-200 rounded-lg">
-            <div className="px-6 py-5 border-b border-gray-200">
-              <h2 className="text-lg font-poppins font-medium text-gray-900">
-                Actions rapides
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {[
-                  { icon: User, label: "Gestion RH", sublabel: "Personnel & recrutement" },
-                  { icon: BookOpen, label: "Programmes", sublabel: "Cursus & formations" },
-                  { icon: GraduationCap, label: "Scolarité", sublabel: "Étudiants & examens" },
-                  { icon: Users, label: "Administration", sublabel: "Services & support" }
-                ].map((action, index) => {
-                  const IconComponent = action.icon;
-                  return (
-                    <button 
-                      key={index}
-                      className="flex items-center p-4 text-left border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all"
-                    >
-                      <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
-                        <IconComponent className="w-4 h-4 text-gray-600" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-poppins font-medium text-gray-900">
-                          {action.label}
-                        </div>
-                        <div className="text-xs font-poppins text-gray-500">
-                          {action.sublabel}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
   );

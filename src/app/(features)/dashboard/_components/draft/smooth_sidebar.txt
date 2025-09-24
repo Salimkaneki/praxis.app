@@ -123,7 +123,7 @@ export default function AdminSideBar() {
       <button
         key={item.key}
         onClick={() => handleNavigation(item.key)}
-        className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all duration-200 flex items-center space-x-3 ${
+        className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all duration-300 ease-out flex items-center space-x-3 transform hover:scale-[1.02] ${
           isActive
             ? 'bg-forest-50 text-forest-700 border border-forest-200 shadow-sm'
             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
@@ -157,7 +157,7 @@ export default function AdminSideBar() {
         <div className="mb-6">
           <button
             onClick={() => handleNavigation('dashboard')}
-            className={`w-full flex items-center space-x-3 px-3 py-3 text-sm rounded-lg transition-all duration-200 ${
+            className={`w-full flex items-center space-x-3 px-3 py-3 text-sm rounded-lg transition-all duration-300 ease-out transform hover:scale-[1.02] ${
               activeSection === 'dashboard'
                 ? 'bg-forest-50 text-forest-700 border border-forest-200 shadow-sm'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
@@ -178,23 +178,23 @@ export default function AdminSideBar() {
               <div key={section.key} className="border-b border-gray-50 pb-4 last:border-b-0">
                 <button
                   onClick={() => toggleSection(section.key)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200 mb-3 group"
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-300 ease-out mb-3 group transform hover:scale-[1.01]"
                 >
                   <div className="flex items-center space-x-3">
-                    <SectionIcon className="w-5 h-5 text-gray-500 group-hover:text-forest-600 transition-colors" />
+                    <SectionIcon className="w-5 h-5 text-gray-500 group-hover:text-forest-600 transition-all duration-300 ease-out transform group-hover:rotate-3" />
                     <span className="font-poppins font-semibold">{section.title}</span>
                   </div>
-                  <div className="transform transition-transform duration-200">
+                  <div className="transform transition-all duration-300 ease-out">
                     {isExpanded ? (
-                      <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                      <ChevronDownIcon className="w-4 h-4 text-gray-400 rotate-0" />
                     ) : (
-                      <ChevronRightIcon className="w-4 h-4 text-gray-400" />
+                      <ChevronRightIcon className="w-4 h-4 text-gray-400 rotate-0" />
                     )}
                   </div>
                 </button>
 
                 {isExpanded && (
-                  <div className="ml-4 space-y-1 animate-fadeIn">
+                  <div className="ml-4 space-y-1 animate-slideIn">
                     {section.items.map(renderMenuItem)}
                   </div>
                 )}
@@ -207,18 +207,18 @@ export default function AdminSideBar() {
 
 
       <style jsx>{`
-        @keyframes fadeIn {
+        @keyframes slideIn {
           from {
             opacity: 0;
-            transform: translateY(-5px);
+            transform: translateY(-10px) scale(0.95);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
+        .animate-slideIn {
+          animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
       `}</style>
     </div>

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import axios from "@/lib/server/interceptor/axios"; 
 import { deleteStudent } from "./_services/student.service";
+import KPIGrid from "@/components/ui/Cards/kpi-grid";
 
 
 // Types
@@ -182,6 +183,27 @@ export default function StudentPage() {
   const totalCapacity = classes.reduce((sum, cls) => sum + cls.capacity, 0);
   const occupationRate = totalCapacity > 0 ? ((totalStudents / totalCapacity) * 100).toFixed(1) : "0.0";
 
+  const kpis = useMemo(() => [
+    {
+      label: "Total Classes",
+      value: classes.length,
+      trend: "positive" as const,
+      period: "ce mois"
+    },
+    {
+      label: "Total Étudiants",
+      value: loading ? "..." : totalStudents,
+      trend: "positive" as const,
+      period: "ce mois"
+    },
+    {
+      label: "Taux d'Occupation",
+      value: `${occupationRate}%`,
+      trend: "negative" as const,
+      period: "ce mois"
+    }
+  ], [classes.length, totalStudents, occupationRate, loading]);
+
   const filteredClasses = classes.filter(cls => 
     cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cls.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -289,58 +311,7 @@ export default function StudentPage() {
 
       <div className="px-8 py-8">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-poppins font-medium text-gray-600">Total Classes</h3>
-              <MoreHorizontal className="w-4 h-4 text-gray-400" />
-            </div>
-            <div className="text-3xl font-poppins font-light text-gray-900 mb-1">{classes.length}</div>
-            <div className="flex items-center text-sm">
-              <span className="inline-flex items-center font-poppins font-medium text-green-700">
-                <ArrowUpRight className="w-3 h-3 mr-1" />
-                +1
-              </span>
-              <span className="text-gray-500 font-poppins ml-2">vs mois précédent</span>
-            </div>
-          </div>
-          
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-poppins font-medium text-gray-600">Total Étudiants</h3>
-              <MoreHorizontal className="w-4 h-4 text-gray-400" />
-            </div>
-            <div className="text-3xl font-poppins font-light text-gray-900 mb-1">
-              {loading ? (
-                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-              ) : (
-                totalStudents
-              )}
-            </div>
-            <div className="flex items-center text-sm">
-              <span className="inline-flex items-center font-poppins font-medium text-green-700">
-                <ArrowUpRight className="w-3 h-3 mr-1" />
-                +23
-              </span>
-              <span className="text-gray-500 font-poppins ml-2">vs mois précédent</span>
-            </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-poppins font-medium text-gray-600">Taux d'Occupation</h3>
-              <MoreHorizontal className="w-4 h-4 text-gray-400" />
-            </div>
-            <div className="text-3xl font-poppins font-light text-gray-900 mb-1">{occupationRate}%</div>
-            <div className="flex items-center text-sm">
-              <span className="inline-flex items-center font-poppins font-medium text-red-700">
-                <ArrowDownRight className="w-3 h-3 mr-1" />
-                -2.1%
-              </span>
-              <span className="text-gray-500 font-poppins ml-2">vs mois précédent</span>
-            </div>
-          </div>
-        </div>
+        <KPIGrid kpis={kpis} />
 
         {/* Error Message */}
         {error && (

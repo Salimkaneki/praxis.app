@@ -1,12 +1,14 @@
 'use client';
 import React, { useState, useEffect } from "react";
 import { 
-  MagnifyingGlassIcon,
   BellIcon,
   UserIcon,
   ChevronDownIcon,
   Cog6ToothIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  PlusIcon,
+  UsersIcon,
+  DocumentArrowUpIcon
 } from "@heroicons/react/24/outline";
 import { logoutAdmin } from "../../auth/sign-in/_services/auth.service";
 
@@ -14,6 +16,7 @@ import { logoutAdmin } from "../../auth/sign-in/_services/auth.service";
 export default function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
   const [adminName, setAdminName] = useState("Administrateur");
   const [institutionSlug, setInstitutionSlug] = useState("université");
 
@@ -24,6 +27,28 @@ export default function Header() {
     { id: 3, title: "Maintenance prévue ce soir", time: "Il y a 3h", unread: false }
   ];
   const unreadCount = notifications.filter(n => n.unread).length;
+
+  // Actions rapides pour l'admin
+  const quickActions = [
+    { 
+      icon: UserIcon, 
+      label: "Enregistrer un professeur", 
+      color: "text-blue-600",
+      action: () => console.log("Enregistrer professeur")
+    },
+    { 
+      icon: UsersIcon, 
+      label: "Enregistrer des étudiants", 
+      color: "text-green-600",
+      action: () => console.log("Enregistrer étudiants")
+    },
+    { 
+      icon: DocumentArrowUpIcon, 
+      label: "Importer des étudiants", 
+      color: "text-purple-600",
+      action: () => console.log("Importer étudiants")
+    }
+  ];
 
   // Récupération des infos admin depuis localStorage
   useEffect(() => {
@@ -43,20 +68,46 @@ export default function Header() {
     <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6">
       
       {/* Left side */}
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center">
         <span className="text-sm font-poppins font-medium text-gray-900">Tableau de bord</span>
-        <div className="relative">
-          <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Rechercher..."
-            className="pl-10 pr-4 py-2 w-80 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors font-poppins"
-          />
-        </div>
       </div>
 
       {/* Right side */}
       <div className="flex items-center space-x-4">
+        {/* Quick Actions */}
+        <div className="relative">
+          <button
+            onClick={() => setShowQuickActions(!showQuickActions)}
+            className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-forest-700 hover:bg-forest-50 rounded-lg transition-all duration-200 border border-gray-200 hover:border-forest-200"
+          >
+            <PlusIcon className="w-4 h-4" />
+            <span className="text-sm font-poppins font-medium">Actions</span>
+            <ChevronDownIcon className="w-3 h-3" />
+          </button>
+          {showQuickActions && (
+            <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+              <div className="p-2">
+                <div className="px-3 py-2 text-xs font-poppins font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100 mb-2">
+                  Actions rapides
+                </div>
+                {quickActions.map((action, index) => (
+                  <button 
+                    key={index} 
+                    onClick={() => {
+                      action.action();
+                      setShowQuickActions(false);
+                    }}
+                    className="w-full px-3 py-2.5 text-left text-sm font-poppins text-gray-700 hover:bg-gray-50 flex items-center space-x-3 rounded-md transition-colors"
+                  >
+                    <action.icon className={`w-4 h-4 ${action.color}`} />
+                    <span>{action.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Notifications */}
         <div className="relative">
           <button
@@ -146,12 +197,13 @@ export default function Header() {
       </div>
 
       {/* Click outside handler */}
-      {(showUserMenu || showNotifications) && (
+      {(showUserMenu || showNotifications || showQuickActions) && (
         <div 
           className="fixed inset-0 z-40" 
           onClick={() => {
             setShowUserMenu(false);
             setShowNotifications(false);
+            setShowQuickActions(false);
           }}
         />
       )}
