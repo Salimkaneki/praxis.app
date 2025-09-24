@@ -1,8 +1,12 @@
-"use client";
-
 import React, { ReactNode } from "react";
+import type { Metadata } from "next";
 import TeacherHeader from "./_components/teacher-header";
 import TeacherSideBar from "./_components/teacher-sidebar";
+
+export const metadata: Metadata = {
+  title: "Praxis - Enseignant",
+  description: "Créez et gérez vos évaluations interactives",
+};
 
 type DashboardLayoutProps = {
   children: ReactNode;
