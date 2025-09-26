@@ -1,5 +1,5 @@
 'use client'
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { 
   User,
   Users,
@@ -10,74 +10,55 @@ import {
   Calendar,
 } from "lucide-react";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
+import { getDashboardData, DashboardData } from "./_services/dashboard.service";
 
 export default function Dashboard() {
-  const kpis = [
-    {
-      label: "Personnel Académique",
-      value: "248",
-      period: "vs mois précédent",
-      trend: "positive" as const
-    },
-    {
-      label: "Programmes Actifs",
-      value: "47",
-      period: "vs mois précédent", 
-      trend: "positive" as const
-    },
-    {
-      label: "Effectif Étudiant",
-      value: "3,847",
-      period: "vs mois précédent",
-      trend: "positive" as const
-    },
-    {
-      label: "Taux d'Occupation",
-      value: "87.3%",
-      period: "vs mois précédent",
-      trend: "negative" as const
-    }
-  ];
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const metrics = [
-    { label: "Taux de réussite global", value: "94.2%", change: "+1.8", unit: "pt" },
-    { label: "Note satisfaction (NPS)", value: "72", change: "+5", unit: "" },
-    { label: "Ratio encadrement", value: "1:15.5", change: "-0.3", unit: "" },
-    { label: "Budget exécuté", value: "78.4%", change: "+3.2", unit: "pt" },
-    { label: "Publications scientifiques", value: "157", change: "+12", unit: "" },
-    { label: "Partenariats actifs", value: "23", change: "+2", unit: "" }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const dashboardData = await getDashboardData();
+        setData(dashboardData);
+      } catch (err) {
+        setError('Erreur lors du chargement des données');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const recentEvents = [
-    {
-      date: "2024-08-30",
-      time: "09:30",
-      title: "Conseil d'administration",
-      location: "Salle du conseil",
-      status: "En cours"
-    },
-    {
-      date: "2024-08-30", 
-      time: "14:00",
-      title: "Commission pédagogique - Faculté de Droit",
-      location: "Amphi A",
-      status: "Programmé"
-    },
-    {
-      date: "2024-08-30",
-      time: "16:30", 
-      title: "Soutenance HDR - Dr. Akakpo",
-      location: "Salle de conférence",
-      status: "Programmé"
-    },
-    {
-      date: "2024-08-31",
-      time: "10:00",
-      title: "Réunion budgétaire Q3",
-      location: "Bureau du recteur",
-      status: "Programmé"
-    }
-  ];
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement du tableau de bord...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const { kpis = [], metrics = [], recentEvents = [] } = data;
 
   return (
     <div className="min-h-screen bg-white">
