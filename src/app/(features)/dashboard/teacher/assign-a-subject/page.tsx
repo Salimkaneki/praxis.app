@@ -6,7 +6,7 @@ import SelectInput from "@/components/ui/Inputs/Select";
 import { assignSubject } from "../_services/assign-subject.service";
 import { Teacher, fetchTeachers } from "../_services/teacher.service";
 import { getSubjects, Subject } from "@dashboard/subject/_services/subject.service";
-import ClasseService, { Classe } from "@dashboard/formation/classe/_services/classe.service";
+import ClasseService, { Classe } from "../../formation/classe/_services/classe.service";
 
 // Types
 interface Option {
