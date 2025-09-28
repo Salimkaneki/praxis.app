@@ -28,22 +28,26 @@ const BASE_URL = "/teacher/quizzes";
 
 export const QuizzesService = {
   async getAll(): Promise<Quiz[]> {
-    const response = await axios.get<Quiz[]>(BASE_URL);
-    return response.data;
+    const response = await axios.get(BASE_URL);
+    // L'API retourne probablement { quizzes: Quiz[], pagination: {...} }
+    return response.data.quizzes || response.data || [];
   },
 
   async getById(id: number): Promise<Quiz> {
-    const response = await axios.get<Quiz>(`${BASE_URL}/${id}`);
+    const response = await axios.get(`${BASE_URL}/${id}`);
+    // L'API retourne directement le quiz
     return response.data;
   },
 
   async create(payload: Partial<Quiz>): Promise<Quiz> {
-    const response = await axios.post<Quiz>(BASE_URL, payload);
+    const response = await axios.post(BASE_URL, payload);
+    // L'API retourne directement le quiz créé
     return response.data;
   },
 
   async update(id: number, payload: Partial<Quiz>): Promise<Quiz> {
-    const response = await axios.put<Quiz>(`${BASE_URL}/${id}`, payload);
+    const response = await axios.put(`${BASE_URL}/${id}`, payload);
+    // L'API retourne directement le quiz mis à jour
     return response.data;
   },
 
@@ -74,17 +78,20 @@ export interface Question {
 // =============================
 export const QuestionsService = {
   async getAll(quizId: number): Promise<Question[]> {
-    const response = await axios.get<Question[]>(`${BASE_URL}/${quizId}/questions`);
-    return response.data;
+    const response = await axios.get(`${BASE_URL}/${quizId}/questions`);
+    // L'API retourne probablement { questions: Question[], pagination: {...} }
+    return response.data.questions || response.data || [];
   },
 
   async getById(quizId: number, questionId: number): Promise<Question> {
-    const response = await axios.get<Question>(`${BASE_URL}/${quizId}/questions/${questionId}`);
+    const response = await axios.get(`${BASE_URL}/${quizId}/questions/${questionId}`);
+    // L'API retourne directement la question
     return response.data;
   },
 
   async create(quizId: number, payload: Partial<Question>): Promise<Question> {
-    const response = await axios.post<Question>(`${BASE_URL}/${quizId}/questions`, payload);
+    const response = await axios.post(`${BASE_URL}/${quizId}/questions`, payload);
+    // L'API retourne directement la question créée
     return response.data;
   },
 
@@ -94,7 +101,8 @@ export const QuestionsService = {
   },
 
   async update(quizId: number, questionId: number, payload: Partial<Question>): Promise<Question> {
-    const response = await axios.put<Question>(`${BASE_URL}/${quizId}/questions/${questionId}`, payload);
+    const response = await axios.put(`${BASE_URL}/${quizId}/questions/${questionId}`, payload);
+    // L'API retourne directement la question mise à jour
     return response.data;
   },
 

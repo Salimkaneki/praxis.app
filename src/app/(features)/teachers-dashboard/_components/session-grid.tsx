@@ -325,11 +325,11 @@ type SessionGridProps = {
 
 export const SessionGrid = ({ sessions, onSessionDeleted }: SessionGridProps) => {
   const router = useRouter();
-  const [localSessions, setLocalSessions] = useState(sessions);
+  const [localSessions, setLocalSessions] = useState<SessionCard[]>([]);
 
   // Synchroniser les sessions locales avec les props
   React.useEffect(() => {
-    setLocalSessions(sessions);
+    setLocalSessions(Array.isArray(sessions) ? sessions : []);
   }, [sessions]);
 
   const handleSessionDelete = (sessionId: number) => {

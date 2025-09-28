@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Button from '@/components/ui/Buttons/Button';
 
-export default function ErrorPage() {
+function ErrorPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -29,5 +29,18 @@ export default function ErrorPage() {
         Retour à la connexion
       </Button>
     </div>
+  );
+}
+
+export default function ErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 px-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mb-4"></div>
+        <p className="text-gray-600">Chargement...</p>
+      </div>
+    }>
+      <ErrorPageContent />
+    </Suspense>
   );
 }

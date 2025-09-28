@@ -257,7 +257,7 @@ export default function StudentProfilePage() {
                 onChange={(e) => handleChange("class", e.target.value)}
                 options={classOptions}
                 leftIcon={GraduationCap}
-                disabled={!isEditing}
+                disabled={true}
               />
 
               <SelectInput
@@ -266,14 +266,14 @@ export default function StudentProfilePage() {
                 onChange={(e) => handleChange("specialty", e.target.value)}
                 options={specialtyOptions}
                 leftIcon={BookOpen}
-                disabled={!isEditing}
+                disabled={true}
               />
 
               <Input
                 label="Année scolaire"
                 value={formData.year}
                 onChange={(e) => handleChange("year", e.target.value)}
-                disabled={!isEditing}
+                disabled={true}
               />
             </div>
           </div>

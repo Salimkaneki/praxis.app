@@ -56,17 +56,17 @@ export default function StudentSideBar() {
     setActiveSection(key);
     // Navigation routes pour les étudiants
     const routes = {
-      'dashboard': '/student-dashboard',
-      'mes-cours': '/student-dashboard/courses',
-      'quiz-disponibles': '/student-dashboard/quizzes',
-      'quiz-en-cours': '/student-dashboard/quizzes/live',
-      'mes-resultats': '/student-dashboard/results',
-      'mon-profil': '/student-dashboard/profile',
-      'emploi-du-temps': '/student-dashboard/schedule',
-      'messagerie': '/student-dashboard/messages',
-      'annonces': '/student-dashboard/announcements',
-      'statistiques': '/student-dashboard/statistics',
-      'parametres': '/student-dashboard/settings'
+      'dashboard': '/student',
+      'mes-cours': '/student/courses',
+      'quiz-disponibles': '/student/sessions',
+      'quiz-en-cours': '/student/quizzes/live',
+      'mes-resultats': '/student/results',
+      'mon-profil': '/student/profile',
+      'emploi-du-temps': '/student/schedule',
+      'messagerie': '/student/messages',
+      'annonces': '/student/announcements',
+      'statistiques': '/student/statistics',
+      'parametres': '/student/settings'
     };
 
     const route = routes[key];

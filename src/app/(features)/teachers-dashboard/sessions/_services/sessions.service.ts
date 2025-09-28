@@ -60,7 +60,8 @@ export const SessionsService = {
   getAll: async (): Promise<Session[]> => {
     try {
       const response = await api.get('/teacher/sessions');
-      return response.data;
+      // L'API retourne { sessions: Session[], pagination: {...} }
+      return response.data.sessions || [];
     } catch (error) {
       console.error('Erreur lors de la récupération des sessions:', error);
       throw error;
@@ -71,6 +72,7 @@ export const SessionsService = {
   getById: async (id: number): Promise<Session> => {
     try {
       const response = await api.get(`/teacher/sessions/${id}`);
+      // L'API retourne directement la session
       return response.data;
     } catch (error) {
       console.error('Erreur lors de la récupération de la session:', error);
