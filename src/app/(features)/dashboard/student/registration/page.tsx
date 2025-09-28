@@ -13,6 +13,7 @@ import Textarea from "@/components/ui/Inputs/Textarea";
 
 // Import de l'API pour crÃ©er un Ã©tudiant
 import { createStudent } from "@dashboard/student/_services/student.service";
+ 
 
 interface FormData {
   student_number: string;
