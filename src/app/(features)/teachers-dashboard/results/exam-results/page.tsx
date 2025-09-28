@@ -229,9 +229,40 @@ const QuizSubmissionsPage = () => {
       />
 
       <div className="px-8 py-8">
-        <div className="max-w-6xl mx-auto">
+  <div className="w-full">
           {/* Statistiques rapides */}
           <KPIGrid kpis={kpis} />
+
+          {/* Informations communes du quiz */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <BookOpen className="w-5 h-5" />
+              Détails du quiz
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-gray-500" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Date du quiz</p>
+                  <p className="text-sm text-gray-600">{formatDate(mockSubmissions[0].submittedAt)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-gray-500" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Questions totales</p>
+                  <p className="text-sm text-gray-600">{mockSubmissions[0].totalQuestions} questions</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Clock className="w-5 h-5 text-gray-500" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Durée moyenne</p>
+                  <p className="text-sm text-gray-600">{formatDuration(Math.round(completedSubmissions.reduce((acc, s) => acc + s.duration, 0) / completedSubmissions.length))}</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Liste des soumissions */}
           <div className="bg-white rounded-lg border border-gray-200">
@@ -259,22 +290,6 @@ const QuizSubmissionsPage = () => {
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(submission.percentage)}`}>
                             {getGradeLabel(submission.percentage)}
                           </span>
-                        </div>
-                        <p className="text-sm text-gray-500">{submission.student.email}</p>
-                        
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {formatDate(submission.submittedAt)}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {formatDuration(submission.duration)}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <CheckCircle className="w-4 h-4" />
-                            {submission.questionsAnswered}/{submission.totalQuestions} questions
-                          </div>
                         </div>
                       </div>
                     </div>

@@ -225,7 +225,7 @@ const StudentQuizResponsesPage = () => {
       />
 
       <div className="px-8 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full">
           {/* Résumé de la performance */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
             <div className="flex items-center gap-4 mb-6">
