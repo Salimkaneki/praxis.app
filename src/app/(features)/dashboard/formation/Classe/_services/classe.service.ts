@@ -1,4 +1,5 @@
 // dashboard/formation/classe/_services/classe.service.ts
+'use client';
 import axios from "@/lib/server/interceptor/axios";
 
 export interface Classe {
