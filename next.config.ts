@@ -1,12 +1,13 @@
 import type { NextConfig } from "next";
+import path from 'path';
 
 const nextConfig: NextConfig = {
   /* config options here */
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': require('path').resolve(__dirname, 'src'),
-      '@dashboard': require('path').resolve(__dirname, 'src/app/(features)/dashboard'),
+      '@': path.resolve(__dirname, 'src'),
+      '@dashboard': path.resolve(__dirname, 'src/app/(features)/dashboard'),
     };
     return config;
   },
