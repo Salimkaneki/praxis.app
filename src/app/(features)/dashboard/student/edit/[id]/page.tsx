@@ -6,7 +6,7 @@ import {
   Save, ArrowLeft, AlertCircle, CheckCircle,
   Hash, GraduationCap, UserCheck, Loader2
 } from "lucide-react";
-import ClasseService, { Classe } from "@/app/(features)/dashboard/formation/classe/_services/classe.service";
+import ClasseService, { Classe } from "@dashboard/formation/classe/_services/classe.service";
 
 // Import de vos composants
 import Input from "@/components/ui/Inputs/Input";
@@ -14,7 +14,7 @@ import Select from "@/components/ui/Inputs/Select";
 import Textarea from "@/components/ui/Inputs/Textarea";
 
 // Import de l'API pour modifier un étudiant
-import { updateStudent, getStudentById } from "@/app/(features)/dashboard/student/_services/student.service";
+import { updateStudent, getStudentById } from "@dashboard/student/_services/student.service";
 
 interface FormData {
   student_number: string;

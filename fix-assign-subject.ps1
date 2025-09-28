@@ -1,12 +1,13 @@
-﻿'use client'
+@'
+'use client'
 import React, { useEffect, useState } from "react";
 import { Users, ArrowLeft, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SelectInput from "@/components/ui/Inputs/Select";
 import { assignSubject } from "../_services/assign-subject.service";
 import { Teacher, fetchTeachers } from "../_services/teacher.service";
-import { getSubjects, Subject } from "@dashboard/subject/_services/subject.service";
-import ClasseService, { Classe } from "@dashboard/formation/classe/_services/classe.service";
+import { getSubjects, Subject } from "../../../subject/_services/subject.service";
+import ClasseService, { Classe } from "../../../formation/classe/_services/classe.service";
 
 // Types
 interface Option {
@@ -59,19 +60,19 @@ export default function TeacherSubjectAssignment() {
     { value: "2025-2026", label: "2025-2026" },
   ];
 
-  // Fetch rÃ©el depuis les services
+  // Fetch réel depuis les services
     useEffect(() => {
     const loadTeachers = async () => {
         try {
         setLoadingTeachers(true);
-        const res = await fetchTeachers(); // res est dÃ©jÃ  PaginatedResponse<Teacher>
+        const res = await fetchTeachers(); // res est déjà PaginatedResponse<Teacher>
         const options = res.data.map((teacher: Teacher) => ({
             value: teacher.id.toString(),
             label: `${teacher.user.name} - ${teacher.specialization}`,
         }));
         setTeacherOptions(options);
         } catch (err) {
-        console.error("Erreur rÃ©cupÃ©ration des enseignants :", err);
+        console.error("Erreur récupération des enseignants :", err);
         } finally {
         setLoadingTeachers(false);
         }
@@ -91,7 +92,7 @@ export default function TeacherSubjectAssignment() {
             }));
             setSubjectOptions(options);
             } catch (err) {
-            console.error("Erreur rÃ©cupÃ©ration des matiÃ¨res :", err);
+            console.error("Erreur récupération des matières :", err);
             } finally {
             setLoadingSubjects(false);
             }
@@ -110,7 +111,7 @@ export default function TeacherSubjectAssignment() {
             }));
             setClasseOptions(options);
             } catch (err) {
-            console.error("Erreur rÃ©cupÃ©ration des classes :", err);
+            console.error("Erreur récupération des classes :", err);
             } finally {
             setLoadingClasses(false);
             }
@@ -139,9 +140,9 @@ export default function TeacherSubjectAssignment() {
     const newErrors: FormErrors = {};
 
     if (!formData.teacher_id) newErrors.teacher_id = "L'\''enseignant est requis";
-    if (!formData.subject_id) newErrors.subject_id = "La matiÃ¨re est requise";
+    if (!formData.subject_id) newErrors.subject_id = "La matière est requise";
     if (!formData.classe_id) newErrors.classe_id = "La classe est requise";
-    if (!formData.academic_year) newErrors.academic_year = "L'\''annÃ©e acadÃ©mique est requise";
+    if (!formData.academic_year) newErrors.academic_year = "L'\''année académique est requise";
 
     setErrors(newErrors);
 
@@ -159,11 +160,11 @@ export default function TeacherSubjectAssignment() {
         alert(res.message);
         router.push("/dashboard/subject");
       } catch (error: any) {
-        console.error("Erreur crÃ©ation:", error);
+        console.error("Erreur création:", error);
         if (error.response?.status === 409) {
           alert(error.response.data.message);
         } else {
-          alert("Erreur lors de la crÃ©ation de l'\''attribution.");
+          alert("Erreur lors de la création de l'\''attribution.");
         }
       } finally {
         setLoading(false);
@@ -184,7 +185,7 @@ export default function TeacherSubjectAssignment() {
             </button>
             <div>
               <h1 className="text-2xl font-poppins font-semibold text-gray-900">Nouvelle Attribution</h1>
-              <p className="text-sm font-poppins text-gray-600 mt-1">Attribuer une matiÃ¨re Ã  un enseignant pour une classe spÃ©cifique</p>
+              <p className="text-sm font-poppins text-gray-600 mt-1">Attribuer une matière à un enseignant pour une classe spécifique</p>
             </div>
           </div>
 
@@ -193,7 +194,7 @@ export default function TeacherSubjectAssignment() {
               Annuler
             </button>
             <button type="submit" form="attribution-form" disabled={loading} className="inline-flex items-center px-4 py-2 text-sm font-poppins font-medium text-white bg-forest-600 hover:bg-forest-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 transition-smooth disabled:opacity-50">
-              <Save className="w-4 h-4 mr-2" /> {loading ? "Attribution..." : "CrÃ©er l'\''Attribution"}
+              <Save className="w-4 h-4 mr-2" /> {loading ? "Attribution..." : "Créer l'\''Attribution"}
             </button>
           </div>
         </div>
@@ -215,7 +216,7 @@ export default function TeacherSubjectAssignment() {
                 <div className="space-y-6">
                   <SelectInput
                     label="Enseignant"
-                    placeholder={loadingTeachers ? "Chargement des enseignants..." : "SÃ©lectionner un enseignant"}
+                    placeholder={loadingTeachers ? "Chargement des enseignants..." : "Sélectionner un enseignant"}
                     value={formData.teacher_id}
                     onChange={handleSelectChange("teacher_id")}
                     options={teacherOptions}
@@ -224,8 +225,8 @@ export default function TeacherSubjectAssignment() {
                     disabled={loadingTeachers}
                   />
                   <SelectInput
-                    label="MatiÃ¨re"
-                    placeholder={loadingSubjects ? "Chargement des matiÃ¨res..." : "SÃ©lectionner une matiÃ¨re"}
+                    label="Matière"
+                    placeholder={loadingSubjects ? "Chargement des matières..." : "Sélectionner une matière"}
                     value={formData.subject_id}
                     onChange={handleSelectChange("subject_id")}
                     options={subjectOptions}
@@ -235,7 +236,7 @@ export default function TeacherSubjectAssignment() {
                   />
                   <SelectInput
                     label="Classe"
-                    placeholder={loadingClasses ? "Chargement des classes..." : "SÃ©lectionner une classe"}
+                    placeholder={loadingClasses ? "Chargement des classes..." : "Sélectionner une classe"}
                     value={formData.classe_id}
                     onChange={handleSelectChange("classe_id")}
                     options={classeOptions}
@@ -247,8 +248,8 @@ export default function TeacherSubjectAssignment() {
 
                 <div className="space-y-6">
                   <SelectInput
-                    label="AnnÃ©e acadÃ©mique"
-                    placeholder="SÃ©lectionner l'\''annÃ©e acadÃ©mique"
+                    label="Année académique"
+                    placeholder="Sélectionner l'\''année académique"
                     value={formData.academic_year}
                     onChange={handleSelectChange("academic_year")}
                     options={academicYearOptions}
@@ -275,3 +276,4 @@ export default function TeacherSubjectAssignment() {
     </div>
   );
 }
+'@ | Out-File -FilePath "C:\Users\_Salim_mevtr_\_sout_\praxis\src\app\(features)\dashboard\teacher\assign-a-subject\page.tsx" -Encoding UTF8

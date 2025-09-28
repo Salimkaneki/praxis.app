@@ -7,54 +7,13 @@ import {
   Trash2, MoreVertical, Mail, Phone, Calendar, User, Loader2
 } from "lucide-react";
 import axios from "@/lib/server/interceptor/axios"; 
-import { deleteStudent } from "./_services/student.service";
+import { deleteStudent, fetchStudents, Student, PaginatedResponse } from "./_services/student.service";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
 
 
 // Types
-export interface Student {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  student_number: string;
-  class_id: number;
-  institution_id: number;
-  birth_date: string;
-  is_active: boolean;
-  user?: {
-    id: number;
-    email: string;
-    is_active: boolean;
-  };
-  classe?: {
-    id: number;
-    name: string;
-    code: string;
-    formation?: {
-      id: number;
-      name: string;
-    };
-  };
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  current_page: number;
-  last_page: number;
-  total: number;
-}
 
 // API Functions
-export const fetchStudents = async (params?: {
-  search?: string;
-  page?: number;
-  per_page?: number;
-}): Promise<PaginatedResponse<Student>> => {
-  const response = await axios.get("/admin/students", { params });
-  return response.data;
-};
 
 export default function StudentPage() {
   const router = useRouter();

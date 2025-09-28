@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { 
@@ -6,15 +6,15 @@ import {
   Save, ArrowLeft, AlertCircle, CheckCircle,
   Hash, GraduationCap, UserCheck, Upload, Loader2
 } from "lucide-react";
-import ClasseService, { Classe } from "@/app/(features)/dashboard/formation/classe/_services/classe.service";
+import ClasseService, { Classe } from "@dashboard/formation/classe/_services/classe.service";
 
 // Import de vos composants
 import Input from "@/components/ui/Inputs/Input";
 import Select from "@/components/ui/Inputs/Select";
 import Textarea from "@/components/ui/Inputs/Textarea";
 
-// Import de l’API pour créer un étudiant
-import { createStudent } from "@/app/(features)/dashboard/student/_services/student.service";
+// Import de l'API pour crÃ©er un Ã©tudiant
+import { createStudent } from "@dashboard/student/_services/student.service";
 
 interface FormData {
   student_number: string;
@@ -66,7 +66,7 @@ export default function StudentRegistration() {
 
   const genderOptions = [
     { value: "M", label: "Masculin" },
-    { value: "F", label: "Féminin" }
+    { value: "F", label: "FÃ©minin" }
   ];
 
   // Charger les classes
@@ -76,7 +76,7 @@ export default function StudentRegistration() {
         setLoadingClasses(true);
         setClassesError(null);
         const response = await ClasseService.getClasses();
-        setClasses(response.data); // data contient le tableau réel
+        setClasses(response.data); // data contient le tableau rÃ©el
       } catch (err) {
         console.error("Erreur lors du chargement des classes", err);
         setClassesError("Erreur lors du chargement des classes");
@@ -89,7 +89,7 @@ export default function StudentRegistration() {
 
   const classOptions = classes.map(classe => ({
     value: classe.id.toString(),
-    label: classe.name // ⚠️ plus de `{classe.code}`
+    label: classe.name
   }));
 
   const handleInputChange = (field: keyof FormData) => 
@@ -101,11 +101,11 @@ export default function StudentRegistration() {
 
   const validateForm = (): FormErrors => {
     const newErrors: FormErrors = {};
-    if (!formData.first_name.trim()) newErrors.first_name = "Le prénom est requis";
+    if (!formData.first_name.trim()) newErrors.first_name = "Le prÃ©nom est requis";
     if (!formData.last_name.trim()) newErrors.last_name = "Le nom est requis";
     if (!formData.email.trim()) newErrors.email = "L'email est requis";
     if (!formData.birth_date) newErrors.birth_date = "La date de naissance est requise";
-    if (!formData.phone.trim()) newErrors.phone = "Le téléphone est requis";
+    if (!formData.phone.trim()) newErrors.phone = "Le tÃ©lÃ©phone est requis";
     if (!formData.class_id) newErrors.class_id = "La classe est requise";
     if (!formData.gender) newErrors.gender = "Le genre est requis";
 
@@ -183,13 +183,12 @@ export default function StudentRegistration() {
   };
 
   const handleCancel = () => {
-    router.back(); // Reviens à la vue précédente
+    router.back();
   };
 
   const handleNavigateToImport = () => {
-  router.push('/dashboard/student/import');
-};
-
+    router.push('/dashboard/student/import');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -200,10 +199,9 @@ export default function StudentRegistration() {
             <button onClick={handleCancel} className="p-2 hover:bg-gray-100 rounded-lg">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
-
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Nouvel Étudiant</h1>
-              <p className="text-sm text-gray-600 mt-1">Enregistrement d'un nouvel étudiant dans le système</p>
+              <h1 className="text-2xl font-semibold text-gray-900">Nouvel Ã‰tudiant</h1>
+              <p className="text-sm text-gray-600 mt-1">Enregistrement d'un nouvel Ã©tudiant dans le systÃ¨me</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -223,7 +221,7 @@ export default function StudentRegistration() {
           {submitStatus === 'success' && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
               <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-              <span className="text-sm text-green-800">Étudiant enregistré avec succès !</span>
+              <span className="text-sm text-green-800">Ã‰tudiant enregistrÃ© avec succÃ¨s !</span>
             </div>
           )}
           {submitStatus === 'error' && (
@@ -239,7 +237,6 @@ export default function StudentRegistration() {
       <div className="px-8 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg border border-gray-200 p-8">
-
             {/* Informations personnelles */}
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-6">
@@ -248,17 +245,17 @@ export default function StudentRegistration() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Informations personnelles</h2>
-                  <p className="text-sm text-gray-600">Renseignez les informations de base de l'étudiant</p>
+                  <p className="text-sm text-gray-600">Renseignez les informations de base de l'Ã©tudiant</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input label="Numéro d'étudiant" placeholder="ETU2025-XXXX (généré automatiquement)" value={formData.student_number} onChange={handleInputChange('student_number')} leftIcon={Hash} error={errors.student_number} />
-                <Select label="Genre" placeholder="Sélectionnez le genre" value={formData.gender} onChange={handleInputChange('gender')} options={genderOptions} leftIcon={UserCheck} required={true} error={errors.gender} />
-                <Input label="Prénom" placeholder="Entrez le prénom" value={formData.first_name} onChange={handleInputChange('first_name')} leftIcon={User} required error={errors.first_name} />
+                <Input label="NumÃ©ro d'Ã©tudiant" placeholder="ETU2025-XXXX (gÃ©nÃ©rÃ© automatiquement)" value={formData.student_number} onChange={handleInputChange('student_number')} leftIcon={Hash} error={errors.student_number} />
+                <Select label="Genre" placeholder="SÃ©lectionnez le genre" value={formData.gender} onChange={handleInputChange('gender')} options={genderOptions} leftIcon={UserCheck} required={true} error={errors.gender} />
+                <Input label="PrÃ©nom" placeholder="Entrez le prÃ©nom" value={formData.first_name} onChange={handleInputChange('first_name')} leftIcon={User} required error={errors.first_name} />
                 <Input label="Nom" placeholder="Entrez le nom de famille" value={formData.last_name} onChange={handleInputChange('last_name')} leftIcon={User} required error={errors.last_name} />
                 <Input label="Date de naissance" type="date" value={formData.birth_date} onChange={handleInputChange('birth_date')} leftIcon={Calendar} required error={errors.birth_date} />
-                <Select label="Classe" placeholder={loadingClasses ? "Chargement..." : "Sélectionnez une classe"} value={formData.class_id} onChange={handleInputChange('class_id')} options={classOptions} leftIcon={GraduationCap} required error={errors.class_id} disabled={loadingClasses || classesError !== null} />
+                <Select label="Classe" placeholder={loadingClasses ? "Chargement..." : "SÃ©lectionnez une classe"} value={formData.class_id} onChange={handleInputChange('class_id')} options={classOptions} leftIcon={GraduationCap} required error={errors.class_id} disabled={loadingClasses || classesError !== null} />
               </div>
             </div>
 
@@ -270,12 +267,12 @@ export default function StudentRegistration() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Informations de contact</h2>
-                  <p className="text-sm text-gray-600">Comment contacter l'étudiant</p>
+                  <p className="text-sm text-gray-600">Comment contacter l'Ã©tudiant</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input label="Email" type="email" placeholder="exemple@univ-lome.tg" value={formData.email} onChange={handleInputChange('email')} leftIcon={Mail} required error={errors.email} />
-                <Input label="Téléphone" placeholder="+228 90123456" value={formData.phone} onChange={handleInputChange('phone')} leftIcon={Phone} required error={errors.phone} />
+                <Input label="TÃ©lÃ©phone" placeholder="+228 90123456" value={formData.phone} onChange={handleInputChange('phone')} leftIcon={Phone} required error={errors.phone} />
               </div>
             </div>
 
@@ -287,12 +284,11 @@ export default function StudentRegistration() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Adresse</h2>
-                  <p className="text-sm text-gray-600">Adresse de résidence (optionnel)</p>
+                  <p className="text-sm text-gray-600">Adresse de rÃ©sidence (optionnel)</p>
                 </div>
               </div>
-              <Textarea label="Adresse complète" placeholder="Quartier, rue, ville..." value={formData.address} onChange={handleInputChange('address')} rows={3} error={errors.address} />
+              <Textarea label="Adresse complÃ¨te" placeholder="Quartier, rue, ville..." value={formData.address} onChange={handleInputChange('address')} rows={3} error={errors.address} />
             </div>
-
           </div>
         </div>
       </div>
