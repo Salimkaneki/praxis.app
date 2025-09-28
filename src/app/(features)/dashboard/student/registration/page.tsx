@@ -6,7 +6,7 @@ import {
   Save, ArrowLeft, AlertCircle, CheckCircle,
   Hash, GraduationCap, UserCheck, Upload, Loader2
 } from "lucide-react";
-import ClasseService, { Classe } from "../../formation/classe/_services/classe.service";// Import de vos composants
+import ClasseService, { Classe } from "../../formation/Classe/_services/classe.service";// Import de vos composants
 import Input from "@/components/ui/Inputs/Input";
 import Select from "@/components/ui/Inputs/Select";
 import Textarea from "@/components/ui/Inputs/Textarea";
