@@ -6,7 +6,7 @@ import {
   Eye, Trash2, Loader2
 } from "lucide-react";
 import Papa from 'papaparse';
-import ClasseService, { Classe } from "../../formation/Classe/_services/classe.service";
+import ClasseService, { Classe } from "../../formation/classe/_services/classe.service";
 import { importStudents } from "../_services/student.service";
 
 interface ImportedStudent {
