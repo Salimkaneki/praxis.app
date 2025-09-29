@@ -256,8 +256,19 @@ const StudentQuizResponsesPage = () => {
 
           {/* Réponses détaillées */}
           <div className="space-y-6">
-            {studentResponse.responses.map((response, index) => (
-              <div key={response.id} className="bg-white rounded-lg border border-gray-200 p-6">
+            {studentResponse.responses.map((response, index) => {
+              const isSelected = selectedQuestion === response.id;
+              
+              return (
+                <div 
+                  key={response.id} 
+                  className={`bg-white rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                    isSelected 
+                      ? 'border-blue-400 shadow-lg ring-2 ring-blue-100' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  } p-6`}
+                  onClick={() => setSelectedQuestion(isSelected ? null : response.id)}
+                >
                 {/* En-tête de la question */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-4 flex-1">
@@ -387,7 +398,8 @@ const StudentQuizResponsesPage = () => {
                   </div>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
 
         </div>
