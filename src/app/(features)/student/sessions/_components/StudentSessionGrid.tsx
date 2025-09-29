@@ -96,7 +96,6 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
     const endTime = new Date(session.ends_at);
 
     if (now < startTime) {
-      // Session à venir
       const diffMs = startTime.getTime() - now.getTime();
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
       const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -107,7 +106,6 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
         return `Dans ${diffMinutes}min`;
       }
     } else if (now >= startTime && now <= endTime) {
-      // Session en cours
       const diffMs = endTime.getTime() - now.getTime();
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
       const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -118,7 +116,6 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
         return `${diffMinutes}min restantes`;
       }
     } else {
-      // Session expirée
       return "Expiré";
     }
   };
@@ -134,10 +131,11 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
   const timeRemaining = getTimeRemaining();
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 transition-all duration-300 w-full aspect-square hover:shadow-lg group font-poppins">
-      <div className="h-full flex flex-col justify-between">
-        {/* Header */}
-        <div className="flex items-start justify-between">
+    <div className="bg-white border border-gray-200 rounded-lg transition-all duration-300 w-full hover:shadow-lg group font-poppins overflow-hidden">
+      {/* Container avec hauteur fixe et padding */}
+      <div className="h-80 p-6 flex flex-col">
+        {/* Header - Hauteur fixe */}
+        <div className="flex items-start justify-between mb-4 min-h-[60px]">
           <h3 className="text-lg font-semibold leading-tight pr-2 text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-2 font-poppins">
             {session.title}
           </h3>
@@ -149,91 +147,88 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
           </div>
         </div>
 
-        {/* Informations de session */}
-        <div className="space-y-3">
+        {/* Contenu principal - Flex-grow pour occuper l'espace */}
+        <div className="flex-1 space-y-3 min-h-0">
           {/* Matière */}
           <div className="flex items-center gap-2 text-sm text-gray-600 font-poppins">
-            <BookOpen className="w-4 h-4 text-gray-400" />
-            <span className="font-medium text-gray-700">{session.subject}</span>
+            <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span className="font-medium text-gray-700 truncate">{session.subject}</span>
           </div>
 
           {/* Enseignant */}
           {session.teacher && (
             <div className="flex items-center gap-2 text-sm text-gray-600 font-poppins">
-              <User className="w-4 h-4 text-gray-400" />
-              <span>{session.teacher.name}</span>
+              <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span className="truncate">{session.teacher.name}</span>
             </div>
           )}
 
           {/* Date et heure */}
           <div className="flex items-center gap-2 text-sm text-gray-600 font-poppins">
             <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <span>
+            <span className="truncate">
               {formatDate(session.starts_at)} • {formatTime(session.starts_at)} - {formatTime(session.ends_at)}
             </span>
           </div>
 
           {/* Durée et nombre de questions */}
-          <div className="flex items-center gap-4 text-sm text-gray-600 font-poppins">
+          <div className="flex items-center justify-between text-sm text-gray-600 font-poppins">
             <div className="flex items-center gap-1">
               <Timer className="w-4 h-4 text-gray-400" />
-              <span>{session.duration_minutes} min</span>
+              <span>{session.duration_minutes}min</span>
             </div>
             <div className="flex items-center gap-1">
               <BookOpen className="w-4 h-4 text-gray-400" />
-              <span>{session.total_questions} questions</span>
+              <span>{session.total_questions}q</span>
             </div>
           </div>
 
           {/* Temps restant ou score */}
-          {session.status === "completed" && session.score !== undefined && session.max_score ? (
-            <div className="text-sm font-poppins">
-              <span className="font-medium text-gray-700">Score: </span>
-              <span className="text-green-600 font-semibold">
-                {session.score}/{session.max_score} ({Math.round((session.score / session.max_score) * 100)}%)
-              </span>
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500 font-poppins">
-              {timeRemaining}
-            </div>
-          )}
+          <div className="text-sm font-poppins">
+            {session.status === "completed" && session.score !== undefined && session.max_score ? (
+              <div>
+                <span className="font-medium text-gray-700">Score: </span>
+                <span className="text-green-600 font-semibold">
+                  {session.score}/{session.max_score} ({Math.round((session.score / session.max_score) * 100)}%)
+                </span>
+              </div>
+            ) : (
+              <div className="text-gray-500">
+                {timeRemaining}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Bouton d'action */}
-        <div className="pt-4 border-t border-gray-100">
+        {/* Bouton d'action - Toujours en bas */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
           {statusConfig.canStart ? (
             <button
               onClick={handleStartExam}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-flex items-center justify-center gap-2 transition-colors font-poppins"
+              className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-flex items-center justify-center gap-2 transition-colors font-poppins text-sm"
             >
               <Play className="w-4 h-4" />
-              Commencer l'examen
+              Commencer
             </button>
           ) : session.status === "upcoming" ? (
-            <div className="w-full px-4 py-2 bg-gray-100 text-gray-500 rounded-lg font-medium text-center font-poppins">
-              Disponible bientôt
+            <div className="w-full px-4 py-2.5 bg-gray-100 text-gray-500 rounded-lg font-medium text-center font-poppins text-sm">
+              Bientôt disponible
             </div>
           ) : session.status === "completed" ? (
             <button
               onClick={() => router.push(`/student/sessions/${session.id}/results`)}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium inline-flex items-center justify-center gap-2 transition-colors font-poppins"
+              className="w-full px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium inline-flex items-center justify-center gap-2 transition-colors font-poppins text-sm"
             >
               <CheckCircle className="w-4 h-4" />
-              Voir les résultats
+              Voir résultats
             </button>
           ) : (
-            <div className="w-full px-4 py-2 bg-gray-100 text-gray-500 rounded-lg font-medium text-center font-poppins">
+            <div className="w-full px-4 py-2.5 bg-gray-100 text-gray-500 rounded-lg font-medium text-center font-poppins text-sm">
               Non disponible
             </div>
           )}
         </div>
       </div>
-
-      {/* Overlay pour indiquer que c'est cliquable */}
-      {statusConfig.canStart && (
-        <div className="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-5 transition-opacity rounded-lg pointer-events-none"></div>
-      )}
     </div>
   );
 };
@@ -243,8 +238,6 @@ type StudentSessionGridProps = {
 };
 
 export const StudentSessionGrid = ({ sessions }: StudentSessionGridProps) => {
-  const router = useRouter();
-
   if (sessions.length === 0) {
     return (
       <div className="text-center py-16 font-poppins">
