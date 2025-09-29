@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from "react";
 import { 
   Clock, CheckCircle, AlertCircle, Timer, Flag,
-  Send, Eye, EyeOff, ArrowUp
+  Send, Eye, EyeOff, ArrowUp, User, Calendar,
+  BookOpen, Target, Award
 } from "lucide-react";
-import { Button, Input, Textarea, Alert } from "@/components/ui";
+import { Input, Textarea } from "@/components/ui";
 
 // Types pour les questions
 interface QuizOption {
@@ -26,7 +27,7 @@ interface Quiz {
   id: number;
   title: string;
   description: string;
-  timeLimit: number; // en minutes
+  timeLimit: number;
   totalQuestions: number;
   totalPoints: number;
   questions: QuizQuestion[];
@@ -100,7 +101,7 @@ const mockQuiz: Quiz = {
 const StudentQuizInterface = () => {
   const [quiz] = useState<Quiz>(mockQuiz);
   const [answers, setAnswers] = useState<Map<number, StudentAnswer>>(new Map());
-  const [timeRemaining, setTimeRemaining] = useState(quiz.timeLimit * 60); // en secondes
+  const [timeRemaining, setTimeRemaining] = useState(quiz.timeLimit * 60);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
@@ -124,7 +125,7 @@ const StudentQuizInterface = () => {
     return () => clearInterval(timer);
   }, [isSubmitted]);
 
-  // Scroll effect pour le bouton retour en haut
+  // Scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollToTop(window.scrollY > 400);
@@ -155,7 +156,7 @@ const StudentQuizInterface = () => {
       questionId,
       answer,
       selectedOptions,
-      timeSpent: 0 // Simplifier le tracking du temps
+      timeSpent: 0
     };
     
     const newAnswers = new Map(answers);
@@ -188,7 +189,6 @@ const StudentQuizInterface = () => {
   const handleSubmitQuiz = () => {
     setIsSubmitted(true);
     setShowConfirmSubmit(false);
-    // Ici vous pourriez envoyer les réponses au serveur
     console.log('Quiz soumis:', Array.from(answers.values()));
   };
 
@@ -214,32 +214,31 @@ const StudentQuizInterface = () => {
       case 'multiple_choice':
       case 'true_false':
         return (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {question.options?.map((option) => (
-              <Button
+              <button
                 key={option.id}
                 onClick={() => handleMultipleChoice(question.id, option.id)}
                 disabled={isSubmitted}
-                variant={answer?.selectedOptions?.includes(option.id) ? "primary" : "secondary"}
-                className={`w-full text-left justify-start p-4 h-auto ${
+                className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
                   answer?.selectedOptions?.includes(option.id)
-                    ? 'bg-blue-50 border-blue-500'
-                    : 'bg-white border-gray-200 hover:border-gray-300'
-                } ${isSubmitted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                    ? 'bg-green-50 border-green-200 text-gray-900'
+                    : 'bg-gray-50 border-gray-200 hover:border-gray-300 text-gray-900'
+                } ${isSubmitted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-gray-100'}`}
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                     answer?.selectedOptions?.includes(option.id)
-                      ? 'border-blue-500 bg-blue-500'
+                      ? 'border-green-500'
                       : 'border-gray-300'
                   }`}>
                     {answer?.selectedOptions?.includes(option.id) && (
-                      <CheckCircle className="w-3 h-3 text-white" />
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     )}
                   </div>
-                  <span className="text-gray-900">{option.text}</span>
+                  <span>{option.text}</span>
                 </div>
-              </Button>
+              </button>
             ))}
           </div>
         );
@@ -252,7 +251,6 @@ const StudentQuizInterface = () => {
             disabled={isSubmitted}
             placeholder="Tapez votre réponse ici..."
             rows={4}
-            className="w-full"
           />
         );
 
@@ -263,7 +261,7 @@ const StudentQuizInterface = () => {
             onChange={(e) => handleTextAnswer(question.id, e.target.value)}
             disabled={isSubmitted}
             placeholder="Votre réponse"
-            className="w-full"
+            type="text"
           />
         );
 
@@ -274,27 +272,40 @@ const StudentQuizInterface = () => {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-md w-full mx-4">
-          <div className="text-center">
-            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Terminé!</h2>
-            <p className="text-gray-600 mb-4">
-              Vos réponses ont été soumises avec succès.
-            </p>
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <div className="text-sm text-gray-600">
-                <p>Questions répondues: {getAnsweredQuestions()}/{quiz.totalQuestions}</p>
-                <p>Temps utilisé: {formatTime(quiz.timeLimit * 60 - timeRemaining)}</p>
+      <div className="min-h-screen bg-gray-50 font-poppins">
+        <div className="px-8 py-8">
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-lg border border-gray-200 p-8">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Terminé!</h2>
+                <p className="text-gray-600 mb-6">
+                  Vos réponses ont été soumises avec succès.
+                </p>
+                
+                <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex justify-between">
+                      <span>Questions répondues:</span>
+                      <span className="font-medium">{getAnsweredQuestions()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Temps utilisé:</span>
+                      <span className="font-medium">{formatTime(quiz.timeLimit * 60 - timeRemaining)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => window.location.reload()}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+                >
+                  Retour aux cours
+                </button>
               </div>
             </div>
-            <Button
-              onClick={() => window.location.reload()}
-              variant="primary"
-              className="w-full"
-            >
-              Retour aux cours
-            </Button>
           </div>
         </div>
       </div>
@@ -303,18 +314,23 @@ const StudentQuizInterface = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-poppins">
-      {/* Header fixe */}
-      <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-        <div className="px-8 py-6">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="px-8 py-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{quiz.title}</h1>
-              <p className="text-gray-600 mt-1">{quiz.description}</p>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{quiz.title}</h1>
+                <p className="text-gray-600">{quiz.description}</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowTimer(!showTimer)}
-                className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                className="p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
               >
                 {showTimer ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -332,8 +348,8 @@ const StudentQuizInterface = () => {
       </div>
 
       <div className="flex">
-        {/* Sidebar navigation fixe */}
-        <div className="w-80 bg-white border-r border-gray-200 sticky top-[140px] h-[calc(100vh-140px)] overflow-y-auto">
+        {/* Sidebar navigation */}
+        <div className="w-80 bg-white border-r border-gray-200 sticky top-0 h-screen overflow-y-auto">
           <div className="p-6">
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Navigation</h3>
@@ -380,58 +396,62 @@ const StudentQuizInterface = () => {
                 </div>
               </div>
 
-              <Button
+              <button
                 onClick={() => setShowConfirmSubmit(true)}
-                variant="primary"
-                className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700"
+                className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
               >
                 <Send className="w-4 h-4" />
                 Soumettre le quiz
-              </Button>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Main Content - Toutes les questions */}
+        {/* Main Content */}
         <div className="flex-1 p-8">
-          <div className="max-w-4xl mx-auto space-y-8">
-            {quiz.questions.map((question, index) => {
-              const isAnswered = answers.has(question.id);
-              const isFlagged = flaggedQuestions.has(question.id);
+          <div className="w-full mx-auto">
+            <div className="space-y-8">
+              {/* Questions */}
+              {quiz.questions.map((question, index) => {
+                const isAnswered = answers.has(question.id);
+                const isFlagged = flaggedQuestions.has(question.id);
 
-              return (
-                <div
-                  key={question.id}
-                  id={`question-${question.id}`}
-                  className={`bg-white rounded-lg border-2 transition-all duration-200 ${
-                    isAnswered 
-                      ? 'border-green-200 bg-green-50/30' 
-                      : 'border-gray-200'
-                  } ${isFlagged ? 'ring-2 ring-orange-200' : ''}`}
-                >
-                  <div className="p-6">
-                    {/* Question Header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                return (
+                  <div
+                    key={question.id}
+                    id={`question-${question.id}`}
+                    className={`bg-white rounded-lg border-2 transition-all duration-200 p-6 ${
+                      isAnswered 
+                        ? 'border-green-200 bg-green-50/30' 
+                        : 'border-gray-200'
+                    } ${isFlagged ? 'ring-2 ring-orange-200' : ''}`}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start gap-4 flex-1">
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 ${
                           isAnswered 
                             ? 'bg-green-100 text-green-600' 
                             : 'bg-blue-100 text-blue-600'
                         }`}>
                           {index + 1}
                         </span>
-                        <div className="flex items-center gap-3">
-                          <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
-                            {getQuestionTypeLabel(question.questionType)}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {question.points} points
-                          </span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                              {getQuestionTypeLabel(question.questionType)}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {question.points} points
+                            </span>
+                          </div>
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">
+                            {question.questionText}
+                          </h3>
                         </div>
                       </div>
                       <button
                         onClick={() => toggleFlag(question.id)}
-                        className={`p-2 rounded-lg transition-colors ${
+                        className={`p-2 rounded-lg transition-colors duration-200 ${
                           isFlagged
                             ? 'bg-orange-100 text-orange-600'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -441,49 +461,32 @@ const StudentQuizInterface = () => {
                       </button>
                     </div>
 
-                    <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                      {question.questionText}
-                    </h2>
-
                     {renderQuestionContent(question)}
-
-                    {/* Indicateur de réponse */}
-                    {isAnswered && (
-                      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                          <span className="text-sm text-green-700 font-medium">
-                            Question répondue
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
 
-            {/* Section de soumission finale */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Prêt à soumettre votre quiz ?
-                </h3>
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <div className="text-sm text-gray-600">
-                    <p>Questions répondues: {getAnsweredQuestions()}/{quiz.totalQuestions}</p>
-                    <p>Questions non répondues: {quiz.totalQuestions - getAnsweredQuestions()}</p>
-                    <p>Questions marquées: {flaggedQuestions.size}</p>
+              {/* Section finale */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Prêt à soumettre votre quiz ?
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div className="text-sm text-gray-600">
+                      <p>Questions répondues: {getAnsweredQuestions()}/{quiz.totalQuestions}</p>
+                      <p>Questions non répondues: {quiz.totalQuestions - getAnsweredQuestions()}</p>
+                      <p>Questions marquées: {flaggedQuestions.size}</p>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => setShowConfirmSubmit(true)}
+                    className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center gap-2 mx-auto font-medium"
+                  >
+                    <Send className="w-4 h-4" />
+                    Soumettre le quiz
+                  </button>
                 </div>
-                <Button
-                  onClick={() => setShowConfirmSubmit(true)}
-                  variant="primary"
-                  className="bg-green-600 hover:bg-green-700 flex items-center gap-2 mx-auto"
-                >
-                  <Send className="w-4 h-4" />
-                  Soumettre le quiz
-                </Button>
               </div>
             </div>
           </div>
@@ -500,7 +503,7 @@ const StudentQuizInterface = () => {
         </button>
       )}
 
-      {/* Modal de confirmation de soumission */}
+      {/* Modal de confirmation */}
       {showConfirmSubmit && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
@@ -519,20 +522,18 @@ const StudentQuizInterface = () => {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button
+              <button
                 onClick={() => setShowConfirmSubmit(false)}
-                variant="secondary"
-                className="flex-1"
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
               >
                 Annuler
-              </Button>
-              <Button
+              </button>
+              <button
                 onClick={handleSubmitQuiz}
-                variant="primary"
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
               >
                 Soumettre
-              </Button>
+              </button>
             </div>
           </div>
         </div>

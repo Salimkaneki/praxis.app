@@ -17,7 +17,8 @@ import {
   CheckCircleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  StarIcon
+  StarIcon,
+  KeyIcon
 } from "@heroicons/react/24/outline";
 
 type SectionKey = 'courses' | 'quizzes' | 'results' | 'communication';
@@ -25,6 +26,7 @@ type ActiveSection =
   | 'dashboard'
   | 'mes-cours'
   | 'quiz-disponibles'
+  | 'rejoindre-quiz'
   | 'quiz-en-cours'
   | 'mes-resultats'
   | 'mon-profil'
@@ -59,6 +61,7 @@ export default function StudentSideBar() {
       'dashboard': '/student',
       'mes-cours': '/student/courses',
       'quiz-disponibles': '/student/sessions',
+      'rejoindre-quiz': '/student/join-session',
       'quiz-en-cours': '/student/quizzes/live',
       'mes-resultats': '/student/results',
       'mon-profil': '/student/profile',
@@ -105,6 +108,12 @@ export default function StudentSideBar() {
           icon: PlayIcon,
           badge: '3 nouveaux',
           highlight: true
+        },
+        {
+          key: 'rejoindre-quiz' as ActiveSection,
+          label: 'Rejoindre un quiz',
+          icon: KeyIcon,
+          badge: 'Code'
         },
         {
           key: 'quiz-en-cours' as ActiveSection,

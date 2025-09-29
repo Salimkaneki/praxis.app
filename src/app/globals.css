@@ -28,6 +28,14 @@
 }
 
 @font-face {
+  font-family: 'Poppins';
+  display: swap;
+  src: url('/fonts/Poppins-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
   font-family: 'Inter';
   display: swap;
   src: url('/fonts/Inter-VariableFont_opsz,wght.ttf') format('truetype-variations');

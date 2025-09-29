@@ -17,7 +17,7 @@ export default function KPIGrid({ kpis }: KPIGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {kpis.map((kpi, index) => (
-        <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 ">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-poppins font-medium text-gray-600">
               {kpi.label}

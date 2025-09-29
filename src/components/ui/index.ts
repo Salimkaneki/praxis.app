@@ -12,3 +12,4 @@ export { default as Button } from './Buttons/Button';
 export { default as Input } from './Inputs/Input';
 export { default as Select } from './Inputs/Select';
 export { default as Textarea } from './Inputs/Textarea';
+export { default as SessionCodeInput } from './Inputs/SessionCodeInput';

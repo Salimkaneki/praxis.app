@@ -82,7 +82,7 @@ export default function StudentDashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-poppins">
       {/* HEADER */}
       <StudentPageHeader
         title="Mon Espace Étudiant"
