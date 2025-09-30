@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import TeacherPageHeader from "../../../_components/page-header";
 import { SessionsService, Session } from "../../_services/sessions.service";
+import { QuestionsService, Question } from "../../../quizzes/_services/quizzes.service";
 
 // Types pour les étudiants (données simulées)
 interface Student {
@@ -35,6 +36,10 @@ const SessionDetailsPage = () => {
   const [showActions, setShowActions] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [refreshing, setRefreshing] = useState(false);
+  
+  // États pour les questions
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
 
   // Données simulées des étudiants (à remplacer par de vraies données plus tard)
   const [students, setStudents] = useState<Student[]>([
@@ -74,6 +79,11 @@ const SessionDetailsPage = () => {
       setError(null);
       const sessionData = await SessionsService.getById(parseInt(sessionId));
       setSession(sessionData);
+      
+      // Charger les questions du quiz associé si la session a un quiz
+      if (sessionData.quiz_id) {
+        await fetchQuestions(sessionData.quiz_id);
+      }
     } catch (err: any) {
       console.error('Erreur lors de la récupération de la session:', err);
       
@@ -89,6 +99,35 @@ const SessionDetailsPage = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  // Fonction pour charger les questions du quiz
+  const fetchQuestions = async (quizId: number) => {
+    try {
+      setLoadingQuestions(true);
+      const questionsData = await QuestionsService.getAll(quizId);
+      
+      // Trier les questions par ordre, puis par ID
+      const sortedQuestions = questionsData.sort((a: Question, b: Question) => {
+        if (a.order != null && b.order != null) {
+          return a.order - b.order;
+        }
+        if (a.order != null && b.order == null) {
+          return -1;
+        }
+        if (a.order == null && b.order != null) {
+          return 1;
+        }
+        return a.id - b.id;
+      });
+      
+      setQuestions(sortedQuestions);
+    } catch (err: any) {
+      console.error('Erreur lors du chargement des questions:', err);
+      // Ne pas afficher d'erreur pour les questions, juste les laisser vides
+    } finally {
+      setLoadingQuestions(false);
     }
   };
 
@@ -234,6 +273,16 @@ const SessionDetailsPage = () => {
       return `${hours}h${mins > 0 ? mins.toString().padStart(2, '0') : ''}`;
     }
     return `${mins} min`;
+  };
+
+  const getQuestionTypeLabel = (type: Question['type']) => {
+    const types: Record<Question['type'], string> = {
+      multiple_choice: "QCM",
+      true_false: "Vrai/Faux", 
+      open_ended: "Réponse libre",
+      fill_blank: "Texte à trous"
+    };
+    return types[type];
   };
 
   // États de chargement et d'erreur
@@ -753,12 +802,104 @@ const SessionDetailsPage = () => {
                     </div>
                   </div>
                   
-                  <div className="prose max-w-none">
+                  <div className="prose max-w-none mb-8">
                     <p className="text-gray-700 leading-relaxed">
                       Cette session de quiz permet aux étudiants de valider leurs connaissances sur {session.quiz?.title?.toLowerCase() || "le sujet défini"}. 
                       La session est configurée avec un temps limite de {timeLimit} minutes et 
                       {session.settings?.proctoring ? ' inclut la surveillance automatique' : ' fonctionne en mode libre'}.
                     </p>
+                  </div>
+
+                  {/* Section Questions du quiz */}
+                  <div className="bg-white border border-gray-200 rounded-lg">
+                    <div className="p-6 border-b border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">Questions du quiz</h4>
+                          <p className="text-sm text-gray-600">
+                            {loadingQuestions ? 'Chargement...' : `${questions.length} question${questions.length > 1 ? 's' : ''} dans ce quiz`}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6">
+                      {loadingQuestions ? (
+                        <div className="space-y-3">
+                          {[...Array(3)].map((_, i) => (
+                            <div key={i} className="border border-gray-200 rounded-lg p-4">
+                              <div className="animate-pulse">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                                  <div className="flex-1">
+                                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : questions.length === 0 ? (
+                        <div className="text-center py-12">
+                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <FileText className="w-8 h-8 text-gray-400" />
+                          </div>
+                          <h4 className="text-lg font-medium text-gray-900 mb-2">Aucune question trouvée</h4>
+                          <p className="text-gray-600 max-w-md mx-auto">
+                            Le quiz associé à cette session ne contient pas encore de questions.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {questions.map((question, index) => (
+                            <div
+                              key={question.id}
+                              className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4 flex-1">
+                                  <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
+                                    {index + 1}
+                                  </span>
+                                  
+                                  <div className="flex-1">
+                                    <h5 className="text-gray-900 font-medium mb-1">
+                                      {question.question_text}
+                                    </h5>
+                                    <div className="flex items-center gap-3 text-sm text-gray-500">
+                                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                                        {getQuestionTypeLabel(question.type)}
+                                      </span>
+                                      {question.points && (
+                                        <span>{question.points} point{question.points > 1 ? 's' : ''}</span>
+                                      )}
+                                      {question.time_limit && (
+                                        <span>{question.time_limit}s</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-1 ml-4">
+                                  {/* Bouton pour voir le quiz complet */}
+                                  <button
+                                    onClick={() => router.push(`/teachers-dashboard/quizzes/quiz-details/${session?.quiz_id}`)}
+                                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    title="Voir le quiz complet"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
