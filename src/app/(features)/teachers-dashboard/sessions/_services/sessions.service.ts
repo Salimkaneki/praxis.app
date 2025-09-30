@@ -85,8 +85,19 @@ export const SessionsService = {
     try {
       const response = await api.post('/teacher/sessions', sessionData);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la création de la session:', error);
+
+      // Afficher les détails de l'erreur de validation si disponible
+      if (error.response?.status === 422 && error.response?.data) {
+        console.error('Erreurs de validation:', error.response.data);
+        if (error.response.data.errors) {
+          Object.entries(error.response.data.errors).forEach(([field, messages]) => {
+            console.error(`${field}:`, messages);
+          });
+        }
+      }
+
       throw error;
     }
   },

@@ -79,6 +79,7 @@ export default function CreateSessionPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>(null);
+  const [submitErrorMessage, setSubmitErrorMessage] = useState<string>('');
 
   // États pour les données externes
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -170,21 +171,29 @@ export default function CreateSessionPage() {
 
     setIsSubmitting(true);
     setSubmitStatus(null);
+    setSubmitErrorMessage('');
 
     try {
+      // Formater les dates au format attendu par Laravel (Y-m-d H:i:s)
+      const startDateTime = new Date(`${formData.starts_at_date}T${formData.starts_at_time}`);
+      const endDateTime = new Date(`${formData.ends_at_date}T${formData.ends_at_time}`);
+
       const sessionData = {
         quiz_id: parseInt(formData.quiz_id),
-        title: formData.title,
-        starts_at: `${formData.starts_at_date} ${formData.starts_at_time}:00`,
-        ends_at: `${formData.ends_at_date} ${formData.ends_at_time}:00`,
+        title: formData.title.trim(),
+        starts_at: startDateTime.toISOString().slice(0, 19).replace('T', ' '), // Format Y-m-d H:i:s
+        ends_at: endDateTime.toISOString().slice(0, 19).replace('T', ' '),   // Format Y-m-d H:i:s
         max_participants: parseInt(formData.max_participants),
-        settings: {
-          shuffle_questions: formData.shuffle_questions,
-          time_limit: parseInt(formData.time_limit),
-          proctoring: formData.proctoring,
-          allow_pause: formData.allow_pause
-        }
+        // Ne pas envoyer settings pour l'instant - le backend pourrait ne pas les gérer
+        // settings: {
+        //   shuffle_questions: formData.shuffle_questions,
+        //   time_limit: parseInt(formData.time_limit),
+        //   proctoring: formData.proctoring,
+        //   allow_pause: formData.allow_pause
+        // }
       };
+
+      console.log('Données envoyées:', sessionData); // Debug
 
       await SessionsService.create(sessionData);
       
@@ -196,7 +205,20 @@ export default function CreateSessionPage() {
 
     } catch (error: any) {
       console.error("Erreur lors de la création:", error);
-      setSubmitStatus('error');
+      
+      // Afficher les erreurs de validation spécifiques si disponibles
+      if (error.response?.status === 422 && error.response?.data?.errors) {
+        const validationErrors = error.response.data.errors;
+        const errorMessages = Object.values(validationErrors).flat() as string[];
+        setSubmitErrorMessage(errorMessages.join(', '));
+        setSubmitStatus('error');
+      } else if (error.response?.data?.error) {
+        setSubmitErrorMessage(error.response.data.error);
+        setSubmitStatus('error');
+      } else {
+        setSubmitErrorMessage('');
+        setSubmitStatus('error');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -260,7 +282,14 @@ export default function CreateSessionPage() {
           {submitStatus === 'error' && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
               <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
-              <span className="text-sm text-red-800">Une erreur est survenue lors de la création.</span>
+              <div>
+                <span className="text-sm text-red-800">Une erreur est survenue lors de la création.</span>
+                {submitErrorMessage && (
+                  <div className="mt-2 text-xs text-red-600">
+                    Détails: {submitErrorMessage}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
