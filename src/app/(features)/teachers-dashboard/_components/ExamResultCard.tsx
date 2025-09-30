@@ -109,10 +109,10 @@ const ExamResultCard = ({ result, index, onDelete }: ExamResultCardProps) => {
   const statusConfig = getStatusConfig(result.status);
   const ScoreTrendIcon = scoreTrend.icon;
 
-  // Navigation vers la page de détails des résultats
+  // Navigation vers la page de participation des étudiants
   const handleCardClick = () => {
     if (isDeleting) return;
-    router.push(`/teachers-dashboard/exam-results/${result.id}`);
+    router.push(`/teachers-dashboard/results/participation?sessionId=${result.id}`);
   };
 
   const handleMoreClick = (e: React.MouseEvent) => {
@@ -129,7 +129,7 @@ const ExamResultCard = ({ result, index, onDelete }: ExamResultCardProps) => {
     
     switch (action) {
       case 'view':
-        router.push(`/teachers-dashboard/exam-results/${result.id}`);
+        router.push(`/teachers-dashboard/results/participation?sessionId=${result.id}`);
         break;
       case 'download':
         handleDownload();

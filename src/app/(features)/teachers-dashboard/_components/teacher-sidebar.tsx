@@ -27,12 +27,13 @@ import {
   StarIcon
 } from "@heroicons/react/24/outline";
 
-type SectionKey = 'classes' | 'evaluations' | 'pedagogie' | 'communication' | 'analyses';
+type SectionKey = 'classes' | 'evaluations' | 'communication';
 type ActiveSection = 
   | 'dashboard'
   | 'mes-classes'
   | 'gestion-eleves'
   | 'creation-evaluation'
+  | 'mes-quiz'
   | 'evaluation-en-cours'
   | 'resultats-notes'
   | 'banque-questions'
@@ -40,10 +41,6 @@ type ActiveSection =
   | 'ressources'
   | 'devoirs-maison'
   | 'cahier-texte'
-  | 'statistiques-classe'
-  | 'progression-eleves'
-  | 'comparaisons'
-  | 'export-notes'
   | 'notifications'
   | 'archivage'
   | 'parametres';
@@ -53,9 +50,7 @@ export default function TeacherSideBar() {
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
     classes: true,
     evaluations: false,
-    pedagogie: false,
     communication: false,
-    analyses: false,
   });
 
   const router = useRouter();
@@ -71,27 +66,24 @@ export default function TeacherSideBar() {
     setActiveSection(key);
     // Navigation routes pour les professeurs
     const routes = {
-      'dashboard': '/teacher',
-      'mes-classes': '/teacher/classes',
-      'gestion-eleves': '/teacher/eleves',
-      'creation-evaluation': '/teacher/evaluations/create',
-      'evaluation-en-cours': '/teacher/evaluations/live',
-      'resultats-notes': '/teacher/evaluations/resultats',
-      'banque-questions': '/teacher/evaluations/banque-questions',
-      'cours-lecons': '/teacher/cours',
-      'ressources': '/teacher/ressources',
-      'devoirs-maison': '/teacher/devoirs',
-      'cahier-texte': '/teacher/cahier-texte',
-      'messagerie': '/teacher/messagerie',
-      'annonces': '/teacher/annonces',
-      'reunions-parents': '/teacher/reunions',
-      'statistiques-classe': '/teacher/statistiques',
-      'progression-eleves': '/teacher/progression',
-      'parametres': '/teacher/parametres',
-      'comparaisons': '/teacher/comparaisons',
-      'export-notes': '/teacher/export-notes',
-      'notifications': '/teacher/notifications',
-      'archivage': '/teacher/archivage'
+      'dashboard': '/teachers-dashboard',
+      'mes-classes': '/teachers-dashboard/classes',
+      'gestion-eleves': '/teachers-dashboard/eleves',
+      'creation-evaluation': '/teachers-dashboard/quizzes/create',
+      'mes-quiz': '/teachers-dashboard/quizzes',
+      'evaluation-en-cours': '/teachers-dashboard/sessions',
+      'resultats-notes': '/teachers-dashboard/results',
+      'banque-questions': '/teachers-dashboard/quizzes/banque-questions',
+      'cours-lecons': '/teachers-dashboard/cours',
+      'ressources': '/teachers-dashboard/ressources',
+      'devoirs-maison': '/teachers-dashboard/devoirs',
+      'cahier-texte': '/teachers-dashboard/cahier-texte',
+      'messagerie': '/teachers-dashboard/messagerie',
+      'annonces': '/teachers-dashboard/annonces',
+      'reunions-parents': '/teachers-dashboard/reunions',
+      'parametres': '/teachers-dashboard/parametres',
+      'notifications': '/teachers-dashboard/notifications',
+      'archivage': '/teachers-dashboard/archivage'
     };
 
     const route = routes[key];
@@ -127,54 +119,32 @@ export default function TeacherSideBar() {
       items: [
         { 
           key: 'creation-evaluation' as ActiveSection, 
-          label: 'Créer une évaluation', 
+          label: 'Créer un quiz', 
           icon: PlusIcon,
           highlight: true
         },
         {
+          key: 'mes-quiz' as ActiveSection,
+          label: 'Mes quiz',
+          icon: DocumentTextIcon,
+          badge: 'Quiz créés'
+        },
+        {
           key: 'evaluation-en-cours' as ActiveSection,
-          label: 'Évaluations en cours',
+          label: 'Sessions d\'examen',
           icon: () => <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>,
-          badge: '2 actives'
+          badge: 'Sessions actives'
         },
         { 
           key: 'resultats-notes' as ActiveSection, 
-          label: 'Notes & Résultats', 
+          label: 'Résultats & Notes', 
           icon: DocumentChartBarIcon,
-          badge: '12 à corriger'
+          badge: 'Examens'
         },
         { 
           key: 'banque-questions' as ActiveSection, 
           label: 'Banque de questions', 
           icon: DocumentDuplicateIcon 
-        },
-      ],
-    },
-    {
-      key: 'pedagogie' as SectionKey,
-      title: 'Pédagogie',
-      icon: AcademicCapIcon,
-      items: [
-        { 
-          key: 'cours-lecons' as ActiveSection, 
-          label: 'Mes cours & leçons', 
-          icon: BookOpenIcon 
-        },
-        { 
-          key: 'ressources' as ActiveSection, 
-          label: 'Ressources pédagogiques', 
-          icon: DocumentTextIcon 
-        },
-        { 
-          key: 'devoirs-maison' as ActiveSection, 
-          label: 'Devoirs & Exercices', 
-          icon: ClipboardDocumentListIcon,
-          badge: '8 en attente'
-        },
-        { 
-          key: 'cahier-texte' as ActiveSection, 
-          label: 'Cahier de texte', 
-          icon: CalendarDaysIcon 
         },
       ],
     },
@@ -199,23 +169,6 @@ export default function TeacherSideBar() {
           label: 'Rendez-vous parents', 
           icon: CalendarDaysIcon,
           badge: '5 programmés'
-        },
-      ],
-    },
-    {
-      key: 'analyses' as SectionKey,
-      title: 'Analyses & Suivi',
-      icon: ChartBarIcon,
-      items: [
-        { 
-          key: 'statistiques-classe' as ActiveSection, 
-          label: 'Statistiques de classe', 
-          icon: ChartBarIcon 
-        },
-        { 
-          key: 'progression-eleves' as ActiveSection, 
-          label: 'Progression des élèves', 
-          icon: StarIcon 
         },
       ],
     },
@@ -326,16 +279,16 @@ export default function TeacherSideBar() {
           <div className="text-xs font-poppins text-gray-500 mb-2">Statistiques rapides</div>
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-poppins">
-              <span className="text-gray-600">Évaluations cette semaine</span>
-              <span className="font-medium text-gray-900">8</span>
+              <span className="text-gray-600">Quiz créés</span>
+              <span className="font-medium text-gray-900">12</span>
             </div>
             <div className="flex justify-between text-xs font-poppins">
-              <span className="text-gray-600">Notes à saisir</span>
-              <span className="font-medium text-orange-600">12</span>
+              <span className="text-gray-600">Sessions actives</span>
+              <span className="font-medium text-green-600">3</span>
             </div>
             <div className="flex justify-between text-xs font-poppins">
-              <span className="text-gray-600">Messages non lus</span>
-              <span className="font-medium text-forest-600">3</span>
+              <span className="text-gray-600">Résultats à corriger</span>
+              <span className="font-medium text-orange-600">8</span>
             </div>
           </div>
         </div>

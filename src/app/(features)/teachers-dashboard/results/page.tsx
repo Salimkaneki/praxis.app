@@ -1,9 +1,10 @@
 'use client';
-import React from "react";
+import React, { useState, useEffect } from "react";
 import TeacherPageHeader from "../_components/page-header";
 import ExamResultCard, { ExamResult } from "../_components/ExamResultCard";
-import { BarChart3 } from "lucide-react";
-// import { useRouter } from "next/navigation";
+import KPIGrid, { KPI } from "../_components/kpi-grid";
+import { Plus, BarChart3, Loader2 } from "lucide-react";
+import resultService from "./_services/result.service";
 
 // Données d'exemple pour les résultats d'examen
 const mockExamResults: ExamResult[] = [
@@ -106,10 +107,96 @@ const mockExamResults: ExamResult[] = [
 ];
 
 export default function ResultsPage() {
-  const handleResultDeleted = (resultId: number) => {
-    console.log("Résultat supprimé:", resultId);
-    // Ici vous pourriez mettre à jour votre état ou recharger les données
+  const [examResults, setExamResults] = useState<ExamResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Charger les résultats au montage du composant
+  useEffect(() => {
+    loadExamResults();
+  }, []);
+
+  const loadExamResults = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const results = await resultService.getExamResults();
+      setExamResults(results);
+    } catch (err) {
+      console.error('Erreur lors du chargement des résultats:', err);
+      setError('Impossible de charger les résultats. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleResultDeleted = async (resultId: number) => {
+    try {
+      await resultService.deleteResult(resultId);
+      // Recharger la liste après suppression
+      await loadExamResults();
+    } catch (err) {
+      console.error('Erreur lors de la suppression:', err);
+      alert('Erreur lors de la suppression du résultat');
+    }
+  };
+
+  const calculateOverallStats = () => {
+    if (examResults.length === 0) return null;
+
+    const totalSessions = examResults.length;
+    const totalParticipants = examResults.reduce((sum, result) => sum + result.completed_participants, 0);
+    const averageScore = examResults.reduce((sum, result) => sum + result.average_score, 0) / totalSessions;
+    const averagePassRate = examResults.reduce((sum, result) => sum + result.pass_rate, 0) / totalSessions;
+
+    return {
+      totalSessions,
+      totalParticipants,
+      averageScore: averageScore.toFixed(1),
+      averagePassRate: averagePassRate.toFixed(1)
+    };
+  };
+
+  const stats = calculateOverallStats();
+
+  // Création des KPIs à partir des statistiques calculées
+  const kpis: KPI[] = stats ? [
+    {
+      label: "Sessions totales",
+      value: stats.totalSessions,
+      trend: "positive",
+      period: "Ce mois"
+    },
+    {
+      label: "Participants",
+      value: stats.totalParticipants,
+      trend: "positive",
+      period: "Toutes sessions"
+    },
+    {
+      label: "Score moyen",
+      value: `${stats.averageScore}%`,
+      trend: parseFloat(stats.averageScore) > 70 ? "positive" : "negative",
+      period: "Global"
+    },
+    {
+      label: "Taux de réussite",
+      value: `${stats.averagePassRate}%`,
+      trend: parseFloat(stats.averagePassRate) > 75 ? "positive" : "negative",
+      period: "Moyenne"
+    }
+  ] : [];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <p className="text-gray-600">Chargement des résultats...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -119,13 +206,44 @@ export default function ResultsPage() {
       />
 
       <div className="p-6 space-y-6">
+        {/* KPIs avec le composant KPIGrid */}
+        {stats && <KPIGrid kpis={kpis} />}
+
+        {/* Header avec actions */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Derniers résultats</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {examResults.length} résultat{examResults.length > 1 ? 's' : ''} d'examen
+            </p>
+          </div>
+          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Exporter tout
+          </button>
+        </div>
+
         {/* Grille des cartes de résultats */}
-        {mockExamResults.length > 0 ? (
+        {error ? (
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <BarChart3 className="w-10 h-10 text-red-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Erreur de chargement</h3>
+            <p className="text-gray-600 mb-8 max-w-md mx-auto">{error}</p>
+            <button
+              onClick={loadExamResults}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Réessayer
+            </button>
+          </div>
+        ) : examResults.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {mockExamResults.map((result, index) => (
-              <ExamResultCard 
-                key={result.id} 
-                result={result} 
+            {examResults.map((result, index) => (
+              <ExamResultCard
+                key={result.id}
+                result={result}
                 index={index}
                 onDelete={handleResultDeleted}
               />

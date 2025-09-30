@@ -1,34 +1,14 @@
 'use client';
-import React, { useState } from "react";
-import { useRouter } from 'next/navigation';
-import { 
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
   Users, Eye, Clock, CheckCircle, XCircle, Award,
   Calendar, Download, MoreVertical,
-  User, TrendingUp, Target, BookOpen
+  User, TrendingUp, Target, BookOpen, Loader2, AlertCircle
 } from "lucide-react";
 import TeacherPageHeader from "../../_components/page-header";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
-
-// Interface pour les soumissions d'étudiants
-interface StudentSubmission {
-  id: number;
-  student: {
-    id: number;
-    name: string;
-    email: string;
-    avatar?: string;
-  };
-  score: number;
-  maxScore: number;
-  percentage: number;
-  status: 'completed' | 'in_progress' | 'not_started';
-  submittedAt: string;
-  duration: number; // en minutes
-  questionsAnswered: number;
-  totalQuestions: number;
-}
-
-// Données mockées pour 6 étudiants
+import resultService, { StudentSubmission } from "../_services/result.service";// Données mockées pour 6 étudiants
 const mockSubmissions: StudentSubmission[] = [
   {
     id: 1,
@@ -128,22 +108,72 @@ const mockSubmissions: StudentSubmission[] = [
   }
 ];
 
-const QuizSubmissionsPage = () => {
+const QuizParticipationPage = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <QuizParticipationContent />
+    </Suspense>
+  );
+};
+
+const QuizParticipationContent = () => {
   const router = useRouter();
-  const [submissions] = useState<StudentSubmission[]>(mockSubmissions);
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('sessionId');
+
+  const [submissions, setSubmissions] = useState<StudentSubmission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Charger les données de participation au montage
+  useEffect(() => {
+    if (sessionId) {
+      loadParticipation(parseInt(sessionId));
+    } else {
+      setError('ID de session manquant');
+      setLoading(false);
+    }
+  }, [sessionId]);
+
+  const loadParticipation = async (sessionId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await resultService.getSessionParticipation(sessionId);
+      setSubmissions(data);
+    } catch (err) {
+      console.error('Erreur lors du chargement de la participation:', err);
+      setError('Impossible de charger les données de participation');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calculs des statistiques
   const completedSubmissions = submissions.filter(s => s.status === 'completed');
-  const averageScore = completedSubmissions.reduce((acc, s) => acc + s.score, 0) / completedSubmissions.length;
-  const highestScore = Math.max(...completedSubmissions.map(s => s.score));
-  const lowestScore = Math.min(...completedSubmissions.map(s => s.score));
+  const averageScore = completedSubmissions.length > 0
+    ? completedSubmissions.reduce((acc, s) => acc + s.score, 0) / completedSubmissions.length
+    : 0;
+  const highestScore = completedSubmissions.length > 0
+    ? Math.max(...completedSubmissions.map(s => s.score))
+    : 0;
+  const lowestScore = completedSubmissions.length > 0
+    ? Math.min(...completedSubmissions.map(s => s.score))
+    : 0;
 
   // KPIs pour le composant KPIGrid
   const kpis = [
     {
-      label: "Soumissions",
+      label: "Participations",
       value: completedSubmissions.length,
-      period: "total",
+      period: "étudiants",
       trend: "positive" as const
     },
     {
@@ -180,9 +210,9 @@ const QuizSubmissionsPage = () => {
     return "Insuffisant";
   };
 
-  const handleViewDetails = (submissionId: number) => {
-    // TODO: Naviguer vers la page de détails de la soumission
-    console.log(`Voir détails soumission ${submissionId}`);
+  const handleViewStudentDetails = (studentId: number) => {
+    // Navigation vers les réponses détaillées de l'étudiant avec le sessionId
+    router.push(`/teachers-dashboard/results/participation/student/${studentId}?sessionId=${sessionId}`);
   };
 
   const handleExportResults = () => {
@@ -209,15 +239,52 @@ const QuizSubmissionsPage = () => {
     return `${hours}h ${remainingMinutes}min`;
   };
 
-  // Filtrer et trier les soumissions
-  const filteredAndSortedSubmissions = submissions;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <p className="text-gray-600">Chargement de la participation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-poppins">
+        <TeacherPageHeader
+          title="Erreur de chargement"
+          subtitle="Impossible de charger les données de participation"
+          backButton={{
+            onClick: () => router.back()
+          }}
+        />
+        <div className="px-8 py-8">
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-10 h-10 text-red-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Erreur de chargement</h3>
+            <p className="text-gray-600 mb-8 max-w-md mx-auto">{error}</p>
+            <button
+              onClick={() => sessionId && loadParticipation(parseInt(sessionId))}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 font-poppins">
       {/* Header */}
       <TeacherPageHeader
-        title="Résultats du Quiz"
-        subtitle={`${completedSubmissions.length} soumissions • Score moyen: ${averageScore.toFixed(1)}/100`}
+        title="Participation des étudiants"
+        subtitle={`${completedSubmissions.length} étudiants • Score moyen: ${averageScore.toFixed(1)}/100`}
         actionButton={{
           label: "Exporter les résultats",
           icon: <Download className="w-4 h-4 mr-2" />,
@@ -244,14 +311,14 @@ const QuizSubmissionsPage = () => {
                 <Calendar className="w-5 h-5 text-gray-500" />
                 <div>
                   <p className="text-sm font-medium text-gray-900">Date du quiz</p>
-                  <p className="text-sm text-gray-600">{formatDate(mockSubmissions[0].submittedAt)}</p>
+                  <p className="text-sm text-gray-600">{submissions.length > 0 ? formatDate(submissions[0].submittedAt) : 'N/A'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-gray-500" />
                 <div>
                   <p className="text-sm font-medium text-gray-900">Questions totales</p>
-                  <p className="text-sm text-gray-600">{mockSubmissions[0].totalQuestions} questions</p>
+                  <p className="text-sm text-gray-600">{submissions.length > 0 ? submissions[0].totalQuestions : 0} questions</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -264,17 +331,17 @@ const QuizSubmissionsPage = () => {
             </div>
           </div>
 
-          {/* Liste des soumissions */}
+          {/* Liste des participations */}
           <div className="bg-white rounded-lg border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <BookOpen className="w-5 h-5" />
-                Soumissions des étudiants
+                <Users className="w-5 h-5" />
+                Participations des étudiants
               </h2>
             </div>
 
             <div className="divide-y divide-gray-200">
-              {filteredAndSortedSubmissions.map((submission) => (
+              {submissions.map((submission) => (
                 <div key={submission.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
@@ -291,6 +358,17 @@ const QuizSubmissionsPage = () => {
                             {getGradeLabel(submission.percentage)}
                           </span>
                         </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            {formatDuration(submission.duration)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4" />
+                            {submission.questionsAnswered}/{submission.totalQuestions} questions
+                          </span>
+                          <span>Soumis le {formatDate(submission.submittedAt)}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -306,9 +384,9 @@ const QuizSubmissionsPage = () => {
                       </div>
 
                       <button
-                        onClick={() => handleViewDetails(submission.id)}
+                        onClick={() => handleViewStudentDetails(submission.student.id)}
                         className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Voir les détails"
+                        title="Voir les réponses détaillées"
                       >
                         <Eye className="w-5 h-5" />
                       </button>
@@ -322,12 +400,12 @@ const QuizSubmissionsPage = () => {
               ))}
             </div>
 
-            {filteredAndSortedSubmissions.length === 0 && (
+            {submissions.length === 0 && (
               <div className="text-center py-12">
                 <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune soumission trouvée</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune participation trouvée</h3>
                 <p className="text-gray-600">
-                  Les étudiants n'ont pas encore soumis ce quiz.
+                  Les étudiants n'ont pas encore participé à ce quiz.
                 </p>
               </div>
             )}
@@ -338,4 +416,4 @@ const QuizSubmissionsPage = () => {
   );
 };
 
-export default QuizSubmissionsPage;
+export default QuizParticipationPage;
