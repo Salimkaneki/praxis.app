@@ -20,10 +20,13 @@ api.interceptors.request.use((config) => {
     token = localStorage.getItem("teacher_token");
   } else if (config.url?.includes('/admin/')) {
     token = localStorage.getItem("admin_token");
+  } else if (config.url?.includes('/student/')) {
+    token = localStorage.getItem("student_token");
   } else {
     // Fallback pour les autres routes
-    token = localStorage.getItem("teacher_token") || 
-            localStorage.getItem("admin_token");
+    token = localStorage.getItem("teacher_token") ||
+            localStorage.getItem("admin_token") ||
+            localStorage.getItem("student_token");
   }
 
   if (token) {
@@ -44,10 +47,14 @@ api.interceptors.response.use(
           localStorage.removeItem("teacher_token");
           localStorage.removeItem("teacher_data");
           window.location.href = "/auth/sign-in/teacher";
-        } else if (window.location.pathname.includes('/admin') || 
+        } else if (window.location.pathname.includes('/admin') ||
                    window.location.pathname.includes('/dashboard')) {
           localStorage.removeItem("admin_token");
           window.location.href = "/auth/sign-in";
+        } else if (window.location.pathname.includes('/student')) {
+          localStorage.removeItem("student_token");
+          localStorage.removeItem("student_data");
+          window.location.href = "/auth/sign-in/student";
         } else {
           localStorage.removeItem("token");
           window.location.href = "/error-page?code=401";
@@ -56,6 +63,4 @@ api.interceptors.response.use(
     }
     return Promise.reject(error);
   }
-);
-
-export default api;
+);export default api;

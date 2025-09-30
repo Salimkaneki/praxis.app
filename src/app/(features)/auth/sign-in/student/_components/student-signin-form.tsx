@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Inputs/Input";
 import Button from "@/components/ui/Buttons/Button";
+import { loginStudent } from "../_services/auth.service";
 
 export default function StudentSignInForm() {
   const router = useRouter();
@@ -18,21 +19,16 @@ export default function StudentSignInForm() {
     setError("");
 
     try {
-      // TODO: Implémenter l'appel API loginStudent plus tard
-      // const res = await loginStudent({ email, password });
+      const response = await loginStudent({ email, password });
 
-      // Simulation temporaire de connexion réussie
-      console.log("Tentative de connexion étudiant:", { email, password });
+      console.log("Connexion réussie:", response);
 
-      // Simulation de redirection temporaire
-      // router.push("/student/dashboard");
+      // Redirection vers le dashboard étudiant
+      router.push("/student/");
 
-      // Pour l'instant, afficher un message
-      setError("Connexion simulée - API à implémenter");
-
-    } catch (err) {
-      console.error(err);
-      setError("Erreur de connexion");
+    } catch (err: any) {
+      console.error("Erreur de connexion:", err);
+      setError(err.message || "Erreur de connexion");
     } finally {
       setLoading(false);
     }

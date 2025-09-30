@@ -15,13 +15,15 @@ import {
   TrophyIcon,
   PlayIcon
 } from "@heroicons/react/24/outline";
+import { getStudentProfile, logoutStudent, StudentProfile } from "../../auth/sign-in/student/_services/auth.service";
 
 export default function StudentHeader() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQuickAccess, setShowQuickAccess] = useState(false);
-  const [studentName, setStudentName] = useState("Étudiant");
-  const [studentClass, setStudentClass] = useState("Classe");
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Mise à jour de l'heure en temps réel
@@ -47,19 +49,40 @@ export default function StudentHeader() {
     { icon: CalendarDaysIcon, label: "Mon emploi du temps", color: "text-orange-600" }
   ];
 
-  // Récupération des infos étudiant depuis localStorage
+  // Récupération du profil étudiant depuis l'API
   useEffect(() => {
-    const storedData = localStorage.getItem("student_data");
-    if (!storedData) return;
+    const loadStudentProfile = async () => {
+      try {
+        setLoading(true);
+        const profile = await getStudentProfile();
+        setStudentProfile(profile);
+      } catch (error) {
+        console.error('Erreur lors du chargement du profil:', error);
+        // En cas d'erreur, garder les données du localStorage si elles existent
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    try {
-      const data = JSON.parse(storedData);
-      setStudentName(data?.user?.name || "Étudiant");
-      setStudentClass(data?.user?.class || "Classe");
-    } catch (err) {
-      console.error("Impossible de parser student_data :", err);
-    }
+    loadStudentProfile();
   }, []);
+
+  // Gestionnaire de déconnexion
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await logoutStudent();
+      // La redirection est gérée dans la fonction logoutStudent
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      // Même en cas d'erreur, forcer la déconnexion
+      localStorage.removeItem('student_token');
+      localStorage.removeItem('student_data');
+      window.location.href = '/auth/sign-in/student';
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   const getNotificationIcon = (type: "quiz" | "reminder" | "grades" | "announcement" | string): string => {
     switch (type) {
@@ -173,12 +196,12 @@ export default function StudentHeader() {
           >
             <div className="w-8 h-8 bg-gradient-to-r from-forest-600 to-forest-700 rounded-full flex items-center justify-center">
               <span className="text-sm text-white font-poppins font-semibold">
-                {studentName.split(' ').map(n => n[0]).join('')}
+                {(studentProfile?.name || "Étudiant").split(' ').map((n: string) => n[0]).join('').toUpperCase()}
               </span>
             </div>
             <div className="hidden md:block text-left">
-              <p className="text-sm font-poppins font-medium text-gray-900">{studentName}</p>
-              <p className="text-xs font-poppins text-gray-500">{studentClass}</p>
+              <p className="text-sm font-poppins font-medium text-gray-900">{studentProfile?.name || "Étudiant"}</p>
+              <p className="text-xs font-poppins text-gray-500">{studentProfile?.account_type || "Étudiant"}</p>
             </div>
             <ChevronDownIcon className="w-4 h-4 text-gray-400" />
           </button>
@@ -187,8 +210,17 @@ export default function StudentHeader() {
             <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
               <div className="py-2">
                 <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="text-sm font-poppins font-medium text-gray-900">{studentName}</p>
-                  <p className="text-xs font-poppins text-gray-500">{studentClass}</p>
+                  <p className="text-sm font-poppins font-medium text-gray-900">{studentProfile?.name || "Étudiant"}</p>
+                  <p className="text-xs font-poppins text-gray-500">{studentProfile?.email || ""}</p>
+                  <div className="flex items-center mt-1">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      studentProfile?.is_active
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {studentProfile?.is_active ? 'Actif' : 'Inactif'}
+                    </span>
+                  </div>
                 </div>
 
                 <button className="w-full px-4 py-2 text-left text-sm font-poppins text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-colors">
@@ -217,9 +249,13 @@ export default function StudentHeader() {
                 </button>
 
                 <div className="border-t border-gray-100 mt-2 pt-2">
-                  <button className="w-full px-4 py-2 text-left text-sm font-poppins text-red-600 hover:bg-red-50 flex items-center space-x-3 transition-colors">
+                  <button
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="w-full px-4 py-2 text-left text-sm font-poppins text-red-600 hover:bg-red-50 flex items-center space-x-3 transition-colors disabled:opacity-50"
+                  >
                     <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                    <span>Se déconnecter</span>
+                    <span>{loggingOut ? 'Déconnexion...' : 'Se déconnecter'}</span>
                   </button>
                 </div>
               </div>

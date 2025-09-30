@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import StudentPageHeader from "../_components/page-header";
 import Input from "../../../../components/ui/Inputs/Input";
 import SelectInput from "../../../../components/ui/Inputs/Select";
@@ -17,54 +17,133 @@ import {
   Palette,
   Camera,
   Save,
-  X
+  X,
+  LogOut,
+  Loader2
 } from "lucide-react";
+import { getStudentProfile, logoutStudent, StudentProfile } from "../../auth/sign-in/student/_services/auth.service";
 
 export default function StudentProfilePage() {
-  // État du formulaire
+  // État du profil
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // État du formulaire (pour les futures modifications)
   const [formData, setFormData] = useState({
-    firstName: "Jean",
-    lastName: "Dupont",
-    email: "jean.dupont@ecole.fr",
-    phone: "+33 6 12 34 56 78",
-    birthDate: "2005-05-15",
-    address: "123 Rue des Étudiants, 75001 Paris",
-    class: "Terminale S",
-    specialty: "Sciences",
-    year: "2025",
-    bio: "Étudiant passionné par les sciences et la programmation. J'aime résoudre des problèmes complexes et travailler en équipe.",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    birthDate: "",
+    address: "",
+    class: "",
+    specialty: "",
+    year: "",
+    bio: "",
     notifications: "all",
     theme: "light"
   });
 
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  // Options pour les selects
-  const classOptions = [
-    { value: "seconde", label: "Seconde" },
-    { value: "premiere", label: "Première" },
-    { value: "terminale", label: "Terminale" }
-  ];
+  // Charger le profil au montage du composant
+  useEffect(() => {
+    loadStudentProfile();
+  }, []);
 
-  const specialtyOptions = [
-    { value: "general", label: "Général" },
-    { value: "sciences", label: "Sciences" },
-    { value: "litteraire", label: "Littéraire" },
-    { value: "economique", label: "Économique et Social" }
-  ];
+  const loadStudentProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const profileData = await getStudentProfile();
+      setProfile(profileData);
 
-  const notificationOptions = [
-    { value: "all", label: "Toutes les notifications" },
-    { value: "important", label: "Uniquement importantes" },
-    { value: "none", label: "Aucune notification" }
-  ];
+      // Initialiser le formulaire avec les données du profil
+      setFormData(prev => ({
+        ...prev,
+        email: profileData.email,
+        // Les autres champs peuvent être vides pour l'instant car ils ne sont pas dans l'API
+      }));
+    } catch (err: any) {
+      console.error('Erreur lors du chargement du profil:', err);
+      setError(err.message || 'Erreur lors du chargement du profil');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const themeOptions = [
-    { value: "light", label: "Clair" },
-    { value: "dark", label: "Sombre" },
-    { value: "auto", label: "Automatique" }
-  ];
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await logoutStudent();
+      // La redirection est gérée dans la fonction logoutStudent
+    } catch (err: any) {
+      console.error('Erreur lors de la déconnexion:', err);
+      // Même en cas d'erreur, la fonction logoutStudent fait la redirection
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <StudentPageHeader
+          title="Mon Profil"
+          subtitle="Chargement de vos informations..."
+        />
+        <div className="w-full px-8 py-8">
+          <div className="flex items-center justify-center py-16">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="w-8 h-8 animate-spin text-forest-600" />
+              <p className="text-gray-600">Chargement du profil...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="min-h-screen bg-white">
+        <StudentPageHeader
+          title="Erreur de chargement"
+          subtitle="Impossible de charger votre profil"
+        />
+        <div className="w-full px-8 py-8">
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <User className="w-10 h-10 text-red-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Erreur de chargement</h3>
+            <p className="text-gray-600 mb-8 max-w-md mx-auto">{error || 'Profil non disponible'}</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={loadStudentProfile} className="w-auto">
+                Réessayer
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="w-auto flex items-center gap-2"
+              >
+                {loggingOut ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <LogOut className="w-4 h-4" />
+                )}
+                Se déconnecter
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Gestionnaire de changement
   const handleChange = (field: string, value: string) => {
@@ -120,6 +199,32 @@ export default function StudentProfilePage() {
     setIsEditing(false);
   };
 
+  // Options pour les selects
+  const classOptions = [
+    { value: "seconde", label: "Seconde" },
+    { value: "premiere", label: "Première" },
+    { value: "terminale", label: "Terminale" }
+  ];
+
+  const specialtyOptions = [
+    { value: "general", label: "Général" },
+    { value: "sciences", label: "Sciences" },
+    { value: "litteraire", label: "Littéraire" },
+    { value: "economique", label: "Économique et Social" }
+  ];
+
+  const notificationOptions = [
+    { value: "all", label: "Toutes les notifications" },
+    { value: "important", label: "Uniquement importantes" },
+    { value: "none", label: "Aucune notification" }
+  ];
+
+  const themeOptions = [
+    { value: "light", label: "Clair" },
+    { value: "dark", label: "Sombre" },
+    { value: "auto", label: "Automatique" }
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* HEADER */}
@@ -140,7 +245,7 @@ export default function StudentProfilePage() {
               <div className="relative">
                 <div className="w-24 h-24 bg-gradient-to-r from-forest-400 to-forest-600 rounded-full flex items-center justify-center">
                   <span className="text-2xl text-white font-poppins font-semibold">
-                    {formData.firstName[0]}{formData.lastName[0]}
+                    {profile.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
                   </span>
                 </div>
                 {isEditing && (
@@ -152,16 +257,46 @@ export default function StudentProfilePage() {
                   </button>
                 )}
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-lg font-poppins font-medium text-gray-900">
-                  {formData.firstName} {formData.lastName}
+                  {profile.name || 'Étudiant'}
                 </h3>
-                <p className="text-sm text-gray-600">{formData.class} • {formData.specialty}</p>
+                <p className="text-sm text-gray-600">Étudiant • {profile.account_type}</p>
+                <div className="flex items-center gap-4 mt-2">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    profile.is_active
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {profile.is_active ? 'Actif' : 'Inactif'}
+                  </span>
+                  {profile.email_verified_at && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Email vérifié
+                    </span>
+                  )}
+                </div>
                 {isEditing && (
                   <p className="text-sm text-gray-500 mt-2">
                     Cliquez sur l'icône caméra pour changer votre photo
                   </p>
                 )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="flex items-center gap-2 text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                >
+                  {loggingOut ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <LogOut className="w-4 h-4" />
+                  )}
+                  Se déconnecter
+                </Button>
               </div>
             </div>
           </div>
@@ -208,11 +343,10 @@ export default function StudentProfilePage() {
               <Input
                 label="Email"
                 type="email"
-                value={formData.email}
+                value={profile.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 leftIcon={Mail}
-                disabled={!isEditing}
-                error={errors.email}
+                disabled={true} // L'email ne peut pas être modifié
                 required
               />
 
@@ -244,37 +378,32 @@ export default function StudentProfilePage() {
             </div>
           </div>
 
-          {/* INFORMATIONS ACADÉMIQUES */}
+          {/* INFORMATIONS DU COMPTE */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h2 className="text-lg font-poppins font-medium text-gray-900 mb-6">
-              Informations académiques
+              Informations du compte
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <SelectInput
-                label="Classe"
-                value={formData.class}
-                onChange={(e) => handleChange("class", e.target.value)}
-                options={classOptions}
-                leftIcon={GraduationCap}
-                disabled={true}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Date d'inscription</label>
+                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-900">
+                    {profile.created_at ? new Date(profile.created_at).toLocaleDateString('fr-FR') : 'Non disponible'}
+                  </span>
+                </div>
+              </div>
 
-              <SelectInput
-                label="Spécialité"
-                value={formData.specialty}
-                onChange={(e) => handleChange("specialty", e.target.value)}
-                options={specialtyOptions}
-                leftIcon={BookOpen}
-                disabled={true}
-              />
-
-              <Input
-                label="Année scolaire"
-                value={formData.year}
-                onChange={(e) => handleChange("year", e.target.value)}
-                disabled={true}
-              />
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">Dernière modification</label>
+                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-900">
+                    {profile.updated_at ? new Date(profile.updated_at).toLocaleDateString('fr-FR') : 'Non disponible'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 

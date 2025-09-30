@@ -14,7 +14,7 @@ import {
   Timer
 } from "lucide-react";
 
-import { StudentSession } from "../_services/sessions.service";
+import { StudentSession, StudentSessionsService } from "../_services/sessions.service";
 
 type StudentSessionCardProps = {
   session: StudentSession;
@@ -91,42 +91,51 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
   };
 
   const getTimeRemaining = () => {
-    const now = new Date();
-    const startTime = new Date(session.starts_at);
-    const endTime = new Date(session.ends_at);
+    // Utiliser la nouvelle méthode du service
+    const timeInfo = StudentSessionsService.getTimeRemaining(session);
+    return timeInfo.formattedTime;
+  };
 
-    if (now < startTime) {
-      const diffMs = startTime.getTime() - now.getTime();
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-      if (diffHours > 0) {
-        return `Dans ${diffHours}h ${diffMinutes}min`;
-      } else {
-        return `Dans ${diffMinutes}min`;
-      }
-    } else if (now >= startTime && now <= endTime) {
-      const diffMs = endTime.getTime() - now.getTime();
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-      if (diffHours > 0) {
-        return `${diffHours}h ${diffMinutes}min restantes`;
-      } else {
-        return `${diffMinutes}min restantes`;
-      }
-    } else {
-      return "Expiré";
-    }
+  const canStartExam = () => {
+    // Utiliser la nouvelle méthode du service
+    return StudentSessionsService.canStartSession(session);
   };
 
   const handleStartExam = () => {
-    if (session.status === "available") {
+    if (canStartExam()) {
       router.push(`/student/sessions/${session.id}`);
     }
   };
 
-  const statusConfig = getStatusConfig(session.status);
+  const getEffectiveStatus = () => {
+    const now = new Date();
+    const startTime = new Date(session.starts_at);
+    const endTime = new Date(session.ends_at);
+
+    // Si la session est terminée ou expirée, garder ce statut
+    if (session.status === "completed") return "completed";
+    if (session.status === "expired") return "expired";
+
+    // Si l'heure actuelle est avant le début de la session
+    if (now < startTime) {
+      return "upcoming";
+    }
+
+    // Si l'heure actuelle est après la fin de la session
+    if (now > endTime) {
+      return "expired";
+    }
+
+    // Si on est dans la période active et le statut est available/active
+    if (session.status === "available" || session.status === "active") {
+      return "available";
+    }
+
+    // Par défaut, upcoming
+    return "upcoming";
+  };
+
+  const statusConfig = getStatusConfig(getEffectiveStatus());
   const StatusIcon = statusConfig.icon;
   const timeRemaining = getTimeRemaining();
 
@@ -202,7 +211,7 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
 
         {/* Bouton d'action - Toujours en bas */}
         <div className="mt-4 pt-4 border-t border-gray-100">
-          {statusConfig.canStart ? (
+          {canStartExam() ? (
             <button
               onClick={handleStartExam}
               className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-flex items-center justify-center gap-2 transition-colors font-poppins text-sm"
@@ -210,11 +219,11 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
               <Play className="w-4 h-4" />
               Commencer
             </button>
-          ) : session.status === "upcoming" ? (
+          ) : getEffectiveStatus() === "upcoming" ? (
             <div className="w-full px-4 py-2.5 bg-gray-100 text-gray-500 rounded-lg font-medium text-center font-poppins text-sm">
               Bientôt disponible
             </div>
-          ) : session.status === "completed" ? (
+          ) : getEffectiveStatus() === "completed" ? (
             <button
               onClick={() => router.push(`/student/sessions/${session.id}/results`)}
               className="w-full px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium inline-flex items-center justify-center gap-2 transition-colors font-poppins text-sm"
