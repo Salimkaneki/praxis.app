@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import StudentPageHeader from "../_components/page-header";
 import StudentSessionGrid from "./_components/StudentSessionGrid";
 import { RefreshCw, AlertCircle } from "lucide-react";
-import { StudentSessionsService, StudentSession } from "./_services/sessions.service";
+import { StudentSessionsService, StudentSession } from "../_services/sessions.service";
 
 export default function StudentSessionsPage() {
   const [sessions, setSessions] = useState<StudentSession[]>([]);
@@ -16,7 +16,7 @@ export default function StudentSessionsPage() {
   const fetchSessions = async () => {
     try {
       setError(null);
-      const sessionsData = await StudentSessionsService.getAll();
+      const sessionsData = await StudentSessionsService.getAvailableSessions();
       setSessions(sessionsData);
     } catch (err: any) {
       console.error('Erreur lors de la récupération des sessions:', err);

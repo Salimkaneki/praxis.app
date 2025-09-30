@@ -14,7 +14,7 @@ import {
   Timer
 } from "lucide-react";
 
-import { StudentSession, StudentSessionsService } from "../_services/sessions.service";
+import { StudentSession } from "../../_services/sessions.service";
 
 type StudentSessionCardProps = {
   session: StudentSession;
@@ -25,22 +25,31 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case "available":
-        return {
-          bg: "bg-green-100",
-          text: "text-green-800",
-          border: "border-green-200",
-          label: "Disponible",
-          icon: Play,
-          canStart: true
-        };
-      case "upcoming":
+      case "scheduled":
         return {
           bg: "bg-blue-100",
           text: "text-blue-800",
           border: "border-blue-200",
-          label: "À venir",
+          label: "Programmée",
           icon: Clock,
+          canStart: false
+        };
+      case "active":
+        return {
+          bg: "bg-green-100",
+          text: "text-green-800",
+          border: "border-green-200",
+          label: "Active",
+          icon: Play,
+          canStart: true
+        };
+      case "paused":
+        return {
+          bg: "bg-yellow-100",
+          text: "text-yellow-800",
+          border: "border-yellow-200",
+          label: "En pause",
+          icon: AlertCircle,
           canStart: false
         };
       case "completed":
@@ -48,16 +57,16 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
           bg: "bg-gray-100",
           text: "text-gray-800",
           border: "border-gray-200",
-          label: "Terminé",
+          label: "Terminée",
           icon: CheckCircle,
           canStart: false
         };
-      case "expired":
+      case "cancelled":
         return {
           bg: "bg-red-100",
           text: "text-red-800",
           border: "border-red-200",
-          label: "Expiré",
+          label: "Annulée",
           icon: Lock,
           canStart: false
         };
@@ -91,48 +100,41 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
   };
 
   const getTimeRemaining = () => {
-    // Utiliser la nouvelle méthode du service
-    const timeInfo = StudentSessionsService.getTimeRemaining(session);
-    return timeInfo.formattedTime;
-  };
-
-  const canStartExam = () => {
-    // Utiliser la nouvelle méthode du service
-    return StudentSessionsService.canStartSession(session);
-  };
-
-  const handleStartExam = () => {
-    if (canStartExam()) {
-      router.push(`/student/sessions/${session.id}`);
-    }
-  };
-
-  const getEffectiveStatus = () => {
     const now = new Date();
     const startTime = new Date(session.starts_at);
     const endTime = new Date(session.ends_at);
 
-    // Si la session est terminée ou expirée, garder ce statut
-    if (session.status === "completed") return "completed";
-    if (session.status === "expired") return "expired";
-
-    // Si l'heure actuelle est avant le début de la session
     if (now < startTime) {
-      return "upcoming";
+      const diff = startTime.getTime() - now.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      return `Commence dans ${hours}h ${minutes}min`;
+    } else if (now >= startTime && now <= endTime) {
+      const diff = endTime.getTime() - now.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      return `Se termine dans ${hours}h ${minutes}min`;
+    } else {
+      return "Session expirée";
     }
+  };
 
-    // Si l'heure actuelle est après la fin de la session
-    if (now > endTime) {
-      return "expired";
+  const canStartExam = () => {
+    const now = new Date();
+    const startTime = new Date(session.starts_at);
+    const endTime = new Date(session.ends_at);
+
+    return session.status === 'active' && now >= startTime && now <= endTime;
+  };
+
+  const getEffectiveStatus = () => {
+    return session.status;
+  };
+
+  const handleStartExam = () => {
+    if (canStartExam()) {
+      router.push(`/student/sessions/${session.id}/details`);
     }
-
-    // Si on est dans la période active et le statut est available/active
-    if (session.status === "available" || session.status === "active") {
-      return "available";
-    }
-
-    // Par défaut, upcoming
-    return "upcoming";
   };
 
   const statusConfig = getStatusConfig(getEffectiveStatus());
@@ -158,17 +160,11 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
 
         {/* Contenu principal - Flex-grow pour occuper l'espace */}
         <div className="flex-1 space-y-3 min-h-0">
-          {/* Matière */}
-          <div className="flex items-center gap-2 text-sm text-gray-600 font-poppins">
-            <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <span className="font-medium text-gray-700 truncate">{session.subject}</span>
-          </div>
-
-          {/* Enseignant */}
-          {session.teacher && (
+          {/* Quiz */}
+          {session.quiz && (
             <div className="flex items-center gap-2 text-sm text-gray-600 font-poppins">
-              <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <span className="truncate">{session.teacher.name}</span>
+              <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span className="font-medium text-gray-700 truncate">{session.quiz.title}</span>
             </div>
           )}
 
@@ -180,32 +176,25 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
             </span>
           </div>
 
-          {/* Durée et nombre de questions */}
-          <div className="flex items-center justify-between text-sm text-gray-600 font-poppins">
-            <div className="flex items-center gap-1">
-              <Timer className="w-4 h-4 text-gray-400" />
-              <span>{session.duration_minutes}min</span>
+          {/* Durée */}
+          {session.duration_minutes && (
+            <div className="flex items-center gap-2 text-sm text-gray-600 font-poppins">
+              <Timer className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span>Durée: {session.duration_minutes} minutes</span>
             </div>
-            <div className="flex items-center gap-1">
-              <BookOpen className="w-4 h-4 text-gray-400" />
-              <span>{session.total_questions}q</span>
-            </div>
-          </div>
+          )}
 
-          {/* Temps restant ou score */}
-          <div className="text-sm font-poppins">
-            {session.status === "completed" && session.score !== undefined && session.max_score ? (
-              <div>
-                <span className="font-medium text-gray-700">Score: </span>
-                <span className="text-green-600 font-semibold">
-                  {session.score}/{session.max_score} ({Math.round((session.score / session.max_score) * 100)}%)
-                </span>
-              </div>
-            ) : (
-              <div className="text-gray-500">
-                {timeRemaining}
-              </div>
-            )}
+          {/* Participants */}
+          {session.max_participants && (
+            <div className="flex items-center gap-2 text-sm text-gray-600 font-poppins">
+              <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <span>{session.current_participants || 0} / {session.max_participants} participants</span>
+            </div>
+          )}
+
+          {/* Temps restant */}
+          <div className="text-sm font-poppins text-gray-500">
+            {timeRemaining}
           </div>
         </div>
 
@@ -217,15 +206,11 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
               className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-flex items-center justify-center gap-2 transition-colors font-poppins text-sm"
             >
               <Play className="w-4 h-4" />
-              Commencer
+              Voir détails
             </button>
-          ) : getEffectiveStatus() === "upcoming" ? (
-            <div className="w-full px-4 py-2.5 bg-gray-100 text-gray-500 rounded-lg font-medium text-center font-poppins text-sm">
-              Bientôt disponible
-            </div>
-          ) : getEffectiveStatus() === "completed" ? (
+          ) : session.status === "completed" ? (
             <button
-              onClick={() => router.push(`/student/sessions/${session.id}/results`)}
+              onClick={() => router.push(`/student/results/${session.id}`)}
               className="w-full px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium inline-flex items-center justify-center gap-2 transition-colors font-poppins text-sm"
             >
               <CheckCircle className="w-4 h-4" />
@@ -233,7 +218,7 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
             </button>
           ) : (
             <div className="w-full px-4 py-2.5 bg-gray-100 text-gray-500 rounded-lg font-medium text-center font-poppins text-sm">
-              Non disponible
+              {session.status === 'scheduled' ? 'Bientôt disponible' : 'Non disponible'}
             </div>
           )}
         </div>

@@ -1,17 +1,16 @@
 'use client';
-import React, { useState, useEffect } from "react";
-import { 
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
   Clock, CheckCircle, AlertCircle, Timer, Flag,
   Send, Eye, EyeOff, ArrowUp, User, Calendar,
   BookOpen, Target, Award
 } from "lucide-react";
 import { Input, Textarea } from "@/components/ui";
-
-// Types pour les questions
+import { StudentSessionsService, ExamData, StudentAnswer, SubmitExamPayload, ExamResult } from "../_services/sessions.service";// Types pour les questions
 interface QuizOption {
   id: string;
   text: string;
-  isCorrect: boolean;
 }
 
 interface QuizQuestion {
@@ -33,97 +32,51 @@ interface Quiz {
   questions: QuizQuestion[];
 }
 
-interface StudentAnswer {
-  questionId: number;
-  answer: string;
-  selectedOptions?: string[];
-  timeSpent: number;
-}
-
-// Données mockées pour le quiz
-const mockQuiz: Quiz = {
-  id: 1,
-  title: "Quiz de Mathématiques - Algèbre",
-  description: "Évaluation sur les concepts fondamentaux de l'algèbre",
-  timeLimit: 45,
-  totalQuestions: 5,
-  totalPoints: 100,
-  questions: [
-    {
-      id: 1,
-      questionText: "Quelle est la solution de l'équation 2x + 5 = 13 ?",
-      questionType: 'multiple_choice',
-      points: 20,
-      options: [
-        { id: "a", text: "x = 3", isCorrect: false },
-        { id: "b", text: "x = 4", isCorrect: true },
-        { id: "c", text: "x = 5", isCorrect: false },
-        { id: "d", text: "x = 6", isCorrect: false }
-      ]
-    },
-    {
-      id: 2,
-      questionText: "Le discriminant d'une équation du second degré ax² + bx + c = 0 est toujours positif.",
-      questionType: 'true_false',
-      points: 15,
-      options: [
-        { id: "true", text: "Vrai", isCorrect: false },
-        { id: "false", text: "Faux", isCorrect: true }
-      ]
-    },
-    {
-      id: 3,
-      questionText: "Développez l'expression (x + 3)²",
-      questionType: 'open_ended',
-      points: 25
-    },
-    {
-      id: 4,
-      questionText: "Si f(x) = 3x - 2, alors f(5) = ____",
-      questionType: 'fill_blank',
-      points: 20
-    },
-    {
-      id: 5,
-      questionText: "Quelle est la dérivée de f(x) = x³ + 2x² - 5x + 1 ?",
-      questionType: 'multiple_choice',
-      points: 20,
-      options: [
-        { id: "a", text: "f'(x) = 3x² + 4x - 5", isCorrect: true },
-        { id: "b", text: "f'(x) = x³ + 4x - 5", isCorrect: false },
-        { id: "c", text: "f'(x) = 3x² + 2x - 5", isCorrect: false },
-        { id: "d", text: "f'(x) = 3x + 4x - 5", isCorrect: false }
-      ]
-    }
-  ]
-};
+// Données mockées pour le quiz (temporaire - à supprimer une fois l'API fonctionnelle)
 
 const StudentQuizInterface = () => {
-  const [quiz] = useState<Quiz>(mockQuiz);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session');
+
+  const [examData, setExamData] = useState<ExamData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Map<number, StudentAnswer>>(new Map());
-  const [timeRemaining, setTimeRemaining] = useState(quiz.timeLimit * 60);
+  const [timeRemaining, setTimeRemaining] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
   const [showTimer, setShowTimer] = useState(true);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [examResult, setExamResult] = useState<ExamResult | null>(null);
+
+  // Charger les données de l'examen au montage
+  useEffect(() => {
+    if (sessionId) {
+      loadExamData();
+    } else {
+      setError('ID de session manquant');
+      setLoading(false);
+    }
+  }, [sessionId]);
 
   // Timer effect
   useEffect(() => {
-    if (isSubmitted) return;
-
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          handleSubmitQuiz();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isSubmitted]);
+    if (timeRemaining > 0 && !isSubmitted && !submitting) {
+      const timer = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            handleSubmitQuiz();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [timeRemaining, isSubmitted, submitting]);
 
   // Scroll effect
   useEffect(() => {
@@ -135,6 +88,21 @@ const StudentQuizInterface = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const loadExamData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await StudentSessionsService.startExam(parseInt(sessionId!));
+      setExamData(data);
+      setTimeRemaining(data.time_remaining || (data.session.duration_minutes || 60) * 60);
+    } catch (err: any) {
+      console.error('Erreur lors du chargement de l\'examen:', err);
+      setError(err.response?.data?.message || 'Erreur lors du chargement de l\'examen');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -144,7 +112,7 @@ const StudentQuizInterface = () => {
   const getQuestionTypeLabel = (type: string) => {
     const types = {
       multiple_choice: "QCM",
-      true_false: "Vrai/Faux", 
+      true_false: "Vrai/Faux",
       open_ended: "Réponse libre",
       fill_blank: "Texte à trous"
     };
@@ -153,19 +121,19 @@ const StudentQuizInterface = () => {
 
   const updateAnswer = (questionId: number, answer: string, selectedOptions?: string[]) => {
     const newAnswer: StudentAnswer = {
-      questionId,
+      question_id: questionId,
       answer,
-      selectedOptions,
-      timeSpent: 0
+      selected_options: selectedOptions,
+      time_spent: 0
     };
-    
+
     const newAnswers = new Map(answers);
     newAnswers.set(questionId, newAnswer);
     setAnswers(newAnswers);
   };
 
   const handleMultipleChoice = (questionId: number, optionId: string) => {
-    const question = quiz.questions.find(q => q.id === questionId);
+    const question = examData?.questions.find(q => q.id === questionId);
     const selectedOption = question?.options?.find(opt => opt.id === optionId);
     if (selectedOption) {
       updateAnswer(questionId, selectedOption.text, [optionId]);
@@ -186,14 +154,34 @@ const StudentQuizInterface = () => {
     setFlaggedQuestions(newFlagged);
   };
 
-  const handleSubmitQuiz = () => {
-    setIsSubmitted(true);
-    setShowConfirmSubmit(false);
-    console.log('Quiz soumis:', Array.from(answers.values()));
+  const handleSubmitQuiz = async () => {
+    if (!examData || !sessionId) return;
+
+    try {
+      setSubmitting(true);
+      setShowConfirmSubmit(false);
+
+      // Préparer les réponses pour l'API
+      const answersArray: StudentAnswer[] = Array.from(answers.values());
+
+      const payload: SubmitExamPayload = {
+        answers: answersArray,
+        time_spent: Math.floor(((examData.session.duration_minutes || 60) * 60 - timeRemaining) / 60)
+      };
+
+      const result = await StudentSessionsService.submitExam(parseInt(sessionId), payload);
+      setExamResult(result);
+      setIsSubmitted(true);
+    } catch (err: any) {
+      console.error('Erreur lors de la soumission de l\'examen:', err);
+      setError(err.response?.data?.message || 'Erreur lors de la soumission de l\'examen');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getAnsweredQuestions = () => {
-    return quiz.questions.filter(q => answers.has(q.id)).length;
+    return examData?.questions.filter(q => answers.has(q.id)).length || 0;
   };
 
   const scrollToTop = () => {
@@ -207,32 +195,32 @@ const StudentQuizInterface = () => {
     }
   };
 
-  const renderQuestionContent = (question: QuizQuestion) => {
+  const renderQuestionContent = (question: any) => {
     const answer = answers.get(question.id);
 
-    switch (question.questionType) {
+    switch (question.type) {
       case 'multiple_choice':
       case 'true_false':
         return (
           <div className="space-y-2">
-            {question.options?.map((option) => (
+            {question.options?.map((option: any) => (
               <button
                 key={option.id}
                 onClick={() => handleMultipleChoice(question.id, option.id)}
-                disabled={isSubmitted}
+                disabled={isSubmitted || submitting}
                 className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
-                  answer?.selectedOptions?.includes(option.id)
+                  answer?.selected_options?.includes(option.id)
                     ? 'bg-green-50 border-green-200 text-gray-900'
                     : 'bg-gray-50 border-gray-200 hover:border-gray-300 text-gray-900'
-                } ${isSubmitted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-gray-100'}`}
+                } ${(isSubmitted || submitting) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-gray-100'}`}
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    answer?.selectedOptions?.includes(option.id)
+                    answer?.selected_options?.includes(option.id)
                       ? 'border-green-500'
                       : 'border-gray-300'
                   }`}>
-                    {answer?.selectedOptions?.includes(option.id) && (
+                    {answer?.selected_options?.includes(option.id) && (
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     )}
                   </div>
@@ -248,7 +236,7 @@ const StudentQuizInterface = () => {
           <Textarea
             value={answer?.answer || ''}
             onChange={(e) => handleTextAnswer(question.id, e.target.value)}
-            disabled={isSubmitted}
+            disabled={isSubmitted || submitting}
             placeholder="Tapez votre réponse ici..."
             rows={4}
           />
@@ -259,7 +247,7 @@ const StudentQuizInterface = () => {
           <Input
             value={answer?.answer || ''}
             onChange={(e) => handleTextAnswer(question.id, e.target.value)}
-            disabled={isSubmitted}
+            disabled={isSubmitted || submitting}
             placeholder="Votre réponse"
             type="text"
           />
@@ -270,7 +258,42 @@ const StudentQuizInterface = () => {
     }
   };
 
-  if (isSubmitted) {
+  // Affichage du chargement
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-poppins">
+        <div className="px-8 py-16 flex justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-forest-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement de l'examen...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Affichage des erreurs
+  if (error && !examData) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-poppins">
+        <div className="px-8 py-16">
+          <div className="max-w-md mx-auto text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Erreur</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={() => router.back()}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+            >
+              Retour
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSubmitted && examResult) {
     return (
       <div className="min-h-screen bg-gray-50 font-poppins">
         <div className="px-8 py-8">
@@ -280,29 +303,54 @@ const StudentQuizInterface = () => {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-8 h-8 text-green-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Terminé!</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Examen terminé !</h2>
                 <p className="text-gray-600 mb-6">
                   Vos réponses ont été soumises avec succès.
                 </p>
-                
+
                 <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="flex justify-between">
-                      <span>Questions répondues:</span>
-                      <span className="font-medium">{getAnsweredQuestions()}</span>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Score obtenu:</span>
+                      <span className="font-bold text-lg text-forest-600">{examResult.score}/{examResult.max_score}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Temps utilisé:</span>
-                      <span className="font-medium">{formatTime(quiz.timeLimit * 60 - timeRemaining)}</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Pourcentage:</span>
+                      <span className="font-bold text-lg text-forest-600">{examResult.percentage}%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Temps utilisé:</span>
+                      <span className="font-medium">{examResult.time_spent} minutes</span>
                     </div>
                   </div>
                 </div>
 
+                <div className="space-y-4 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Détail des réponses</h3>
+                  {examResult.answers.map((answer, index) => (
+                    <div key={index} className="bg-gray-50 rounded-lg p-4 text-left">
+                      <p className="font-medium text-gray-900 mb-2">{answer.question_text}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Votre réponse:</span>
+                          <span className={`ml-2 font-medium ${answer.is_correct ? 'text-green-600' : 'text-red-600'}`}>
+                            {answer.student_answer || 'Non répondu'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Points:</span>
+                          <span className="ml-2 font-medium">{answer.points_earned}/{answer.max_points}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={() => router.push('/student/sessions')}
                   className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
                 >
-                  Retour aux cours
+                  Retour aux sessions
                 </button>
               </div>
             </div>
@@ -311,6 +359,8 @@ const StudentQuizInterface = () => {
       </div>
     );
   }
+
+  if (!examData) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 font-poppins">
@@ -323,8 +373,8 @@ const StudentQuizInterface = () => {
                 <BookOpen className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{quiz.title}</h1>
-                <p className="text-gray-600">{quiz.description}</p>
+                <h1 className="text-2xl font-bold text-gray-900">{examData.session.title}</h1>
+                <p className="text-gray-600">{examData.session.quiz?.description || 'Examen en cours'}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -354,10 +404,10 @@ const StudentQuizInterface = () => {
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Navigation</h3>
               <div className="grid grid-cols-5 gap-2">
-                {quiz.questions.map((question, index) => {
+                {examData.questions.map((question, index) => {
                   const isAnswered = answers.has(question.id);
                   const isFlagged = flaggedQuestions.has(question.id);
-                  
+
                   return (
                     <button
                       key={question.id}
@@ -383,7 +433,7 @@ const StudentQuizInterface = () => {
                 <div className="text-sm text-gray-600">
                   <div className="flex justify-between mb-2">
                     <span>Questions répondues:</span>
-                    <span className="font-medium">{getAnsweredQuestions()}/{quiz.totalQuestions}</span>
+                    <span className="font-medium">{getAnsweredQuestions()}/{examData.questions.length}</span>
                   </div>
                   <div className="flex justify-between mb-2">
                     <span>Questions marquées:</span>
@@ -391,17 +441,27 @@ const StudentQuizInterface = () => {
                   </div>
                   <div className="flex justify-between">
                     <span>Points totaux:</span>
-                    <span className="font-medium">{quiz.totalPoints}</span>
+                    <span className="font-medium">{examData.session.quiz?.total_points || 'N/A'}</span>
                   </div>
                 </div>
               </div>
 
               <button
                 onClick={() => setShowConfirmSubmit(true)}
-                className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
+                disabled={submitting}
+                className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Send className="w-4 h-4" />
-                Soumettre le quiz
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Soumission...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Soumettre l'examen
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -412,7 +472,7 @@ const StudentQuizInterface = () => {
           <div className="w-full mx-auto">
             <div className="space-y-8">
               {/* Questions */}
-              {quiz.questions.map((question, index) => {
+              {examData.questions.map((question, index) => {
                 const isAnswered = answers.has(question.id);
                 const isFlagged = flaggedQuestions.has(question.id);
 
@@ -421,16 +481,16 @@ const StudentQuizInterface = () => {
                     key={question.id}
                     id={`question-${question.id}`}
                     className={`bg-white rounded-lg border-2 transition-all duration-200 p-6 ${
-                      isAnswered 
-                        ? 'border-green-200 bg-green-50/30' 
+                      isAnswered
+                        ? 'border-green-200 bg-green-50/30'
                         : 'border-gray-200'
                     } ${isFlagged ? 'ring-2 ring-orange-200' : ''}`}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-start gap-4 flex-1">
                         <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 ${
-                          isAnswered 
-                            ? 'bg-green-100 text-green-600' 
+                          isAnswered
+                            ? 'bg-green-100 text-green-600'
                             : 'bg-blue-100 text-blue-600'
                         }`}>
                           {index + 1}
@@ -438,19 +498,20 @@ const StudentQuizInterface = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
-                              {getQuestionTypeLabel(question.questionType)}
+                              {getQuestionTypeLabel(question.type)}
                             </span>
                             <span className="text-sm text-gray-500">
                               {question.points} points
                             </span>
                           </div>
                           <h3 className="text-lg font-medium text-gray-900 mb-4">
-                            {question.questionText}
+                            {question.question_text}
                           </h3>
                         </div>
                       </div>
                       <button
                         onClick={() => toggleFlag(question.id)}
+                        disabled={submitting}
                         className={`p-2 rounded-lg transition-colors duration-200 ${
                           isFlagged
                             ? 'bg-orange-100 text-orange-600'
@@ -470,21 +531,31 @@ const StudentQuizInterface = () => {
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <div className="text-center">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Prêt à soumettre votre quiz ?
+                    Prêt à soumettre votre examen ?
                   </h3>
                   <div className="bg-gray-50 rounded-lg p-4 mb-6">
                     <div className="text-sm text-gray-600">
-                      <p>Questions répondues: {getAnsweredQuestions()}/{quiz.totalQuestions}</p>
-                      <p>Questions non répondues: {quiz.totalQuestions - getAnsweredQuestions()}</p>
+                      <p>Questions répondues: {getAnsweredQuestions()}/{examData.questions.length}</p>
+                      <p>Questions non répondues: {examData.questions.length - getAnsweredQuestions()}</p>
                       <p>Questions marquées: {flaggedQuestions.size}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowConfirmSubmit(true)}
-                    className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center gap-2 mx-auto font-medium"
+                    disabled={submitting}
+                    className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center gap-2 mx-auto font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Send className="w-4 h-4" />
-                    Soumettre le quiz
+                    {submitting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Soumission...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Soumettre l'examen
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -512,25 +583,27 @@ const StudentQuizInterface = () => {
               <h3 className="text-lg font-semibold text-gray-900">Confirmer la soumission</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              Êtes-vous sûr de vouloir soumettre votre quiz? Vous ne pourrez plus modifier vos réponses après la soumission.
+              Êtes-vous sûr de vouloir soumettre votre examen ? Vous ne pourrez plus modifier vos réponses après la soumission.
             </p>
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <div className="text-sm text-gray-600">
-                <p>Questions répondues: {getAnsweredQuestions()}/{quiz.totalQuestions}</p>
-                <p>Questions non répondues: {quiz.totalQuestions - getAnsweredQuestions()}</p>
+                <p>Questions répondues: {getAnsweredQuestions()}/{examData.questions.length}</p>
+                <p>Questions non répondues: {examData.questions.length - getAnsweredQuestions()}</p>
                 <p>Questions marquées: {flaggedQuestions.size}</p>
               </div>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirmSubmit(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+                disabled={submitting}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium disabled:opacity-50"
               >
                 Annuler
               </button>
               <button
                 onClick={handleSubmitQuiz}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
+                disabled={submitting}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium disabled:opacity-50"
               >
                 Soumettre
               </button>
@@ -538,8 +611,26 @@ const StudentQuizInterface = () => {
           </div>
         </div>
       )}
+
+      {/* Affichage des erreurs temporaires */}
+      {error && (
+        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg">
+          <p>{error}</p>
+        </div>
+      )}
     </div>
   );
 };
 
-export default StudentQuizInterface;
+export default function TestPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 font-poppins flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-forest-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Chargement...</p>
+      </div>
+    </div>}>
+      <StudentQuizInterface />
+    </Suspense>
+  );
+}

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Button, SessionCodeInput } from "@/components/ui";
+import { StudentSessionsService } from "../_services/sessions.service";
 import {
   Key,
   ArrowRight,
@@ -50,34 +51,18 @@ export default function JoinSessionPage() {
     setError(null);
 
     try {
-      // Simulation de vérification du code
-      // Dans un vrai projet, ceci serait un appel API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Utiliser le vrai service API pour rejoindre la session
+      const session = await StudentSessionsService.joinSession(formData.code.toUpperCase());
 
-      // Codes de test valides (pour la démo)
-      const validCodes = ["MATH101", "HIST202", "PHYS303", "CHEM404"];
+      setSuccess(true);
 
-      if (validCodes.includes(formData.code.toUpperCase())) {
-        setSuccess(true);
-
-        // Rediriger vers la session correspondante après un court délai
-        setTimeout(() => {
-          // Mapper les codes vers les IDs de session
-          const codeToId: Record<string, string> = {
-            "MATH101": "1",
-            "HIST202": "4",
-            "PHYS303": "2",
-            "CHEM404": "3"
-          };
-
-          const sessionId = codeToId[formData.code.toUpperCase()];
-          router.push(`/student/sessions/${sessionId}`);
-        }, 2000);
-      } else {
-        setError("Code de session invalide. Vérifiez le code et réessayez.");
-      }
-    } catch (err) {
-      setError("Une erreur est survenue. Veuillez réessayer.");
+      // Rediriger vers les détails de la session après un court délai
+      setTimeout(() => {
+        router.push(`/student/sessions/${session.id}/details`);
+      }, 2000);
+    } catch (err: any) {
+      console.error('Erreur lors de la jonction de session:', err);
+      setError(err.response?.data?.message || "Code de session invalide. Vérifiez le code et réessayez.");
     } finally {
       setLoading(false);
     }
