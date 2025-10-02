@@ -301,7 +301,7 @@ export default function StudentImport() {
 
       {/* Content */}
       <div className="px-8 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full mx-auto">
           {/* Upload Section */}
           <div className="bg-white rounded-lg border border-gray-200 p-8 mb-8">
             <div className="flex items-center gap-3 mb-6">

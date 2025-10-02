@@ -252,7 +252,7 @@ const handleSubmit = async () => {
     return (
       <div className="min-h-screen bg-gray-50 font-poppins">
         <div className="px-8 py-8">
-          <div className="max-w-4xl mx-auto">
+          <div className="w-full mx-auto">
             <div className="bg-white rounded-lg border border-gray-200 p-8">
               <div className="animate-pulse">
                 <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
@@ -274,7 +274,7 @@ const handleSubmit = async () => {
     return (
       <div className="min-h-screen bg-gray-50 font-poppins">
         <div className="px-8 py-8">
-          <div className="max-w-4xl mx-auto">
+          <div className="w-full mx-auto">
             <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle className="w-8 h-8 text-red-600" />
@@ -311,16 +311,7 @@ const handleSubmit = async () => {
       />
 
       <div className="px-8 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Bouton retour */}
-          <button
-            onClick={handleCancel}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6 font-medium"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Retour au quiz
-          </button>
-
+        <div className="w-full mx-auto">
           {/* Formulaire principal */}
           <div className="bg-white rounded-lg border border-gray-200 p-8">
             

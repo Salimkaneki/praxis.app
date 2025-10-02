@@ -311,7 +311,7 @@ const QuizDetailsPage = () => {
       />
 
       <div className="px-8 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full mx-auto">
           {/* Informations générales */}
           <div className="bg-white rounded-lg border border-gray-200 p-8 mb-8">
             <div className="flex items-start justify-between mb-6">
