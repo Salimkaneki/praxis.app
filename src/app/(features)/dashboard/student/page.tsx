@@ -208,8 +208,6 @@ export default function StudentPage() {
 
   // Fonction pour supprimer un étudiant
   const handleDeleteStudent = async (studentId: number) => {
-    if (!confirm("Voulez-vous vraiment supprimer cet étudiant ?")) return;
-
     try {
       await deleteStudent(studentId);
       setStudents(prev => prev.filter(student => student.id !== studentId));

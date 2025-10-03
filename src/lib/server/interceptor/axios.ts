@@ -31,7 +31,6 @@ api.interceptors.request.use((config) => {
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-    console.log(`Token ajouté pour ${config.url}: ${token.substring(0, 20)}...`);
   }
 
   return config;

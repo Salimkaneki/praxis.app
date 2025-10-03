@@ -12,6 +12,15 @@ export default function StudentSessionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Vérification de l'authentification au montage
+  useEffect(() => {
+    const studentToken = localStorage.getItem('student_token');
+    if (!studentToken) {
+      window.location.href = '/auth/sign-in/student';
+      return;
+    }
+  }, []);
+
   // Fonction pour récupérer les sessions
   const fetchSessions = async () => {
     try {

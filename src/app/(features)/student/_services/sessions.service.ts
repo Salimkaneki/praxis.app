@@ -96,13 +96,23 @@ export const StudentSessionsService = {
     try {
       const response = await api.get('/student/sessions');
       return response.data.sessions || response.data || [];
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la récupération des sessions disponibles:', error);
+
+      // Gestion spécifique des erreurs d'authentification
+      if (error.response?.status === 401) {
+        throw new Error('Session expirée. Veuillez vous reconnecter.');
+      } else if (error.response?.status === 403) {
+        const errorMsg = error.response?.data?.error || 'Accès refusé.';
+        console.error('🚫 403 Forbidden details:', errorMsg);
+        throw new Error(`Accès refusé: ${errorMsg}`);
+      } else if (error.response?.status === 404) {
+        throw new Error('Service non disponible. L\'endpoint des sessions n\'existe pas.');
+      }
+
       throw error;
     }
-  },
-
-  // Récupérer les détails d'une session
+  },  // Récupérer les détails d'une session
   getSessionDetails: async (sessionId: number): Promise<StudentSession> => {
     try {
       const response = await api.get(`/student/sessions/${sessionId}`);

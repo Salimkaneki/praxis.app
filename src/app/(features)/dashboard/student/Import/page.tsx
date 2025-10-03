@@ -156,9 +156,6 @@ export default function StudentImport() {
   const handleImport = async () => {
     if (!file || previewData.length === 0) return;
 
-    const hasErrors = previewData.some(student => student.errors);
-    if (hasErrors && !confirm("Certaines données contiennent des erreurs. Voulez-vous continuer l'import pour les données valides uniquement ?")) return;
-
     setIsImporting(true);
     setImportStatus(null);
 

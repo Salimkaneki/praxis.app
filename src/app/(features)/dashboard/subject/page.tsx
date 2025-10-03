@@ -139,9 +139,6 @@ export default function AdminSubjectsList() {
 
   // Suppression avec API
   const handleDelete = async (id: number) => {
-    const confirm = window.confirm("Êtes-vous sûr de vouloir supprimer cette matière ?");
-    if (!confirm) return;
-
     try {
       setLoading(true);
       await deleteSubject(id);

@@ -23,10 +23,13 @@ type ActiveSection =
   | 'professeurs'
   | 'etudiant'
   | 'formation' 
+  | 'formation-classes'
+  | 'subject'
   | 'evaluations-live'
   | 'evaluations-programmees'
   | 'resultats'
   | 'analytics'
+  | 'examens-programmes'
   | 'utilisateurs'
   | 'parametres';
 
@@ -57,10 +60,13 @@ export default function AdminSideBar() {
       'professeurs': '/dashboard/teacher',
       'etudiant': '/dashboard/student', 
       'formation': '/dashboard/formation',
+      'formation-classes': '/dashboard/formation/classe',
+      'subject': '/dashboard/subject',
       'evaluations-live': '/dashboard/evaluations/live',
       'evaluations-programmees': '/dashboard/evaluations/programmees',
       'resultats': '/dashboard/evaluations/resultats',
       'analytics': '/dashboard/analytics',
+      'examens-programmes': '/dashboard/analytics/examens-programmes',
       'utilisateurs': '/dashboard/administration/utilisateurs',
       'parametres': '/dashboard/administration/parametres'
     };
@@ -80,6 +86,8 @@ export default function AdminSideBar() {
         { key: 'professeurs' as ActiveSection, label: 'Professeurs', icon: UserIcon },
         { key: 'etudiant' as ActiveSection, label: 'Étudiants', icon: UsersIcon },
         { key: 'formation' as ActiveSection, label: 'Formations', icon: BookOpenIcon },
+        { key: 'formation-classes' as ActiveSection, label: 'Classes', icon: AcademicCapIcon },
+        { key: 'subject' as ActiveSection, label: 'Matières', icon: DocumentChartBarIcon },
       ],
     },
     {
@@ -102,6 +110,7 @@ export default function AdminSideBar() {
       icon: ChartBarIcon,
       items: [
         { key: 'analytics' as ActiveSection, label: 'Statistiques & Analyses', icon: ChartBarIcon },
+        { key: 'examens-programmes' as ActiveSection, label: 'Examens Programmés', icon: ClockIcon },
       ],
     },
     {

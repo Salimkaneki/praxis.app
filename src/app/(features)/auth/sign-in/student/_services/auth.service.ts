@@ -28,6 +28,9 @@ export async function loginStudent(payload: LoginPayload): Promise<StudentLoginR
     if (response.data.token) {
       localStorage.setItem('student_token', response.data.token);
       localStorage.setItem('student_data', JSON.stringify(response.data.user));
+      
+      // Stocker aussi dans les cookies pour le middleware
+      document.cookie = `student_token=${response.data.token}; path=/; max-age=86400; samesite=strict`;
     }
 
     return response.data;
@@ -88,6 +91,9 @@ export async function logoutStudent(): Promise<void> {
     // Suppression des données locales même si l'API échoue
     localStorage.removeItem('student_token');
     localStorage.removeItem('student_data');
+    
+    // Supprimer aussi le cookie
+    document.cookie = 'student_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
     // Redirection vers la page de connexion
     window.location.href = '/auth/sign-in/student';

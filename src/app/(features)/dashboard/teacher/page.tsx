@@ -217,9 +217,6 @@ export default function TeachersList() {
   const router = useRouter();
 
   const handleDelete = async (id: number) => {
-  const confirm = window.confirm("Voulez-vous vraiment supprimer cet enseignant ?");
-  if (!confirm) return;
-
   try {
     await deleteTeacher(id);
     alert("Enseignant supprimé avec succès !");

@@ -106,9 +106,6 @@ export default function ClassroomsPage() {
 
   // Dans ton composant ClassroomsPage
   const handleDeleteClass = async (id: number) => {
-    const confirmDelete = window.confirm("Voulez-vous vraiment supprimer cette classe ?");
-    if (!confirmDelete) return;
-
     try {
       setLoading(true);
       await ClasseService.deleteClasse(id);
