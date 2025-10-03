@@ -141,19 +141,20 @@ const SessionDetailsPage = () => {
   // Fonction de rafraîchissement
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchSession();
+    fetchSession().finally(() => {
+      setRefreshing(false);
+    });
   };
 
   // Fonction pour activer une session
   const handleActivateSession = async () => {
     if (!session) return;
-    
+
     try {
       await SessionsService.changeStatus(session.id, 'activate');
       await fetchSession(); // Recharger les données
     } catch (error: any) {
       console.error('Erreur lors de l\'activation:', error);
-      setError(error.response?.data?.error || 'Erreur lors de l\'activation de la session');
     }
   };
 
@@ -166,17 +167,16 @@ const SessionDetailsPage = () => {
   // Fonction pour supprimer une session
   const handleDeleteSession = async () => {
     if (!session) return;
-    
+
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette session ? Cette action est irréversible.')) {
       return;
     }
-    
+
     try {
       await SessionsService.delete(session.id);
       router.push('/teachers-dashboard/sessions');
     } catch (error: any) {
       console.error('Erreur lors de la suppression:', error);
-      setError(error.response?.data?.error || 'Erreur lors de la suppression de la session');
     }
   };
 
@@ -290,7 +290,7 @@ const SessionDetailsPage = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="px-8 py-8">
-          <div className="max-w-6xl mx-auto">
+          <div className="w-full mx-auto">
             <div className="bg-white rounded-lg border border-gray-200 p-8">
               <div className="animate-pulse">
                 <div className="flex items-start justify-between mb-6">
@@ -326,7 +326,7 @@ const SessionDetailsPage = () => {
           }}
         />
         <div className="px-8 py-8">
-          <div className="max-w-2xl mx-auto">
+          <div className="w-full mx-auto">
             <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle className="w-8 h-8 text-red-600" />
@@ -392,67 +392,63 @@ const SessionDetailsPage = () => {
     { id: 'results', label: 'Résultats', icon: Target }
   ];
 
-    // Fonction pour mettre en pause une session
+  // Fonction pour mettre en pause une session
   const handlePauseSession = async () => {
     if (!session) return;
-    
+
     if (!confirm('Êtes-vous sûr de vouloir mettre en pause cette session ?')) {
       return;
     }
-    
+
     try {
       const updatedSession = await SessionsService.changeStatus(session.id, 'pause');
       setSession(updatedSession);
     } catch (error: any) {
       console.error('Erreur lors de la mise en pause:', error);
-      setError(error.response?.data?.error || 'Erreur lors de la mise en pause de la session');
     }
   };
 
   // Fonction pour reprendre une session
   const handleResumeSession = async () => {
     if (!session) return;
-    
+
     try {
       const updatedSession = await SessionsService.changeStatus(session.id, 'resume');
       setSession(updatedSession);
     } catch (error: any) {
       console.error('Erreur lors de la reprise:', error);
-      setError(error.response?.data?.error || 'Erreur lors de la reprise de la session');
     }
   };
 
   // Fonction pour terminer une session
   const handleCompleteSession = async () => {
     if (!session) return;
-    
+
     if (!confirm('Êtes-vous sûr de vouloir terminer cette session ? Cette action est irréversible.')) {
       return;
     }
-    
+
     try {
       const updatedSession = await SessionsService.changeStatus(session.id, 'complete');
       setSession(updatedSession);
     } catch (error: any) {
       console.error('Erreur lors de la finalisation:', error);
-      setError(error.response?.data?.error || 'Erreur lors de la finalisation de la session');
     }
   };
 
   // Fonction pour annuler une session
   const handleCancelSession = async () => {
     if (!session) return;
-    
+
     if (!confirm('Êtes-vous sûr de vouloir annuler cette session ? Cette action est irréversible.')) {
       return;
     }
-    
+
     try {
       const updatedSession = await SessionsService.changeStatus(session.id, 'cancel');
       setSession(updatedSession);
     } catch (error: any) {
       console.error('Erreur lors de l\'annulation:', error);
-      setError(error.response?.data?.error || 'Erreur lors de l\'annulation de la session');
     }
   };
 
@@ -474,7 +470,7 @@ const SessionDetailsPage = () => {
       />
 
       <div className="px-8 py-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full mx-auto">
           {/* Bouton de rafraîchissement */}
           <div className="mb-6">
             <button
