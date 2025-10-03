@@ -3,16 +3,13 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   HomeIcon,
-  BookOpenIcon,
   PlayIcon,
   TrophyIcon,
   UserIcon,
-  CalendarDaysIcon,
   ChartBarIcon,
   Cog6ToothIcon,
   ChatBubbleLeftRightIcon,
   BellIcon,
-  AcademicCapIcon,
   ClockIcon,
   CheckCircleIcon,
   ChevronDownIcon,
@@ -21,16 +18,14 @@ import {
   KeyIcon
 } from "@heroicons/react/24/outline";
 
-type SectionKey = 'courses' | 'quizzes' | 'results' | 'communication';
+type SectionKey = 'quizzes' | 'results' | 'communication';
 type ActiveSection =
   | 'dashboard'
-  | 'mes-cours'
   | 'quiz-disponibles'
   | 'rejoindre-quiz'
   | 'quiz-en-cours'
   | 'mes-resultats'
   | 'mon-profil'
-  | 'emploi-du-temps'
   | 'messagerie'
   | 'annonces'
   | 'statistiques'
@@ -39,8 +34,7 @@ type ActiveSection =
 export default function StudentSideBar() {
   const [activeSection, setActiveSection] = useState<ActiveSection>('dashboard');
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
-    courses: true,
-    quizzes: false,
+    quizzes: true,
     results: false,
     communication: false,
   });
@@ -59,13 +53,11 @@ export default function StudentSideBar() {
     // Navigation routes pour les étudiants
     const routes = {
       'dashboard': '/student',
-      'mes-cours': '/student/courses',
       'quiz-disponibles': '/student/sessions',
       'rejoindre-quiz': '/student/join-session',
       'quiz-en-cours': '/student/quizzes/live',
       'mes-resultats': '/student/results',
       'mon-profil': '/student/profile',
-      'emploi-du-temps': '/student/schedule',
       'messagerie': '/student/messages',
       'annonces': '/student/announcements',
       'statistiques': '/student/statistics',
@@ -79,24 +71,6 @@ export default function StudentSideBar() {
   };
 
   const menuSections = [
-    {
-      key: 'courses' as SectionKey,
-      title: 'Mes Cours',
-      icon: BookOpenIcon,
-      items: [
-        {
-          key: 'mes-cours' as ActiveSection,
-          label: 'Vue d\'ensemble',
-          icon: AcademicCapIcon,
-          badge: '6 cours'
-        },
-        {
-          key: 'emploi-du-temps' as ActiveSection,
-          label: 'Emploi du temps',
-          icon: CalendarDaysIcon
-        },
-      ],
-    },
     {
       key: 'quizzes' as SectionKey,
       title: 'Quiz & Évaluations',
