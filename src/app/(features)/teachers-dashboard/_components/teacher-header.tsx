@@ -15,6 +15,7 @@ import {
   BookOpenIcon,
   PlusIcon
 } from "@heroicons/react/24/outline";
+import teacherAuthService from "../_services/teacher-auth.service";
 
 
 export default function TeacherHeader() {
@@ -49,22 +50,41 @@ export default function TeacherHeader() {
     { icon: ChatBubbleLeftRightIcon, label: "Envoyer un message", color: "text-orange-600" }
   ];
 
-  // Récupération des infos professeur depuis localStorage
+  // Récupération des infos professeur depuis l'API et localStorage
   useEffect(() => {
-    const storedData = localStorage.getItem("teacher_data");
-    if (!storedData) return;
+    const loadTeacherData = async () => {
+      try {
+        // Essayer d'abord de récupérer depuis l'API
+        const teacherData = await teacherAuthService.getCurrentTeacher();
 
-    try {
-      const data = JSON.parse(storedData);
-      setTeacherName(data?.user?.name || "Professeur");
-      setInstitutionName(data?.institution?.name || "Institution");
-      setDepartment(data?.user?.department || "Département");
-    } catch (err) {
-      console.error("Impossible de parser teacher_data :", err);
-    }
+        if (teacherData) {
+          setTeacherName(teacherData.name);
+          setInstitutionName(teacherData.teacher?.institution?.name || "Institution");
+          setDepartment(teacherData.teacher?.department || "Département");
+        } else {
+          // Fallback vers les données locales si API échoue
+          setTeacherName(teacherAuthService.getTeacherName());
+          setInstitutionName(teacherAuthService.getInstitutionName());
+          setDepartment(teacherAuthService.getTeacherDepartment());
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des données enseignant:", error);
+        // Fallback vers les données locales
+        setTeacherName(teacherAuthService.getTeacherName());
+        setInstitutionName(teacherAuthService.getInstitutionName());
+        setDepartment(teacherAuthService.getTeacherDepartment());
+      }
+    };
+
+    loadTeacherData();
   }, []);
 
-    const getNotificationIcon = (type: "evaluation" | "reminder" | "grades" | "meeting" | string): string => {
+    const handleLogout = () => {
+    teacherAuthService.logout();
+    window.location.href = "/auth/sign-in/teacher";
+  };
+
+  const getNotificationIcon = (type: "evaluation" | "reminder" | "grades" | "meeting" | string): string => {
     switch (type) {
         case "evaluation": return "📝";
         case "reminder": return "⏰";
@@ -72,7 +92,7 @@ export default function TeacherHeader() {
         case "meeting": return "👥";
         default: return "📢";
     }
-    };
+  };
 
 
   return (
@@ -222,7 +242,10 @@ export default function TeacherHeader() {
                 </button>
 
                 <div className="border-t border-gray-100 mt-2 pt-2">
-                  <button className="w-full px-4 py-2 text-left text-sm font-poppins text-red-600 hover:bg-red-50 flex items-center space-x-3 transition-colors">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-2 text-left text-sm font-poppins text-red-600 hover:bg-red-50 flex items-center space-x-3 transition-colors"
+                  >
                     <ArrowRightOnRectangleIcon className="w-4 h-4" />
                     <span>Se déconnecter</span>
                   </button>

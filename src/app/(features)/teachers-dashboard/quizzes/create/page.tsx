@@ -101,7 +101,7 @@ export default function CreateQuizPage() {
   }, []);
 
   const subjectOptions = subjects.map(subject => ({
-    value: subject.subject_id.toString(),
+    value: `${subject.subject_id}-${subject.classe_id || 'no-class'}`,
     label: `${subject.subject_name}${subject.classe_name ? ` - ${subject.classe_name}` : ''}`
   }));
 
@@ -149,7 +149,7 @@ export default function CreateQuizPage() {
       const quizData = {
         title: formData.title,
         description: formData.description,
-        subject_id: parseInt(formData.subject_id),
+        subject_id: parseInt(formData.subject_id.split('-')[0]), // Extraire le subject_id de la valeur composée
         duration_minutes: parseInt(formData.duration_minutes),
         total_points: parseInt(formData.total_points),
         shuffle_questions: formData.shuffle_questions,
