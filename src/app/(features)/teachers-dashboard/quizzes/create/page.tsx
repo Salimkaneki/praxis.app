@@ -14,8 +14,9 @@ import Textarea from "@/components/ui/Inputs/Textarea";
 import TeacherPageHeader from "../../_components/page-header";
 
 // Import des services - CORRECTION ICI
-import { SubjectService, TeacherSubject } from "../_services/subjects.service";
-import { QuizzesService } from "../_services/quizzes.service";
+import { SubjectService, TeacherSubject } from "../../quizzes/_services/subjects.service";
+import { QuizzesService } from "../../quizzes/_services/quizzes.service";
+import { useQuizContext } from "../../_contexts/quiz-context";
 
 // Types pour le formulaire
 interface FormData {
@@ -46,6 +47,7 @@ type SubmitStatus = 'success' | 'error' | null;
 
 export default function CreateQuizPage() {
   const router = useRouter();
+  const { addQuiz } = useQuizContext();
   const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",
@@ -165,7 +167,19 @@ export default function CreateQuizPage() {
       };
 
       // Utilisation du service de création de quiz
-      await QuizzesService.create(quizData);
+      const createdQuiz = await QuizzesService.create(quizData);
+      
+      // Ajouter le quiz au contexte pour mettre à jour la liste immédiatement
+      addQuiz({
+        id: createdQuiz.id,
+        title: createdQuiz.title,
+        description: createdQuiz.description ?? "",
+        duration_minutes: createdQuiz.duration_minutes ?? 0,
+        total_points: createdQuiz.total_points ?? 0,
+        status: createdQuiz.status,
+        allow_review: createdQuiz.allow_review,
+        show_results_immediately: createdQuiz.show_results_immediately,
+      });
       
       setSubmitStatus('success');
       // Redirection après 2 secondes

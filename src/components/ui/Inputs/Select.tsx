@@ -135,7 +135,7 @@ export default function SelectInput({
         >
           {options.map((opt, idx) => (
             <li
-              key={opt.value}
+              key={`${opt.value}-${idx}`}
               onClick={() => handleSelect(opt.value)}
               className={`px-4 py-2 cursor-pointer hover:bg-forest-100 
                 ${idx === 0 ? "rounded-t-xl" : ""} 
