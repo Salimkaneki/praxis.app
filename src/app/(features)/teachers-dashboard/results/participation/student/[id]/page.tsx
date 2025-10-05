@@ -5,7 +5,9 @@ import {
   User, CheckCircle, XCircle, Clock, Award,
   FileText, Target, AlertCircle,
   ThumbsUp, ThumbsDown, Calendar, Timer,
-  BookOpen, Star, Eye, RotateCcw, Loader2
+  BookOpen, Star, Eye, RotateCcw, Loader2,
+  Edit3, Save, X, Check, Send, Download,
+  MessageSquare, Award as AwardIcon
 } from "lucide-react";
 import TeacherPageHeader from "../../../../_components/page-header";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
@@ -20,6 +22,14 @@ const StudentResponsesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedQuestion, setSelectedQuestion] = useState<number | null>(null);
+  
+  // États pour la correction
+  const [editingResponse, setEditingResponse] = useState<number | null>(null);
+  const [editingPoints, setEditingPoints] = useState<{[key: number]: number}>({});
+  const [editingComments, setEditingComments] = useState<{[key: number]: string}>({});
+  const [savingCorrection, setSavingCorrection] = useState(false);
+  const [publishingResult, setPublishingResult] = useState(false);
+  const [markingGraded, setMarkingGraded] = useState(false);
 
   // Charger les données au montage du composant
   useEffect(() => {
@@ -54,6 +64,93 @@ const StudentResponsesPage = () => {
       setError('Impossible de charger les réponses de l\'étudiant');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fonctions de correction
+  const startEditingResponse = (responseId: number, currentPoints: number, currentComment: string = '') => {
+    setEditingResponse(responseId);
+    setEditingPoints(prev => ({ ...prev, [responseId]: currentPoints }));
+    setEditingComments(prev => ({ ...prev, [responseId]: currentComment }));
+  };
+
+  const cancelEditingResponse = () => {
+    setEditingResponse(null);
+    setEditingPoints({});
+    setEditingComments({});
+  };
+
+  const saveResponseCorrection = async (responseId: number) => {
+    if (!studentResponse) return;
+
+    setSavingCorrection(true);
+    try {
+      // Simulation de l'appel API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mettre à jour localement les données
+      const updatedResponses = studentResponse.responses.map(response => {
+        if (response.id === responseId) {
+          return {
+            ...response,
+            points: editingPoints[responseId] || response.points,
+            // Ici on pourrait ajouter un champ teacherComment si disponible
+          };
+        }
+        return response;
+      });
+
+      setStudentResponse({
+        ...studentResponse,
+        responses: updatedResponses
+      });
+
+      setEditingResponse(null);
+      setEditingPoints({});
+      setEditingComments({});
+      
+      console.log('Correction sauvegardée pour la réponse:', responseId);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      alert('Erreur lors de la sauvegarde de la correction');
+    } finally {
+      setSavingCorrection(false);
+    }
+  };
+
+  const publishStudentResult = async () => {
+    if (!studentResponse) return;
+
+    setPublishingResult(true);
+    try {
+      // Simulation de l'appel API
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      console.log('Résultat publié pour l\'étudiant:', studentResponse.student.name);
+      alert('Résultat publié avec succès !');
+    } catch (error) {
+      console.error('Erreur lors de la publication:', error);
+      alert('Erreur lors de la publication du résultat');
+    } finally {
+      setPublishingResult(false);
+    }
+  };
+
+  const markAsGraded = async () => {
+    if (!studentResponse) return;
+
+    setMarkingGraded(true);
+    try {
+      // Simulation de l'appel API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Résultat marqué comme corrigé pour l\'étudiant:', studentResponse.student.name);
+      alert('Résultat marqué comme corrigé !');
+    } catch (error) {
+      console.error('Erreur lors du marquage:', error);
+      alert('Erreur lors du marquage comme corrigé');
+    } finally {
+      setMarkingGraded(false);
     }
   };
 
@@ -166,10 +263,46 @@ const StudentResponsesPage = () => {
         backButton={{
           onClick: () => router.back()
         }}
+        actionButton={{
+          label: publishingResult ? "Publication..." : "Publier le résultat",
+          icon: <Send className="w-4 h-4 mr-2" />,
+          onClick: publishStudentResult,
+          disabled: publishingResult
+        }}
       />
 
       <div className="px-8 py-8">
         <div className="w-full">
+          {/* Actions de correction */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-gray-900">Actions de correction</h3>
+                <p className="text-xs text-gray-600">Gérer la correction et la publication du résultat</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={markAsGraded}
+                  disabled={markingGraded}
+                  className="px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {markingGraded ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  {markingGraded ? "Marquage..." : "Marquer comme corrigé"}
+                </button>
+                <button
+                  onClick={() => console.log("Exporter PDF")}
+                  className="px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Exporter PDF
+                </button>
+              </div>
+            </div>
+          </div>
           {/* Résumé de la performance */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
             <div className="flex items-center gap-4 mb-6">
@@ -230,7 +363,25 @@ const StudentResponsesPage = () => {
                             {getQuestionTypeLabel(response.questionType)}
                           </span>
                           <span className="text-sm text-gray-500">
-                            {response.points || 0}/{response.maxPoints || 0} points
+                            {editingResponse === response.id ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={response.maxPoints}
+                                  value={editingPoints[response.id] || response.points}
+                                  onChange={(e) => setEditingPoints(prev => ({ 
+                                    ...prev, 
+                                    [response.id]: parseFloat(e.target.value) || 0 
+                                  }))}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                />
+                                /{response.maxPoints || 0} points
+                              </div>
+                            ) : (
+                              `${response.points || 0}/${response.maxPoints || 0} points`
+                            )}
                           </span>
                           <span className="text-sm text-gray-500">
                             {formatTime(response.timeSpent || 0)}
@@ -252,6 +403,50 @@ const StudentResponsesPage = () => {
                       <span className="text-sm font-medium">
                         {response.isCorrect ? 'Correct' : 'Incorrect'}
                       </span>
+                    </div>
+                    {/* Boutons d'action pour la correction */}
+                    <div className="flex items-center gap-2 ml-4">
+                      {editingResponse === response.id ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              saveResponseCorrection(response.id);
+                            }}
+                            disabled={savingCorrection}
+                            className="p-1 text-green-600 hover:text-green-700 disabled:opacity-50"
+                            title="Sauvegarder"
+                          >
+                            {savingCorrection ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Save className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cancelEditingResponse();
+                            }}
+                            disabled={savingCorrection}
+                            className="p-1 text-red-600 hover:text-red-700 disabled:opacity-50"
+                            title="Annuler"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditingResponse(response.id, response.points, '');
+                          }}
+                          className="p-1 text-gray-500 hover:text-blue-600"
+                          title="Corriger cette réponse"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -338,6 +533,29 @@ const StudentResponsesPage = () => {
                         <div>
                           <p className="text-sm font-medium text-blue-900 mb-1">Explication</p>
                           <p className="text-sm text-blue-800">{response.explanation}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Commentaire enseignant (en mode édition) */}
+                  {editingResponse === response.id && (
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <MessageSquare className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-yellow-900 mb-2">Commentaire enseignant</p>
+                          <textarea
+                            value={editingComments[response.id] || ''}
+                            onChange={(e) => setEditingComments(prev => ({ 
+                              ...prev, 
+                              [response.id]: e.target.value 
+                            }))}
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder="Ajouter un commentaire pour l'étudiant..."
+                            className="w-full px-3 py-2 text-sm border border-yellow-300 rounded focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 resize-none"
+                            rows={2}
+                          />
                         </div>
                       </div>
                     </div>

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import TeacherPageHeader from "../_components/page-header";
 import ExamResultCard, { ExamResult } from "../_components/ExamResultCard";
 import KPIGrid, { KPI } from "../_components/kpi-grid";
@@ -107,6 +108,7 @@ const mockExamResults: ExamResult[] = [
 ];
 
 export default function ResultsPage() {
+  const router = useRouter();
   const [examResults, setExamResults] = useState<ExamResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -217,9 +219,19 @@ export default function ResultsPage() {
               {examResults.length} résultat{examResults.length > 1 ? 's' : ''} d'examen
             </p>
           </div>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2">
+          <button
+            onClick={() => router.push('/teachers-dashboard/results/export')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" />
             Exporter tout
+          </button>
+          <button
+            onClick={() => router.push('/teachers-dashboard/results/statistics')}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+          >
+            <BarChart3 className="w-4 h-4" />
+            Statistiques avancées
           </button>
         </div>
 
