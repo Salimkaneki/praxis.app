@@ -24,11 +24,21 @@ export default function StudentHeader() {
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTimeString, setCurrentTimeString] = useState<string>("--:--");
+  const [isClient, setIsClient] = useState(false);
 
-  // Mise à jour de l'heure en temps réel
+  // Mise à jour de l'heure en temps réel - seulement côté client
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    setIsClient(true);
+
+    const updateTime = () => {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      setCurrentTimeString(timeString);
+    };
+
+    updateTime(); // Update immediately
+    const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -104,7 +114,7 @@ export default function StudentHeader() {
           <div className="hidden lg:flex items-center space-x-1 px-2 py-1 bg-gray-50 rounded-md">
             <ClockIcon className="w-4 h-4 text-gray-500" />
             <span className="text-xs font-poppins text-gray-600">
-              {currentTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              {isClient ? currentTimeString : '--:--'}
             </span>
           </div>
         </div>

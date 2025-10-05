@@ -28,6 +28,7 @@ export default function SessionDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingExam, setStartingExam] = useState(false);
+  const [hasJoined, setHasJoined] = useState(false);
 
   useEffect(() => {
     loadSessionDetails();
@@ -39,6 +40,12 @@ export default function SessionDetailsPage() {
       setError(null);
       const sessionData = await StudentSessionsService.getSessionDetails(sessionId);
       setSession(sessionData);
+
+      // Vérifier si l'étudiant a déjà rejoint cette session
+      console.log('🔍 Vérification si l\'étudiant a déjà rejoint la session:', sessionId);
+      const joined = await StudentSessionsService.hasJoinedSession(sessionId);
+      setHasJoined(joined);
+      console.log('✅ État de participation:', joined);
     } catch (err: any) {
       console.error('Erreur lors du chargement des détails de session:', err);
       setError(err.response?.data?.message || 'Erreur lors du chargement des détails de session');
@@ -50,8 +57,16 @@ export default function SessionDetailsPage() {
   const handleStartExam = async () => {
     if (!session) return;
 
+    // Vérifier si l'étudiant a déjà rejoint cette session
+    if (hasJoined) {
+      setError('Vous avez déjà participé à cette session d\'examen. Vous ne pouvez pas la rejoindre à nouveau.');
+      return;
+    }
+
     try {
       setStartingExam(true);
+      setError(null);
+
       // Démarrer l'examen via l'API
       await StudentSessionsService.startExam(session.id);
 
@@ -184,7 +199,7 @@ export default function SessionDetailsPage() {
   const statusInfo = getStatusInfo(session.status);
   const startDateTime = formatDateTime(session.starts_at);
   const endDateTime = formatDateTime(session.ends_at);
-  const canStartExam = isSessionAvailable() && statusInfo.canStart;
+  const canStartExam = isSessionAvailable() && statusInfo.canStart && !hasJoined;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -322,7 +337,21 @@ export default function SessionDetailsPage() {
         </div>
 
         {/* Message d'état */}
-        {!canStartExam && (
+        {hasJoined ? (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-orange-800 mb-1">
+                  Déjà participé
+                </h3>
+                <p className="text-sm text-orange-700">
+                  Vous avez déjà participé à cette session d'examen. Vous ne pouvez pas la rejoindre à nouveau.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : !canStartExam && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
             <div className="flex items-start gap-3">
               <Info className="w-5 h-5 text-blue-600 mt-0.5" />

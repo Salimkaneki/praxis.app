@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Clock, CheckCircle, AlertCircle, Timer, Flag,
@@ -137,16 +137,31 @@ const StudentQuizInterface = () => {
         const sessionIdNum = parseInt(sessionIdParam);
         setSessionId(sessionIdNum);
 
+        // Vérifier si l'étudiant a déjà rejoint cette session
+        console.log('🔍 Vérification si l\'étudiant a déjà rejoint la session:', sessionIdNum);
+        const hasJoined = await StudentSessionsService.hasJoinedSession(sessionIdNum);
+        console.log('🔍 Résultat de hasJoinedSession:', hasJoined);
+
+        if (hasJoined) {
+          console.log('⚠️ L\'étudiant a déjà rejoint cette session - ACCÈS BLOQUÉ');
+          throw new Error('ALREADY_JOINED: Vous avez déjà participé à cette session d\'examen. Vous ne pouvez pas la rejoindre à nouveau.');
+        }
+
         // Démarrer l'examen et récupérer les données
+        console.log('🚀 Démarrage de l\'examen pour la session:', sessionIdNum);
         const data = await StudentSessionsService.startExam(sessionIdNum);
         setExamData(data);
 
       } catch (err: any) {
         console.error('Erreur lors du chargement de l\'examen:', err);
-        // Fallback vers les données mockées pour le débogage
-        console.log('Utilisation des données mockées pour le débogage');
-        setExamData(mockExamData as ExamData);
-        // setError(err.response?.data?.message || 'Erreur lors du chargement de l\'examen');
+
+        // Vérifier si c'est une erreur de session déjà rejointe
+        if (err.message && err.message.includes('ALREADY_JOINED')) {
+          setError('Vous avez déjà participé à cette session d\'examen. Vous ne pouvez pas la rejoindre à nouveau.');
+        } else {
+          // En production, afficher l'erreur réelle au lieu d'utiliser des données mockées
+          setError(err.response?.data?.message || err.message || 'Erreur lors du chargement de l\'examen');
+        }
       } finally {
         setLoading(false);
       }
@@ -165,7 +180,7 @@ const StudentQuizInterface = () => {
   const [submitting, setSubmitting] = useState(false);
   const [examResult, setExamResult] = useState<any>(null);
 
-  // Timer effect
+  // Timer effect - Optimisé pour éviter les re-renders infinis
   useEffect(() => {
     if (timeRemaining > 0 && !isSubmitted && !submitting) {
       const timer = setInterval(() => {
@@ -179,9 +194,9 @@ const StudentQuizInterface = () => {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [timeRemaining, isSubmitted, submitting]);
+  }, [isSubmitted, submitting]); // Retiré timeRemaining des dépendances
 
-  // Scroll effect
+  // Scroll effect - Nettoyage correct de l'event listener
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollToTop(window.scrollY > 400);
@@ -189,7 +204,7 @@ const StudentQuizInterface = () => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, []); // Dépendances vides car handleScroll ne dépend d'aucun state
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -207,7 +222,7 @@ const StudentQuizInterface = () => {
     return types[type as keyof typeof types] || type;
   };
 
-  const updateAnswer = (questionId: number, answer: string, selectedOptions?: string[]) => {
+  const updateAnswer = useCallback((questionId: number, answer: string, selectedOptions?: string[]) => {
     const newAnswer: StudentAnswer = {
       question_id: questionId,
       answer,
@@ -215,12 +230,14 @@ const StudentQuizInterface = () => {
       time_spent: 0
     };
 
-    const newAnswers = new Map(answers);
-    newAnswers.set(questionId, newAnswer);
-    setAnswers(newAnswers);
-  };
+    setAnswers(prevAnswers => {
+      const newAnswers = new Map(prevAnswers);
+      newAnswers.set(questionId, newAnswer);
+      return newAnswers;
+    });
+  }, []);
 
-  const handleMultipleChoice = (questionId: number, optionId: string) => {
+  const handleMultipleChoice = useCallback((questionId: number, optionId: string) => {
     if (!examData) return;
     const question = examData.questions.find(q => q.id === questionId);
     // Convertir l'ID en string pour la comparaison
@@ -228,60 +245,84 @@ const StudentQuizInterface = () => {
     if (selectedOption) {
       updateAnswer(questionId, selectedOption.text, [optionId]);
     }
-  };
+  }, [examData, updateAnswer]);
 
-  const handleTextAnswer = (questionId: number, text: string) => {
+  const handleTextAnswer = useCallback((questionId: number, text: string) => {
     updateAnswer(questionId, text);
-  };
+  }, [updateAnswer]);
 
-  const toggleFlag = (questionId: number) => {
-    const newFlagged = new Set(flaggedQuestions);
-    if (newFlagged.has(questionId)) {
-      newFlagged.delete(questionId);
-    } else {
-      newFlagged.add(questionId);
+  const toggleFlag = useCallback((questionId: number) => {
+    setFlaggedQuestions(prev => {
+      const newFlagged = new Set(prev);
+      if (newFlagged.has(questionId)) {
+        newFlagged.delete(questionId);
+      } else {
+        newFlagged.add(questionId);
+      }
+      return newFlagged;
+    });
+  }, []);
+
+  const handleSubmitQuiz = async () => {
+    if (!examData || !sessionId) return;
+
+    // Double vérification avant soumission
+    console.log('🔍 Double vérification avant soumission pour session:', sessionId);
+    const hasJoinedBeforeSubmit = await StudentSessionsService.hasJoinedSession(sessionId);
+    console.log('🔍 Résultat de la double vérification:', hasJoinedBeforeSubmit);
+
+    if (hasJoinedBeforeSubmit) {
+      console.log('⚠️ Tentative de soumission pour une session déjà terminée - BLOQUÉ');
+      alert('Vous avez déjà soumis cet examen. Vous ne pouvez pas le soumettre à nouveau.');
+      return;
     }
-    setFlaggedQuestions(newFlagged);
-  };
 
-  const handleSubmitQuiz = () => {
-    if (!examData) return;
     setSubmitting(true);
     setShowConfirmSubmit(false);
 
-    // Simuler le calcul des résultats
-    setTimeout(() => {
-      const answeredCount = answers.size;
-      const totalPoints = examData.questions.reduce((sum, q) => sum + q.points, 0);
-      const earnedPoints = Math.floor(Math.random() * totalPoints * 0.5) + totalPoints * 0.5;
-      
-      const mockResult = {
-        score: earnedPoints,
-        max_score: totalPoints,
-        percentage: Math.round((earnedPoints / totalPoints) * 100),
-        time_spent: Math.floor((3600 - timeRemaining) / 60),
-        answers: Array.from(answers.values()).map(ans => {
-          const question = examData.questions.find(q => q.id === ans.question_id);
-          return {
-            question_text: question?.question_text || '',
-            student_answer: ans.answer,
-            is_correct: Math.random() > 0.3,
-            points_earned: Math.floor(Math.random() * (question?.points || 0)),
-            max_points: question?.points || 0
-          };
-        })
+    try {
+      console.log('🔗 Soumission de l\'examen en cours...');
+
+      // Préparer les réponses au format attendu par le service
+      const studentAnswers: StudentAnswer[] = Array.from(answers.values());
+
+      // Utiliser le resultId (attempt.id) pour soumettre les réponses
+      const resultId = examData.attempt.id;
+      const result = await StudentSessionsService.submitExam(resultId, studentAnswers);
+
+      console.log('✅ Examen soumis avec succès:', result);
+
+      // Transformer le résultat pour l'affichage
+      const displayResult = {
+        score: result.score,
+        max_score: result.max_score,
+        percentage: result.percentage,
+        time_spent: result.time_spent,
+        answers: [] // Les détails des réponses ne sont pas retournés par le nouveau endpoint
       };
 
-      setExamResult(mockResult);
+      setExamResult(displayResult);
       setIsSubmitted(true);
+
+    } catch (error: any) {
+      console.error('❌ Erreur lors de la soumission:', error);
+
+      // Afficher un message d'erreur à l'utilisateur
+      alert(`Erreur lors de la soumission: ${error.message || 'Veuillez réessayer.'}`);
+
+      // Réactiver la possibilité de soumettre
       setSubmitting(false);
-    }, 1500);
+      setShowConfirmSubmit(true);
+    }
   };
 
-  const getAnsweredQuestions = () => {
+  // Optimiser le calcul du nombre de questions répondues
+  const answeredQuestionsCount = useMemo(() => {
     if (!examData) return 0;
     return examData.questions.filter(q => answers.has(q.id)).length;
-  };
+  }, [examData?.questions, answers]);
+
+  const getAnsweredQuestions = useCallback(() => answeredQuestionsCount, [answeredQuestionsCount]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -294,7 +335,7 @@ const StudentQuizInterface = () => {
     }
   };
 
-  const renderQuestionContent = (question: any) => {
+  const renderQuestionContent = useCallback((question: any) => {
     const answer = answers.get(question.id);
 
     switch (question.type) {
@@ -314,7 +355,7 @@ const StudentQuizInterface = () => {
             {question.options.map((option: any, index: number) => {
               // Convertir l'ID en string pour assurer la compatibilité
               const optionId = String(option.id);
-              
+
               return (
                 <button
                   key={optionId}
@@ -376,7 +417,7 @@ const StudentQuizInterface = () => {
           </div>
         );
     }
-  };
+  }, [answers, handleMultipleChoice, handleTextAnswer, isSubmitted, submitting]);
 
   if (loading) {
     return (

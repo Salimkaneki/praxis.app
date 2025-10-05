@@ -1,6 +1,6 @@
 'use client';
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Clock,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { StudentSession } from "../../_services/sessions.service";
+import { StudentSessionsService } from "../../_services/sessions.service";
 
 type StudentSessionCardProps = {
   session: StudentSession;
@@ -22,6 +23,28 @@ type StudentSessionCardProps = {
 
 const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
   const router = useRouter();
+  const [hasJoined, setHasJoined] = useState<boolean | null>(null);
+  const [checkingJoinStatus, setCheckingJoinStatus] = useState(false);
+
+  // Vérifier si l'étudiant a déjà rejoint cette session
+  useEffect(() => {
+    const checkJoinStatus = async () => {
+      if (session.status === 'active') {
+        setCheckingJoinStatus(true);
+        try {
+          const joined = await StudentSessionsService.hasJoinedSession(session.id);
+          setHasJoined(joined);
+        } catch (error) {
+          console.error('Erreur lors de la vérification du statut de session:', error);
+          setHasJoined(false); // En cas d'erreur, considérer comme non rejoint
+        } finally {
+          setCheckingJoinStatus(false);
+        }
+      }
+    };
+
+    checkJoinStatus();
+  }, [session.id, session.status]);
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -131,9 +154,24 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
     return session.status;
   };
 
-  const handleStartExam = () => {
-    if (canStartExam()) {
-      router.push(`/student/join-session`);
+  const handleStartExam = async () => {
+    if (!canStartExam()) return;
+
+    try {
+      // Vérifier si l'étudiant a déjà rejoint cette session
+      const hasJoined = await StudentSessionsService.hasJoinedSession(session.id);
+
+      if (hasJoined) {
+        // Si déjà rejoint, aller directement à la participation
+        router.push(`/student/sessions/participate?sessionId=${session.id}`);
+      } else {
+        // Sinon, aller à la page de join avec le code pré-rempli
+        router.push(`/student/join-session?code=${session.session_code}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification du statut de session:', error);
+      // En cas d'erreur, aller à la page de join
+      router.push(`/student/join-session?code=${session.session_code}`);
     }
   };
 
@@ -203,10 +241,25 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
           {canStartExam() ? (
             <button
               onClick={handleStartExam}
-              className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium inline-flex items-center justify-center gap-2 transition-colors font-poppins text-sm"
+              disabled={checkingJoinStatus}
+              className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 font-medium inline-flex items-center justify-center gap-2 transition-colors font-poppins text-sm"
             >
-              <Play className="w-4 h-4" />
-              Voir détails
+              {checkingJoinStatus ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Vérification...
+                </>
+              ) : hasJoined ? (
+                <>
+                  <Play className="w-4 h-4" />
+                  Continuer l'examen
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  Rejoindre l'examen
+                </>
+              )}
             </button>
           ) : session.status === "completed" ? (
             <button

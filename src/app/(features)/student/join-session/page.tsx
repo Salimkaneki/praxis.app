@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Button, SessionCodeInput } from "@/components/ui";
 import { StudentSessionsService } from "../_services/sessions.service";
@@ -20,6 +20,18 @@ export default function JoinSessionPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Pré-remplir le code depuis l'URL si fourni
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const codeFromUrl = urlParams.get('code');
+    if (codeFromUrl) {
+      setFormData(prev => ({
+        ...prev,
+        code: codeFromUrl.toUpperCase()
+      }));
+    }
+  }, []);
 
   const handleCodeChange = (code: string) => {
     setFormData(prev => ({
@@ -51,14 +63,30 @@ export default function JoinSessionPage() {
     setError(null);
 
     try {
+      // D'abord, récupérer les détails de la session pour vérifier si elle existe
+      const sessions = await StudentSessionsService.getAvailableSessions();
+      const session = sessions.find(s => s.session_code?.toUpperCase() === formData.code.toUpperCase());
+
+      if (!session) {
+        setError("Code de session invalide. Vérifiez le code et réessayez.");
+        return;
+      }
+
+      // Vérifier si l'étudiant a déjà rejoint cette session
+      const hasJoined = await StudentSessionsService.hasJoinedSession(session.id);
+      if (hasJoined) {
+        setError("Vous avez déjà rejoint cette session. Vous ne pouvez pas la rejoindre plusieurs fois.");
+        return;
+      }
+
       // Utiliser le vrai service API pour rejoindre la session
-      const session = await StudentSessionsService.joinSession(formData.code.toUpperCase());
+      const joinedSession = await StudentSessionsService.joinSession(formData.code.toUpperCase());
 
       setSuccess(true);
 
       // Rediriger vers la page de participation avec l'ID de session
       setTimeout(() => {
-        router.push(`/student/sessions/participate?sessionId=${session.id}`);
+        router.push(`/student/sessions/participate?sessionId=${joinedSession.id}`);
       }, 2000);
     } catch (err: any) {
       console.error('Erreur lors de la jonction de session:', err);

@@ -195,13 +195,47 @@ export const StudentSessionsService = {
   },
 
   // Soumettre les réponses d'un examen
-  submitExam: async (sessionId: number, payload: SubmitExamPayload): Promise<ExamResult> => {
+  submitExam: async (resultId: number, answers: StudentAnswer[]): Promise<ExamResult> => {
     try {
-      const response = await api.post(`/student/sessions/${sessionId}/submit`, payload);
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la soumission de l\'examen:', error);
-      throw error;
+      console.log('🔗 API: Soumission des réponses pour le résultat:', resultId);
+      console.log('📝 Réponses à soumettre:', answers.length);
+
+      // Transformer les réponses selon le format attendu par le contrôleur Laravel
+      const responses = answers.map(answer => ({
+        question_id: answer.question_id,
+        answer: answer.answer
+      }));
+
+      const response = await api.post(`/student/results/${resultId}/responses`, {
+        responses
+      });
+
+      console.log('✅ API: Réponses soumises avec succès');
+      console.log('📊 Résultats:', response.data);
+
+      // Transformer la réponse pour correspondre à l'interface ExamResult
+      return {
+        attempt_id: resultId,
+        score: response.data.total_points || 0,
+        max_score: response.data.max_points || 100,
+        percentage: response.data.percentage || 0,
+        time_spent: 0, // TODO: calculer depuis les données
+        completed_at: new Date().toISOString(),
+        answers: [] // Les détails des réponses ne sont pas retournés dans cette réponse
+      };
+    } catch (error: any) {
+      console.error('❌ Erreur lors de la soumission de l\'examen:', error);
+
+      if (error.response?.status === 400) {
+        const errorMsg = error.response?.data?.error || 'Erreur de validation';
+        throw new Error(`Erreur de soumission: ${errorMsg}`);
+      } else if (error.response?.status === 403) {
+        throw new Error('Accès refusé. Vous n\'êtes pas autorisé à soumettre ces réponses.');
+      } else if (error.response?.status === 404) {
+        throw new Error('Résultat non trouvé. Vérifiez que vous participez bien à cette session.');
+      }
+
+      throw new Error('Erreur lors de la soumission. Veuillez réessayer.');
     }
   },
 
@@ -216,14 +250,62 @@ export const StudentSessionsService = {
     }
   },
 
-  // Récupérer l'état actuel d'un examen en cours
-  getExamStatus: async (sessionId: number): Promise<ExamData> => {
+  // Vérifier si l'étudiant a déjà rejoint une session
+  hasJoinedSession: async (sessionId: number): Promise<boolean> => {
     try {
-      const response = await api.get(`/student/sessions/${sessionId}/status`);
-      return response.data;
-    } catch (error) {
-      console.error('Erreur lors de la récupération du statut de l\'examen:', error);
-      throw error;
+      console.log('🔍 Vérification si l\'étudiant a déjà rejoint la session:', sessionId);
+
+      // Essayer d'abord l'endpoint status s'il existe
+      try {
+        const response = await api.get(`/student/sessions/${sessionId}/status`);
+        console.log('🔍 Réponse de l\'API status:', response.data);
+
+        const hasResult = !!(response.data?.result_id);
+        const isSubmitted = !!(response.data?.submitted || response.data?.is_submitted);
+
+        console.log('🔍 Analyse de la réponse:', {
+          hasResult,
+          isSubmitted,
+          result_id: response.data?.result_id,
+          submitted: response.data?.submitted,
+          is_submitted: response.data?.is_submitted
+        });
+
+        const result = hasResult && isSubmitted;
+        console.log('🔍 Résultat final de hasJoinedSession:', result);
+        return result;
+      } catch (statusError: any) {
+        // Si l'endpoint status n'existe pas (404), essayer une autre approche
+        if (statusError.response?.status === 404) {
+          console.log('🔍 Endpoint status non trouvé, tentative avec getSessionDetails');
+
+          // Essayer de récupérer les détails de session et voir s'il y a un résultat
+          const sessionDetails = await api.get(`/student/sessions/${sessionId}`);
+          console.log('🔍 Détails de session récupérés:', sessionDetails.data);
+
+          // Vérifier si la session a un résultat associé
+          if (sessionDetails.data?.result) {
+            const result = sessionDetails.data.result;
+            const isCompleted = result.status === 'completed' || result.submitted_at !== null;
+            console.log('🔍 Résultat trouvé dans session details:', {
+              result_id: result.id,
+              status: result.status,
+              submitted_at: result.submitted_at,
+              isCompleted
+            });
+            return isCompleted;
+          }
+
+          console.log('🔍 Aucun résultat trouvé dans session details');
+          return false;
+        } else {
+          throw statusError; // Relancer l'erreur si ce n'est pas un 404
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Erreur lors de la vérification du statut de session:', error);
+      // En cas d'erreur, on considère qu'il n'a pas rejoint pour éviter de bloquer
+      return false;
     }
   },
 

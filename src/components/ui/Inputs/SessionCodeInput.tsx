@@ -25,26 +25,28 @@ export default function SessionCodeInput({
   const [code, setCode] = useState<string[]>(Array(length).fill(""));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Initialize code array from value prop
+  // Initialize code array from value prop - only when value changes externally
   useEffect(() => {
-    if (value) {
-      const codeArray = value.split("").slice(0, length);
-      while (codeArray.length < length) {
-        codeArray.push("");
+    if (value !== code.join("")) {
+      if (value) {
+        const codeArray = value.split("").slice(0, length);
+        while (codeArray.length < length) {
+          codeArray.push("");
+        }
+        setCode(codeArray);
+      } else {
+        setCode(Array(length).fill(""));
       }
-      setCode(codeArray);
-    } else {
-      setCode(Array(length).fill(""));
     }
-  }, [value, length]);
+  }, [value, length]); // Removed code from dependencies to prevent infinite loop
 
-  // Update parent component when code changes
+  // Update parent component when code changes - only if different from current value
   useEffect(() => {
     const fullCode = code.join("");
-    if (onChange && fullCode !== value) {
+    if (onChange && fullCode !== value && fullCode.length === length) {
       onChange(fullCode);
     }
-  }, [code, onChange, value]);
+  }, [code, onChange, value, length]);
 
   const handleInputChange = (index: number, inputValue: string) => {
     if (disabled) return;
