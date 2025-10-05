@@ -5,11 +5,10 @@ import StudentPageHeader from "../_components/page-header";
 import StudentSessionGrid from "./_components/StudentSessionGrid";
 import { RefreshCw, AlertCircle } from "lucide-react";
 import { StudentSessionsService, StudentSession } from "../_services/sessions.service";
+import { useStudentSessionContext } from "../../../../contexts/student-session-context";
 
 export default function StudentSessionsPage() {
-  const [sessions, setSessions] = useState<StudentSession[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { entities: allSessions, loading, error, refreshEntities } = useStudentSessionContext();
   const [refreshing, setRefreshing] = useState(false);
 
   // Vérification de l'authentification au montage
@@ -19,44 +18,23 @@ export default function StudentSessionsPage() {
       window.location.href = '/auth/sign-in/student';
       return;
     }
-  }, []);
 
-  // Fonction pour récupérer les sessions
-  const fetchSessions = async () => {
-    try {
-      setError(null);
-      const sessionsData = await StudentSessionsService.getAvailableSessions();
-      setSessions(sessionsData);
-    } catch (err: any) {
-      console.error('Erreur lors de la récupération des sessions:', err);
+    // Charger les sessions une fois l'authentification vérifiée
+    refreshEntities();
+  }, [refreshEntities]);
 
-      // Gestion spécifique des erreurs d'authentification
-      if (err.response?.status === 401) {
-        setError('Votre session a expiré. Veuillez vous reconnecter.');
-      } else if (err.response?.status === 403) {
-        setError('Accès non autorisé. Vous n\'avez pas les permissions nécessaires.');
-      } else if (err.response?.status === 404) {
-        setError('Endpoint non trouvé. Veuillez vérifier la configuration.');
-      } else if (err.message?.includes('Network Error')) {
-        setError('Impossible de se connecter au serveur. Vérifiez votre connexion internet.');
-      } else {
-        setError(err.response?.data?.error || err.message || 'Une erreur est survenue lors du chargement des sessions');
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Chargement initial des sessions
-  useEffect(() => {
-    fetchSessions();
-  }, []);
+  // Les sessions sont déjà au bon format depuis le contexte étudiant
+  const sessions: StudentSession[] = allSessions
+    .filter(session => session.join_status === 'à venir' || session.join_status === 'disponible');
 
   // Fonction pour rafraîchir les sessions
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    fetchSessions();
+    try {
+      await refreshEntities();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   if (loading) {

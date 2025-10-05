@@ -14,6 +14,7 @@ export interface StudentSession {
   teacher_id: number;
   max_participants?: number;
   current_participants?: number;
+  join_status?: "à venir" | "disponible" | "terminée";
 
   quiz?: {
     id: number;
@@ -56,19 +57,19 @@ export interface ExamData {
   session: StudentSession;
   attempt: SessionAttempt;
   questions: ExamQuestion[];
-  time_remaining?: number; // en secondes
+  time_remaining?: number;
 }
 
 export interface StudentAnswer {
   question_id: number;
   answer: string;
   selected_options?: string[];
-  time_spent?: number; // en secondes
+  time_spent?: number;
 }
 
 export interface SubmitExamPayload {
   answers: StudentAnswer[];
-  time_spent: number; // en minutes
+  time_spent: number;
 }
 
 export interface ExamResult {
@@ -99,7 +100,6 @@ export const StudentSessionsService = {
     } catch (error: any) {
       console.error('Erreur lors de la récupération des sessions disponibles:', error);
 
-      // Gestion spécifique des erreurs d'authentification
       if (error.response?.status === 401) {
         throw new Error('Session expirée. Veuillez vous reconnecter.');
       } else if (error.response?.status === 403) {
@@ -112,7 +112,9 @@ export const StudentSessionsService = {
 
       throw error;
     }
-  },  // Récupérer les détails d'une session
+  },
+
+  // Récupérer les détails d'une session
   getSessionDetails: async (sessionId: number): Promise<StudentSession> => {
     try {
       const response = await api.get(`/student/sessions/${sessionId}`);
@@ -126,9 +128,12 @@ export const StudentSessionsService = {
   // Rejoindre une session avec un code
   joinSession: async (sessionCode: string): Promise<StudentSession> => {
     try {
-      const response = await api.post('/student/sessions/join', {
+      console.log('🔗 API: Tentative de rejoindre la session avec le code:', sessionCode);
+      const response = await api.post('/student/session/join', {
         session_code: sessionCode
       });
+
+      console.log('✅ API: Session rejointe avec succès:', response.data.session.title);
       return response.data.session;
     } catch (error) {
       console.error('Erreur lors de la jonction de session:', error);
@@ -136,13 +141,55 @@ export const StudentSessionsService = {
     }
   },
 
-  // Démarrer un examen pour une session
+  // Démarrer un examen pour une session (récupérer les questions)
   startExam: async (sessionId: number): Promise<ExamData> => {
     try {
-      const response = await api.post(`/student/sessions/${sessionId}/start`);
-      return response.data;
+      console.log('🔗 API: Récupération des questions pour la session:', sessionId);
+      const response = await api.get(`/student/session/${sessionId}/questions`);
+
+      console.log('✅ API: Questions récupérées avec succès:', response.data.questions?.length || 0, 'questions');
+
+      // Transformer les données pour correspondre à l'interface ExamData
+      const examData: ExamData = {
+        session: response.data.session,
+        attempt: {
+          id: response.data.result_id,
+          session_id: sessionId,
+          student_id: 1, // À récupérer depuis le contexte d'authentification
+          started_at: new Date().toISOString(),
+          status: 'in_progress',
+          time_spent_minutes: 0
+        },
+        questions: response.data.questions.map((q: any) => {
+          // Pour les questions true_false, ajouter les options par défaut si elles ne sont pas fournies
+          let options = q.options;
+          if (q.type === 'true_false' && !options) {
+            options = [
+              { id: 'true', text: 'Vrai' },
+              { id: 'false', text: 'Faux' }
+            ];
+          } else if (options) {
+            options = options.map((opt: any, index: number) => ({
+              id: String.fromCharCode(97 + index), // a, b, c, d...
+              text: opt.text || opt
+            }));
+          }
+
+          return {
+            id: q.id,
+            question_text: q.question_text,
+            type: q.type,
+            points: q.points,
+            order: q.order,
+            options: options
+          };
+        }),
+        time_remaining: (response.data.session.duration_minutes || 60) * 60 // convertir en secondes
+      };
+
+      return examData;
     } catch (error) {
-      console.error('Erreur lors du démarrage de l\'examen:', error);
+      console.error('Erreur lors de la récupération des questions:', error);
       throw error;
     }
   },

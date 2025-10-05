@@ -1,10 +1,12 @@
 'use client';
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Clock, CheckCircle, AlertCircle, Timer, Flag,
   Send, Eye, EyeOff, ArrowUp, User, Calendar,
   BookOpen, Target, Award
 } from "lucide-react";
+import { StudentSessionsService, StudentSession, ExamQuestion, ExamData } from "../../_services/sessions.service";
 
 // Types
 interface QuizOption {
@@ -111,7 +113,48 @@ const mockExamData = {
 };
 
 const StudentQuizInterface = () => {
-  const [examData] = useState(mockExamData);
+  const router = useRouter();
+  const [examData, setExamData] = useState<ExamData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<number | null>(null);
+
+  // Charger les données de l'examen
+  useEffect(() => {
+    const loadExamData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Récupérer l'ID de session depuis l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionIdParam = urlParams.get('sessionId');
+
+        if (!sessionIdParam) {
+          throw new Error('ID de session manquant');
+        }
+
+        const sessionIdNum = parseInt(sessionIdParam);
+        setSessionId(sessionIdNum);
+
+        // Démarrer l'examen et récupérer les données
+        const data = await StudentSessionsService.startExam(sessionIdNum);
+        setExamData(data);
+
+      } catch (err: any) {
+        console.error('Erreur lors du chargement de l\'examen:', err);
+        // Fallback vers les données mockées pour le débogage
+        console.log('Utilisation des données mockées pour le débogage');
+        setExamData(mockExamData as ExamData);
+        // setError(err.response?.data?.message || 'Erreur lors du chargement de l\'examen');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExamData();
+  }, []);
+
   const [answers, setAnswers] = useState<Map<number, StudentAnswer>>(new Map());
   const [timeRemaining, setTimeRemaining] = useState(3600); // 60 minutes
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -178,8 +221,10 @@ const StudentQuizInterface = () => {
   };
 
   const handleMultipleChoice = (questionId: number, optionId: string) => {
+    if (!examData) return;
     const question = examData.questions.find(q => q.id === questionId);
-    const selectedOption = question?.options?.find(opt => opt.id === optionId);
+    // Convertir l'ID en string pour la comparaison
+    const selectedOption = question?.options?.find(opt => String(opt.id) === optionId);
     if (selectedOption) {
       updateAnswer(questionId, selectedOption.text, [optionId]);
     }
@@ -200,6 +245,7 @@ const StudentQuizInterface = () => {
   };
 
   const handleSubmitQuiz = () => {
+    if (!examData) return;
     setSubmitting(true);
     setShowConfirmSubmit(false);
 
@@ -233,6 +279,7 @@ const StudentQuizInterface = () => {
   };
 
   const getAnsweredQuestions = () => {
+    if (!examData) return 0;
     return examData.questions.filter(q => answers.has(q.id)).length;
   };
 
@@ -253,33 +300,47 @@ const StudentQuizInterface = () => {
     switch (question.type) {
       case 'multiple_choice':
       case 'true_false':
+        // Vérifier si les options existent
+        if (!question.options || question.options.length === 0) {
+          return (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-yellow-800">Aucune option disponible pour cette question.</p>
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-2">
-            {question.options?.map((option: any) => (
-              <button
-                key={option.id}
-                onClick={() => handleMultipleChoice(question.id, option.id)}
-                disabled={isSubmitted || submitting}
-                className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
-                  answer?.selected_options?.includes(option.id)
-                    ? 'bg-green-50 border-green-200 text-gray-900'
-                    : 'bg-gray-50 border-gray-200 hover:border-gray-300 text-gray-900'
-                } ${(isSubmitted || submitting) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-gray-100'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    answer?.selected_options?.includes(option.id)
-                      ? 'border-green-500'
-                      : 'border-gray-300'
-                  }`}>
-                    {answer?.selected_options?.includes(option.id) && (
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    )}
+            {question.options.map((option: any, index: number) => {
+              // Convertir l'ID en string pour assurer la compatibilité
+              const optionId = String(option.id);
+              
+              return (
+                <button
+                  key={optionId}
+                  onClick={() => handleMultipleChoice(question.id, optionId)}
+                  disabled={isSubmitted || submitting}
+                  className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
+                    answer?.selected_options?.includes(optionId)
+                      ? 'bg-green-50 border-green-200 text-gray-900'
+                      : 'bg-gray-50 border-gray-200 hover:border-gray-300 text-gray-900'
+                  } ${(isSubmitted || submitting) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-gray-100'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      answer?.selected_options?.includes(optionId)
+                        ? 'border-green-500'
+                        : 'border-gray-300'
+                    }`}>
+                      {answer?.selected_options?.includes(optionId) && (
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      )}
+                    </div>
+                    <span>{option.text}</span>
                   </div>
-                  <span>{option.text}</span>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         );
 
@@ -308,10 +369,49 @@ const StudentQuizInterface = () => {
         );
 
       default:
-        return null;
+        return (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800">Type de question non reconnu: {question.type}</p>
+            <p className="text-sm text-yellow-600 mt-2">Question: {question.question_text}</p>
+          </div>
+        );
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement de l'examen...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !examData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            {error || 'Erreur de chargement'}
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Impossible de charger l'examen. Veuillez réessayer.
+          </p>
+          <button
+            onClick={() => router.push('/student/sessions')}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retour aux sessions
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Afficher l'écran de succès si l'examen est soumis
   if (isSubmitted && examResult) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -366,10 +466,10 @@ const StudentQuizInterface = () => {
                 </div>
 
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={() => router.push('/student/sessions')}
                   className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
                 >
-                  Recommencer
+                  Retour aux sessions
                 </button>
               </div>
             </div>
@@ -609,8 +709,7 @@ const StudentQuizInterface = () => {
                 <p>Questions marquées: {flaggedQuestions.size}</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <button
+            <div className="flex gap-3"><button
                 onClick={() => setShowConfirmSubmit(false)}
                 disabled={submitting}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium disabled:opacity-50"

@@ -47,7 +47,7 @@ type SubmitStatus = 'success' | 'error' | null;
 
 export default function CreateQuizPage() {
   const router = useRouter();
-  const { addQuiz } = useQuizContext();
+  const { addEntity: addQuiz } = useQuizContext();
   const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",

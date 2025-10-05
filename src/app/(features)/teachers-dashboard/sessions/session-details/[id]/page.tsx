@@ -392,34 +392,6 @@ const SessionDetailsPage = () => {
     { id: 'results', label: 'Résultats', icon: Target }
   ];
 
-  // Fonction pour mettre en pause une session
-  const handlePauseSession = async () => {
-    if (!session) return;
-
-    if (!confirm('Êtes-vous sûr de vouloir mettre en pause cette session ?')) {
-      return;
-    }
-
-    try {
-      const updatedSession = await SessionsService.changeStatus(session.id, 'pause');
-      setSession(updatedSession);
-    } catch (error: any) {
-      console.error('Erreur lors de la mise en pause:', error);
-    }
-  };
-
-  // Fonction pour reprendre une session
-  const handleResumeSession = async () => {
-    if (!session) return;
-
-    try {
-      const updatedSession = await SessionsService.changeStatus(session.id, 'resume');
-      setSession(updatedSession);
-    } catch (error: any) {
-      console.error('Erreur lors de la reprise:', error);
-    }
-  };
-
   // Fonction pour terminer une session
   const handleCompleteSession = async () => {
     if (!session) return;
@@ -429,7 +401,7 @@ const SessionDetailsPage = () => {
     }
 
     try {
-      const updatedSession = await SessionsService.changeStatus(session.id, 'complete');
+      const updatedSession = await SessionsService.complete(session.id);
       setSession(updatedSession);
     } catch (error: any) {
       console.error('Erreur lors de la finalisation:', error);
@@ -445,7 +417,7 @@ const SessionDetailsPage = () => {
     }
 
     try {
-      const updatedSession = await SessionsService.changeStatus(session.id, 'cancel');
+      const updatedSession = await SessionsService.cancel(session.id);
       setSession(updatedSession);
     } catch (error: any) {
       console.error('Erreur lors de l\'annulation:', error);
@@ -531,44 +503,19 @@ const SessionDetailsPage = () => {
                         )}
                         
                         {session.status === 'active' && (
-                          <>
-                            <button
-                              onClick={() => {
-                                setShowActions(false);
-                                handlePauseSession();
-                              }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-50 text-yellow-600 flex items-center gap-2"
-                            >
-                              <Pause className="w-4 h-4" />
-                              Mettre en pause
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowActions(false);
-                                handleCompleteSession();
-                              }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 text-blue-600 flex items-center gap-2"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Terminer
-                            </button>
-                          </>
-                        )}
-                        
-                        {session.status === 'paused' && (
                           <button
                             onClick={() => {
                               setShowActions(false);
-                              handleResumeSession();
+                              handleCompleteSession();
                             }}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-green-50 text-green-600 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 text-blue-600 flex items-center gap-2"
                           >
-                            <Play className="w-4 h-4" />
-                            Reprendre
+                            <CheckCircle className="w-4 h-4" />
+                            Terminer
                           </button>
                         )}
                         
-                        {['scheduled', 'active', 'paused'].includes(session.status) && (
+                        {['scheduled', 'active'].includes(session.status) && (
                           <button
                             onClick={() => {
                               setShowActions(false);

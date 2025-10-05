@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from "react";
-import { 
+import {
   User,
   Users,
   BookOpen,
@@ -11,11 +11,13 @@ import {
 } from "lucide-react";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
 import { getDashboardData, DashboardData } from "./_services/dashboard.service";
-
-export default function Dashboard() {
+import { useAppData } from "../../../contexts/hooks";export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Utilisation des contextes pour les données en temps réel
+  const { students, teachers, subjects, classes } = useAppData();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,6 +34,20 @@ export default function Dashboard() {
 
     fetchData();
   }, []);
+
+  // Charger les données des contextes au montage
+  useEffect(() => {
+    const loadContextData = async () => {
+      await Promise.all([
+        students.refreshEntities(),
+        teachers.refreshEntities(),
+        subjects.refreshEntities(),
+        classes.refreshEntities(),
+      ]);
+    };
+
+    loadContextData();
+  }, [students, teachers, subjects, classes]);
 
   if (loading) {
     return (
@@ -97,6 +113,45 @@ export default function Dashboard() {
       </div>
 
       <div className="px-8 py-8">
+        {/* Debug Context Data - À supprimer en production */}
+        <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-sm font-medium text-blue-900 mb-2">Données Context (Connectées aux APIs)</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <span className="font-medium">Étudiants:</span> {students.entities.length}
+              {students.loading && <span className="text-blue-600 ml-1">Chargement...</span>}
+              {students.error && <span className="text-red-600 ml-1">Erreur</span>}
+            </div>
+            <div>
+              <span className="font-medium">Enseignants:</span> {teachers.entities.length}
+              {teachers.loading && <span className="text-blue-600 ml-1">Chargement...</span>}
+              {teachers.error && <span className="text-red-600 ml-1">Erreur</span>}
+            </div>
+            <div>
+              <span className="font-medium">Matières:</span> {subjects.entities.length}
+              {subjects.loading && <span className="text-blue-600 ml-1">Chargement...</span>}
+              {subjects.error && <span className="text-red-600 ml-1">Erreur</span>}
+            </div>
+            <div>
+              <span className="font-medium">Classes:</span> {classes.entities.length}
+              {classes.loading && <span className="text-blue-600 ml-1">Chargement...</span>}
+              {classes.error && <span className="text-red-600 ml-1">Erreur</span>}
+            </div>
+          </div>
+          {students.entities.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-xs font-medium text-blue-800 mb-2">Derniers étudiants ajoutés:</h4>
+              <div className="flex flex-wrap gap-2">
+                {students.entities.slice(0, 3).map(student => (
+                  <span key={student.id} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                    {student.user?.name || `Étudiant ${student.id}`}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* KPIs */}
         <KPIGrid kpis={kpis} />
 

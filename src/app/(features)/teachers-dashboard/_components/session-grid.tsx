@@ -178,7 +178,7 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
       console.error("Erreur lors de la suppression de la session:", error);
       
       // Afficher un message d'erreur à l'utilisateur
-      const errorMessage = error?.response?.data?.message || "Une erreur est survenue lors de la suppression";
+      const errorMessage = error?.message || error?.response?.data?.message || "Une erreur est survenue lors de la suppression";
       alert(`Erreur: ${errorMessage}`);
       
     } finally {

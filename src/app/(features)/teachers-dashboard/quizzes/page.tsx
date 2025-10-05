@@ -9,7 +9,7 @@ import { useQuizContext } from "../_contexts/quiz-context";
 
 export default function QuizPage() {
   const router = useRouter();
-  const { quizzes, loading, error, refreshQuizzes } = useQuizContext();
+  const { entities: quizzes, loading, error, refreshEntities: refreshQuizzes } = useQuizContext();
 
   useEffect(() => {
     refreshQuizzes();

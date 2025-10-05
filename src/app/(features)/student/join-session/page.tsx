@@ -56,9 +56,9 @@ export default function JoinSessionPage() {
 
       setSuccess(true);
 
-      // Rediriger vers les détails de la session après un court délai
+      // Rediriger vers la page de participation avec l'ID de session
       setTimeout(() => {
-        router.push(`/student/sessions/${session.id}/details`);
+        router.push(`/student/sessions/participate?sessionId=${session.id}`);
       }, 2000);
     } catch (err: any) {
       console.error('Erreur lors de la jonction de session:', err);

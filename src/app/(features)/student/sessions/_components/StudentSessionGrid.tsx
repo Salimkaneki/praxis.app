@@ -133,7 +133,7 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
 
   const handleStartExam = () => {
     if (canStartExam()) {
-      router.push(`/student/sessions/${session.id}/details`);
+      router.push(`/student/join-session`);
     }
   };
 

@@ -78,31 +78,61 @@ export interface StudentQuizResponse {
 class ResultService {
   /**
    * Récupère la liste des sessions de résultats pour l'enseignant connecté
-   * Utilise l'endpoint des sessions avec historique
+   * Utilise les endpoints du ResultController Laravel
    */
   async getExamResults(): Promise<ExamResult[]> {
     try {
-      // Pour l'instant, utilisons l'endpoint existant des sessions
-      // TODO: Adapter quand l'endpoint /api/teacher/results/sessions sera disponible
-      const response = await api.get('/teacher/sessions');
+      // D'abord récupérer les sessions terminées
+      const sessionsResponse = await api.get('/teacher/sessions?status=completed');
+      const sessions = sessionsResponse.data.sessions || [];
 
-      // Transformer les sessions en résultats d'examen
-      return response.data.sessions?.map((session: any) => ({
-        id: session.id,
-        session_id: session.id,
-        session_title: `${session.quiz?.title || 'Quiz'} - ${session.session_code}`,
-        exam_date: session.completed_at || session.ends_at || session.created_at,
-        total_participants: session.max_participants || 0,
-        completed_participants: session.current_participants || 0,
-        average_score: 0, // TODO: Calculer depuis les résultats
-        highest_score: 100,
-        lowest_score: 0,
-        pass_rate: 0, // TODO: Calculer depuis les résultats
-        duration_minutes: session.duration_minutes || 60,
-        quiz_title: session.quiz?.title || 'Quiz',
-        status: session.status === 'completed' ? 'completed' as const : 'in_progress' as const,
-        created_at: session.created_at
-      })) || [];
+      // Pour chaque session terminée, récupérer les statistiques des résultats
+      const examResults: ExamResult[] = [];
+
+      for (const session of sessions) {
+        try {
+          // Récupérer tous les résultats pour cette session
+          // L'API utilise /teacher/quiz/{sessionId}/results selon les exemples
+          const resultsResponse = await api.get(`/teacher/quiz/${session.id}/results`);
+          const results = resultsResponse.data || [];
+
+          if (results.length > 0) {
+            // Calculer les statistiques
+            const completedResults = results.filter((r: any) => r.status === 'submitted' || r.status === 'graded' || r.status === 'published');
+            const scores = completedResults.map((r: any) => parseFloat(r.percentage) || 0);
+
+            const averageScore = scores.length > 0 ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : 0;
+            const highestScore = scores.length > 0 ? Math.max(...scores) : 0;
+            const lowestScore = scores.length > 0 ? Math.min(...scores) : 0;
+            const passRate = scores.length > 0 ? (scores.filter((s: number) => s >= 60).length / scores.length) * 100 : 0;
+
+            // Calculer le nombre total de participants (max_participants de la session ou nombre de résultats)
+            const totalParticipants = session.max_participants || results.length;
+
+            examResults.push({
+              id: session.id,
+              session_id: session.id,
+              session_title: `${session.quiz?.title || 'Quiz'} - ${session.session_code}`,
+              exam_date: session.completed_at || session.ends_at || session.created_at,
+              total_participants: totalParticipants,
+              completed_participants: completedResults.length,
+              average_score: Math.round(averageScore * 100) / 100,
+              highest_score: highestScore,
+              lowest_score: lowestScore,
+              pass_rate: Math.round(passRate * 100) / 100,
+              duration_minutes: session.duration_minutes || 60,
+              quiz_title: session.quiz?.title || 'Quiz',
+              status: 'completed',
+              created_at: session.created_at
+            });
+          }
+        } catch (error) {
+          console.warn(`Erreur lors de la récupération des résultats pour la session ${session.id}:`, error);
+          // Continuer avec les autres sessions même si une échoue
+        }
+      }
+
+      return examResults;
     } catch (error) {
       console.error('Erreur lors de la récupération des résultats:', error);
       throw error;
@@ -111,11 +141,11 @@ class ResultService {
 
   /**
    * Récupère les détails d'une session avec la participation des étudiants
-   * GET /api/teacher/quiz-sessions/{quizSessionId}/results
+   * GET /api/teacher/quiz/{quizSessionId}/results
    */
   async getSessionParticipation(sessionId: number): Promise<StudentSubmission[]> {
     try {
-      const response = await api.get(`/teacher/quiz-sessions/${sessionId}/results`);
+      const response = await api.get(`/teacher/quiz/${sessionId}/results`);
       console.log('API Response for session participation:', response.data);
 
       // Transformer les données pour correspondre à notre interface StudentSubmission
@@ -124,10 +154,10 @@ class ResultService {
 
         // Essayer différentes structures possibles pour le nom de l'étudiant
         let studentName = 'Étudiant';
-        if (result.student?.full_name) {
-          studentName = result.student.full_name;
-        } else if (result.student?.first_name && result.student?.last_name) {
+        if (result.student?.first_name && result.student?.last_name) {
           studentName = `${result.student.first_name} ${result.student.last_name}`;
+        } else if (result.student?.full_name) {
+          studentName = result.student.full_name;
         } else if (result.student?.name) {
           studentName = result.student.name;
         } else if (result.student_name) {
@@ -150,15 +180,15 @@ class ResultService {
           student: {
             id: result.student_id,
             name: studentName,
-            email: result.student?.user?.email || result.student_email || '',
+            email: result.student?.email || result.student?.user?.email || '',
           },
-          score: result.total_points || result.score || 0,
-          maxScore: result.max_points || 100,
-          percentage: result.percentage || 0,
+          score: parseFloat(result.total_points) || 0,
+          maxScore: parseFloat(result.max_points) || 100,
+          percentage: parseFloat(result.percentage) || 0,
           status: result.status === 'submitted' || result.status === 'graded' || result.status === 'published' ? 'completed' : 'in_progress',
           submittedAt: result.submitted_at || result.created_at,
-          duration: Math.round((result.time_spent_total || 0) / 60), // Convertir en minutes
-          questionsAnswered: result.correct_answers + (result.total_questions - result.correct_answers) || result.total_questions || 0,
+          duration: result.time_spent_total ? Math.round(result.time_spent_total / 60) : 0, // Convertir en minutes
+          questionsAnswered: result.total_questions || 0,
           totalQuestions: result.total_questions || 0
         };
       });
@@ -217,10 +247,10 @@ class ResultService {
 
       // Essayer différentes structures possibles pour le nom de l'étudiant
       let studentName = 'Étudiant';
-      if (result.student?.full_name) {
-        studentName = result.student.full_name;
-      } else if (result.student?.first_name && result.student?.last_name) {
+      if (result.student?.first_name && result.student?.last_name) {
         studentName = `${result.student.first_name} ${result.student.last_name}`;
+      } else if (result.student?.full_name) {
+        studentName = result.student.full_name;
       } else if (result.student?.name) {
         studentName = result.student.name;
       } else if (result.student_name) {
