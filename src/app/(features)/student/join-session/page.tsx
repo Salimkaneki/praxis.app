@@ -98,10 +98,9 @@ export default function JoinSessionPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="px-8 py-16">
-          <div className="max-w-md mx-auto">
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+      <div className="min-h-screen bg-gray-50 font-poppins flex items-center justify-center">
+        <div className="w-full max-w-md mx-4">
+          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
@@ -114,7 +113,6 @@ export default function JoinSessionPage() {
               <div className="animate-pulse flex justify-center">
                 <div className="w-6 h-6 bg-green-600 rounded-full"></div>
               </div>
-            </div>
           </div>
         </div>
       </div>
@@ -122,10 +120,9 @@ export default function JoinSessionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-poppins">
-      <div className="px-8 py-16">
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-lg border border-gray-200 p-8">
+    <div className="min-h-screen bg-gray-50 font-poppins flex items-center justify-center">
+      <div className="w-full max-w-md mx-4">
+        <div className="bg-white rounded-lg border border-gray-200 p-8">
             {/* Icône et titre */}
             <div className="text-center mb-8">
 
@@ -188,7 +185,6 @@ export default function JoinSessionPage() {
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }

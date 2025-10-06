@@ -195,10 +195,14 @@ export const StudentSessionsService = {
   },
 
   // Soumettre les réponses d'un examen
-  submitExam: async (resultId: number, answers: StudentAnswer[]): Promise<ExamResult> => {
+  submitExam: async (resultId: number, answers: StudentAnswer[], startedAt?: string): Promise<ExamResult> => {
     try {
       console.log('🔗 API: Soumission des réponses pour le résultat:', resultId);
       console.log('📝 Réponses à soumettre:', answers.length);
+
+      // Calculer le temps écoulé si l'heure de début est fournie
+      const timeSpent = startedAt ? Math.floor((Date.now() - new Date(startedAt).getTime()) / (1000 * 60)) : 0;
+      console.log('⏱️ Temps écoulé calculé:', timeSpent, 'minutes');
 
       // Transformer les réponses selon le format attendu par le contrôleur Laravel
       const responses = answers.map(answer => ({
@@ -207,7 +211,8 @@ export const StudentSessionsService = {
       }));
 
       const response = await api.post(`/student/results/${resultId}/responses`, {
-        responses
+        responses,
+        time_spent: timeSpent
       });
 
       console.log('✅ API: Réponses soumises avec succès');
@@ -219,7 +224,7 @@ export const StudentSessionsService = {
         score: response.data.total_points || 0,
         max_score: response.data.max_points || 100,
         percentage: response.data.percentage || 0,
-        time_spent: 0, // TODO: calculer depuis les données
+        time_spent: timeSpent,
         completed_at: new Date().toISOString(),
         answers: [] // Les détails des réponses ne sont pas retournés dans cette réponse
       };
@@ -274,7 +279,7 @@ export const StudentSessionsService = {
         const result = hasResult && isSubmitted;
         console.log('🔍 Résultat final de hasJoinedSession:', result);
         return result;
-      } catch (statusError: any) {
+      } catch (statusError: any) { 
         // Si l'endpoint status n'existe pas (404), essayer une autre approche
         if (statusError.response?.status === 404) {
           console.log('🔍 Endpoint status non trouvé, tentative avec getSessionDetails');

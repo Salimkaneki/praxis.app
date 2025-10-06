@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   Clock, CheckCircle, AlertCircle, Timer, Flag,
   Send, Eye, EyeOff, ArrowUp, User, Calendar,
-  BookOpen, Target, Award
+  BookOpen, Target, Award, Save
 } from "lucide-react";
 import { StudentSessionsService, StudentSession, ExamQuestion, ExamData } from "../../_services/sessions.service";
 
@@ -179,6 +179,35 @@ const StudentQuizInterface = () => {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [examResult, setExamResult] = useState<any>(null);
+  const [examStartTime] = useState(new Date()); // Stocker l'heure de début de l'examen
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
+
+  // Fonction d'auto-save
+  const autoSaveProgress = useCallback(async () => {
+    if (!sessionId || answers.size === 0 || isSubmitted || submitting) return;
+
+    try {
+      console.log('💾 Auto-save en cours...');
+      const studentAnswers: StudentAnswer[] = Array.from(answers.values());
+      await StudentSessionsService.saveProgress(sessionId, studentAnswers);
+      setLastAutoSave(new Date());
+      console.log('✅ Auto-save réussi');
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'auto-save:', error);
+      // Ne pas afficher d'erreur à l'utilisateur pour l'auto-save
+    }
+  }, [sessionId, answers, isSubmitted, submitting]);
+
+  // Auto-save effect - sauvegarde toutes les 30 secondes si des réponses ont changé
+  useEffect(() => {
+    if (!examData || isSubmitted || submitting) return;
+
+    const autoSaveInterval = setInterval(() => {
+      autoSaveProgress();
+    }, 30000); // 30 secondes
+
+    return () => clearInterval(autoSaveInterval);
+  }, [examData, isSubmitted, submitting, autoSaveProgress]);
 
   // Timer effect - Optimisé pour éviter les re-renders infinis
   useEffect(() => {
@@ -288,7 +317,7 @@ const StudentQuizInterface = () => {
 
       // Utiliser le resultId (attempt.id) pour soumettre les réponses
       const resultId = examData.attempt.id;
-      const result = await StudentSessionsService.submitExam(resultId, studentAnswers);
+      const result = await StudentSessionsService.submitExam(resultId, studentAnswers, examData.attempt.started_at);
 
       console.log('✅ Examen soumis avec succès:', result);
 
@@ -548,6 +577,12 @@ const StudentQuizInterface = () => {
                 }`}>
                   <Timer className="w-5 h-5" />
                   <span className="font-mono font-semibold">{formatTime(timeRemaining)}</span>
+                </div>
+              )}
+              {lastAutoSave && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm">
+                  <Save className="w-4 h-4" />
+                  <span>Sauvegardé {formatTime(Math.floor((Date.now() - lastAutoSave.getTime()) / 1000))}s</span>
                 </div>
               )}
             </div>
