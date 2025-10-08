@@ -18,25 +18,26 @@ import {
   KeyIcon
 } from "@heroicons/react/24/outline";
 
-type SectionKey = 'quizzes' | 'results' | 'communication';
+type SectionKey = 'evaluations' | 'resultats' | 'communication' | 'profil';
 type ActiveSection =
   | 'dashboard'
   | 'quiz-disponibles'
   | 'rejoindre-quiz'
   | 'quiz-en-cours'
   | 'mes-resultats'
-  | 'mon-profil'
+  | 'statistiques'
   | 'messagerie'
   | 'annonces'
-  | 'statistiques'
+  | 'mon-profil'
   | 'parametres';
 
 export default function StudentSideBar() {
   const [activeSection, setActiveSection] = useState<ActiveSection>('dashboard');
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
-    quizzes: true,
-    results: false,
+    evaluations: true,
+    resultats: false,
     communication: false,
+    profil: false,
   });
 
   const router = useRouter();
@@ -72,41 +73,37 @@ export default function StudentSideBar() {
 
   const menuSections = [
     {
-      key: 'quizzes' as SectionKey,
-      title: 'Quiz & Évaluations',
+      key: 'evaluations' as SectionKey,
+      title: 'Évaluations',
       icon: PlayIcon,
       items: [
         {
           key: 'quiz-disponibles' as ActiveSection,
           label: 'Quiz disponibles',
           icon: PlayIcon,
-          badge: '3 nouveaux',
           highlight: true
         },
         {
           key: 'rejoindre-quiz' as ActiveSection,
           label: 'Rejoindre un quiz',
-          icon: KeyIcon,
-          badge: 'Code'
+          icon: KeyIcon
         },
         {
           key: 'quiz-en-cours' as ActiveSection,
           label: 'Quiz en cours',
-          icon: () => <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>,
-          badge: '1 actif'
+          icon: () => <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
         },
       ],
     },
     {
-      key: 'results' as SectionKey,
+      key: 'resultats' as SectionKey,
       title: 'Résultats & Progression',
       icon: TrophyIcon,
       items: [
         {
           key: 'mes-resultats' as ActiveSection,
           label: 'Mes notes & résultats',
-          icon: TrophyIcon,
-          badge: '87% moy.'
+          icon: TrophyIcon
         },
         {
           key: 'statistiques' as ActiveSection,
@@ -123,14 +120,29 @@ export default function StudentSideBar() {
         {
           key: 'messagerie' as ActiveSection,
           label: 'Messagerie',
-          icon: ChatBubbleLeftRightIcon,
-          badge: '2'
+          icon: ChatBubbleLeftRightIcon
         },
         {
           key: 'annonces' as ActiveSection,
           label: 'Annonces de classe',
-          icon: BellIcon,
-          badge: '5'
+          icon: BellIcon
+        },
+      ],
+    },
+    {
+      key: 'profil' as SectionKey,
+      title: 'Mon Profil',
+      icon: UserIcon,
+      items: [
+        {
+          key: 'mon-profil' as ActiveSection,
+          label: 'Informations personnelles',
+          icon: UserIcon
+        },
+        {
+          key: 'parametres' as ActiveSection,
+          label: 'Paramètres',
+          icon: Cog6ToothIcon
         },
       ],
     },
@@ -144,32 +156,18 @@ export default function StudentSideBar() {
       <button
         key={item.key}
         onClick={() => handleNavigation(item.key)}
-        className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all duration-200 flex items-center justify-between group ${
+        className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all duration-200 flex items-center space-x-3 group ${
           isActive
             ? 'bg-forest-50 text-forest-700 border border-forest-200 shadow-sm'
             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
         }`}
       >
-        <div className="flex items-center space-x-3">
-          {typeof IconComponent === 'function' ? (
-            <IconComponent />
-          ) : (
-            <IconComponent className={`w-4 h-4 ${isActive ? 'text-forest-600' : 'text-gray-500'} group-hover:text-gray-700`} />
-          )}
-          <span className={`font-poppins ${item.highlight ? 'font-medium' : ''}`}>{item.label}</span>
-        </div>
-
-        {item.badge && (
-          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-            isActive
-              ? 'bg-forest-100 text-forest-700'
-              : item.highlight
-                ? 'bg-green-100 text-green-700'
-                : 'bg-gray-100 text-gray-600'
-          }`}>
-            {item.badge}
-          </span>
+        {typeof IconComponent === 'function' ? (
+          <IconComponent />
+        ) : (
+          <IconComponent className={`w-4 h-4 ${isActive ? 'text-forest-600' : 'text-gray-500'} group-hover:text-gray-700`} />
         )}
+        <span className={`font-poppins ${item.highlight ? 'font-medium' : ''}`}>{item.label}</span>
       </button>
     );
   };
@@ -234,52 +232,6 @@ export default function StudentSideBar() {
               </div>
             );
           })}
-        </div>
-
-        {/* Footer - Quick Stats */}
-        <div className="mt-8 p-3 bg-gray-50 rounded-lg">
-          <div className="text-xs font-poppins text-gray-500 mb-2">Statistiques rapides</div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-poppins">
-              <span className="text-gray-600">Quiz cette semaine</span>
-              <span className="font-medium text-gray-900">5</span>
-            </div>
-            <div className="flex justify-between text-xs font-poppins">
-              <span className="text-gray-600">Score moyen</span>
-              <span className="font-medium text-green-600">87%</span>
-            </div>
-            <div className="flex justify-between text-xs font-poppins">
-              <span className="text-gray-600">Messages non lus</span>
-              <span className="font-medium text-forest-600">2</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Profile & Settings */}
-        <div className="mt-6 space-y-1">
-          <button
-            onClick={() => handleNavigation('mon-profil')}
-            className={`w-full flex items-center space-x-3 px-3 py-2.5 text-sm rounded-lg transition-colors ${
-              activeSection === 'mon-profil'
-                ? 'bg-gray-100 text-gray-900'
-                : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <UserIcon className="w-5 h-5 text-gray-500" />
-            <span className="font-poppins">Mon profil</span>
-          </button>
-
-          <button
-            onClick={() => handleNavigation('parametres')}
-            className={`w-full flex items-center space-x-3 px-3 py-2.5 text-sm rounded-lg transition-colors ${
-              activeSection === 'parametres'
-                ? 'bg-gray-100 text-gray-900'
-                : 'text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            <Cog6ToothIcon className="w-5 h-5 text-gray-500" />
-            <span className="font-poppins">Paramètres</span>
-          </button>
         </div>
       </nav>
     </div>

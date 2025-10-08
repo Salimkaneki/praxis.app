@@ -27,11 +27,10 @@ import {
   StarIcon
 } from "@heroicons/react/24/outline";
 
-type SectionKey = 'classes' | 'evaluations' | 'communication';
+type SectionKey = 'matieres' | 'evaluations' | 'communication' | 'ressources';
 type ActiveSection = 
   | 'dashboard'
-  | 'mes-classes'
-  | 'gestion-eleves'
+  | 'mes-matieres'
   | 'creation-evaluation'
   | 'mes-quiz'
   | 'evaluation-en-cours'
@@ -48,9 +47,10 @@ type ActiveSection =
 export default function TeacherSideBar() {
   const [activeSection, setActiveSection] = useState<ActiveSection>('dashboard');
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
-    classes: true,
+    matieres: true,
     evaluations: false,
     communication: false,
+    ressources: false,
   });
 
   const router = useRouter();
@@ -67,8 +67,7 @@ export default function TeacherSideBar() {
     // Navigation routes pour les professeurs
     const routes = {
       'dashboard': '/teachers-dashboard',
-      'mes-classes': '/teachers-dashboard/classes',
-      'gestion-eleves': '/teachers-dashboard/eleves',
+      'mes-matieres': '/teachers-dashboard/matieres',
       'creation-evaluation': '/teachers-dashboard/quizzes/create',
       'mes-quiz': '/teachers-dashboard/quizzes',
       'evaluation-en-cours': '/teachers-dashboard/sessions',
@@ -94,27 +93,20 @@ export default function TeacherSideBar() {
 
   const menuSections = [
     {
-      key: 'classes' as SectionKey,
-      title: 'Mes Classes',
-      icon: UserGroupIcon,
+      key: 'matieres' as SectionKey,
+      title: 'Mes Matières',
+      icon: BookOpenIcon,
       items: [
         { 
-          key: 'mes-classes' as ActiveSection, 
-          label: 'Vue d\'ensemble', 
-          icon: UsersIcon,
-          badge: '5 classes'
-        },
-        { 
-          key: 'gestion-eleves' as ActiveSection, 
-          label: 'Gestion des élèves', 
-          icon: UserGroupIcon,
-          badge: '156 élèves'
+          key: 'mes-matieres' as ActiveSection, 
+          label: 'Matières assignées', 
+          icon: AcademicCapIcon
         },
       ],
     },
     {
       key: 'evaluations' as SectionKey,
-      title: 'Évaluations & Notes',
+      title: 'Évaluations & Quiz',
       icon: PresentationChartLineIcon,
       items: [
         { 
@@ -126,25 +118,17 @@ export default function TeacherSideBar() {
         {
           key: 'mes-quiz' as ActiveSection,
           label: 'Mes quiz',
-          icon: DocumentTextIcon,
-          badge: 'Quiz créés'
+          icon: DocumentTextIcon
         },
         {
           key: 'evaluation-en-cours' as ActiveSection,
           label: 'Sessions d\'examen',
-          icon: () => <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>,
-          badge: 'Sessions actives'
+          icon: () => <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
         },
         { 
           key: 'resultats-notes' as ActiveSection, 
           label: 'Résultats & Notes', 
-          icon: DocumentChartBarIcon,
-          badge: 'Examens'
-        },
-        { 
-          key: 'banque-questions' as ActiveSection, 
-          label: 'Banque de questions', 
-          icon: DocumentDuplicateIcon 
+          icon: DocumentChartBarIcon
         },
       ],
     },
@@ -156,8 +140,7 @@ export default function TeacherSideBar() {
         { 
           key: 'messagerie' as ActiveSection, 
           label: 'Messagerie', 
-          icon: ChatBubbleLeftRightIcon,
-          badge: '3'
+          icon: ChatBubbleLeftRightIcon
         },
         { 
           key: 'annonces' as ActiveSection, 
@@ -167,8 +150,34 @@ export default function TeacherSideBar() {
         { 
           key: 'reunions-parents' as ActiveSection, 
           label: 'Rendez-vous parents', 
-          icon: CalendarDaysIcon,
-          badge: '5 programmés'
+          icon: CalendarDaysIcon
+        },
+      ],
+    },
+    {
+      key: 'ressources' as SectionKey,
+      title: 'Outils & Ressources',
+      icon: Cog6ToothIcon,
+      items: [
+        { 
+          key: 'banque-questions' as ActiveSection, 
+          label: 'Banque de questions', 
+          icon: DocumentDuplicateIcon 
+        },
+        { 
+          key: 'ressources' as ActiveSection, 
+          label: 'Ressources pédagogiques', 
+          icon: StarIcon 
+        },
+        { 
+          key: 'devoirs-maison' as ActiveSection, 
+          label: 'Devoirs maison', 
+          icon: DocumentTextIcon 
+        },
+        { 
+          key: 'archivage' as ActiveSection, 
+          label: 'Archivage', 
+          icon: ClockIcon 
         },
       ],
     },
@@ -182,32 +191,18 @@ export default function TeacherSideBar() {
       <button
         key={item.key}
         onClick={() => handleNavigation(item.key)}
-        className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all duration-200 flex items-center justify-between group ${
+        className={`w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all duration-200 flex items-center space-x-3 group ${
           isActive
             ? 'bg-forest-50 text-forest-700 border border-forest-200 shadow-sm'
             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
         }`}
       >
-        <div className="flex items-center space-x-3">
-          {typeof IconComponent === 'function' ? (
-            <IconComponent />
-          ) : (
-            <IconComponent className={`w-4 h-4 ${isActive ? 'text-forest-600' : 'text-gray-500'} group-hover:text-gray-700`} />
-          )}
-          <span className={`font-poppins ${item.highlight ? 'font-medium' : ''}`}>{item.label}</span>
-        </div>
-        
-        {item.badge && (
-          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-            isActive 
-              ? 'bg-forest-100 text-forest-700' 
-              : item.highlight
-                ? 'bg-green-100 text-green-700'
-                : 'bg-gray-100 text-gray-600'
-          }`}>
-            {item.badge}
-          </span>
+        {typeof IconComponent === 'function' ? (
+          <IconComponent />
+        ) : (
+          <IconComponent className={`w-4 h-4 ${isActive ? 'text-forest-600' : 'text-gray-500'} group-hover:text-gray-700`} />
         )}
+        <span className={`font-poppins ${item.highlight ? 'font-medium' : ''}`}>{item.label}</span>
       </button>
     );
   };
@@ -272,25 +267,6 @@ export default function TeacherSideBar() {
               </div>
             );
           })}
-        </div>
-
-        {/* Footer - Quick Stats */}
-        <div className="mt-8 p-3 bg-gray-50 rounded-lg">
-          <div className="text-xs font-poppins text-gray-500 mb-2">Statistiques rapides</div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-poppins">
-              <span className="text-gray-600">Quiz créés</span>
-              <span className="font-medium text-gray-900">12</span>
-            </div>
-            <div className="flex justify-between text-xs font-poppins">
-              <span className="text-gray-600">Sessions actives</span>
-              <span className="font-medium text-green-600">3</span>
-            </div>
-            <div className="flex justify-between text-xs font-poppins">
-              <span className="text-gray-600">Résultats à corriger</span>
-              <span className="font-medium text-orange-600">8</span>
-            </div>
-          </div>
         </div>
 
         {/* Settings */}

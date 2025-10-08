@@ -56,7 +56,25 @@ export async function getSubjects(page: number = 1, search?: string) {
     });
     return res.data;
   } catch (err: any) {
-    throw new Error(err.response?.data?.message || "Erreur lors du chargement des matières");
+    console.error("Erreur API getSubjects:", {
+      message: err.message,
+      status: err.response?.status,
+      statusText: err.response?.statusText,
+      data: err.response?.data,
+      url: err.config?.url,
+      method: err.config?.method
+    });
+    
+    const errorMessage = err.response?.data?.message || 
+                        (err.response?.status === 401 ? "Accès non autorisé. Veuillez vous reconnecter." :
+                         err.response?.status === 403 ? "Accès interdit." :
+                         err.response?.status === 404 ? "Endpoint non trouvé." :
+                         err.response?.status >= 500 ? "Erreur serveur. Réessayez plus tard." :
+                         err.code === 'ECONNREFUSED' ? "Serveur indisponible. Vérifiez que le backend est démarré." :
+                         err.code === 'ENOTFOUND' ? "Impossible de contacter le serveur." :
+                         "Erreur lors du chargement des matières");
+    
+    throw new Error(errorMessage);
   }
 }
 

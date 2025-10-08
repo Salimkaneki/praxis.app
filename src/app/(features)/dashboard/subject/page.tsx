@@ -18,6 +18,7 @@ import Input from "@/components/ui/Inputs/Input";
 import { getSubjects, deleteSubject, Subject, PaginatedResponse } from "./_services/subject.service";
 import { useRouter } from "next/navigation";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
+import Alert from "@/components/ui/Feedback/Alert";
 
 
 // Fonction utilitaire pour les badges de type
@@ -42,6 +43,7 @@ export default function AdminSubjectsList() {
   // États pour l'API
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -72,13 +74,15 @@ export default function AdminSubjectsList() {
   const fetchSubjects = async (page = 1, search?: string) => {
     try {
       setLoading(true);
+      setError(null);
       const res: PaginatedResponse<Subject> = await getSubjects(page, search);
       setSubjects(res.data);
       setCurrentPage(res.current_page);
       setLastPage(res.last_page);
       setTotal(res.total);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors du chargement des matières:", error);
+      setError(error.message || "Une erreur inattendue s'est produite");
     } finally {
       setLoading(false);
     }
@@ -141,11 +145,13 @@ export default function AdminSubjectsList() {
   const handleDelete = async (id: number) => {
     try {
       setLoading(true);
+      setError(null);
       await deleteSubject(id);
       setSubjects(prev => prev.filter(s => s.id !== id));
       setTotal(prev => prev - 1);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur suppression matière:", error);
+      setError(error.message || "Erreur lors de la suppression de la matière");
     } finally {
       setLoading(false);
     }
@@ -183,6 +189,17 @@ export default function AdminSubjectsList() {
       </div>
 
       <div className="px-8 py-8">
+        {/* Error Alert */}
+        {error && (
+          <Alert
+            type="error"
+            message={error}
+            onClose={() => setError(null)}
+            onRetry={() => fetchSubjects(currentPage, searchTerm)}
+            className="mb-6"
+          />
+        )}
+
         {/* Stats Cards */}
         <KPIGrid kpis={kpis} />
 

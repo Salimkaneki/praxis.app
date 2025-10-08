@@ -17,28 +17,30 @@ import {
   ClockIcon
 } from "@heroicons/react/24/outline";
 
-type SectionKey = 'gestion' | 'evaluations' | 'rapports' | 'administration';
+type SectionKey = 'pedagogique' | 'utilisateurs' | 'evaluations' | 'analytics' | 'administration';
 type ActiveSection =
   | 'dashboard'
+  | 'formations'
+  | 'classes'
+  | 'matieres'
   | 'professeurs'
-  | 'etudiant'
-  | 'formation' 
-  | 'formation-classes'
-  | 'subject'
+  | 'etudiants'
   | 'evaluations-live'
   | 'evaluations-programmees'
   | 'resultats'
-  | 'analytics'
-  | 'examens-programmes'
-  | 'utilisateurs'
-  | 'parametres';
+  | 'statistiques'
+  | 'rapports-examens'
+  | 'analyses-detaillees'
+  | 'gestion-utilisateurs'
+  | 'parametres-systeme';
 
 export default function AdminSideBar() {
   const [activeSection, setActiveSection] = useState<ActiveSection>('dashboard');
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
-    gestion: true,
+    pedagogique: true,
+    utilisateurs: false,
     evaluations: false,
-    rapports: false,
+    analytics: false,
     administration: false,
   });
 
@@ -57,18 +59,19 @@ export default function AdminSideBar() {
     // Routes de navigation
     const routes = {
       'dashboard': '/dashboard',
+      'formations': '/dashboard/formation',
+      'classes': '/dashboard/formation/classe',
+      'matieres': '/dashboard/subject',
       'professeurs': '/dashboard/teacher',
-      'etudiant': '/dashboard/student', 
-      'formation': '/dashboard/formation',
-      'formation-classes': '/dashboard/formation/classe',
-      'subject': '/dashboard/subject',
+      'etudiants': '/dashboard/student',
       'evaluations-live': '/dashboard/evaluations/live',
       'evaluations-programmees': '/dashboard/evaluations/programmees',
       'resultats': '/dashboard/evaluations/resultats',
-      'analytics': '/dashboard/analytics',
-      'examens-programmes': '/dashboard/analytics/examens-programmes',
-      'utilisateurs': '/dashboard/administration/utilisateurs',
-      'parametres': '/dashboard/administration/parametres'
+      'statistiques': '/dashboard/analytics',
+      'rapports-examens': '/dashboard/analytics/examens-programmes',
+      'analyses-detaillees': '/dashboard/analytics/detaillees',
+      'gestion-utilisateurs': '/dashboard/administration/utilisateurs',
+      'parametres-systeme': '/dashboard/administration/parametres'
     };
 
     const route = routes[key];
@@ -79,38 +82,46 @@ export default function AdminSideBar() {
 
   const menuSections = [
     {
-      key: 'gestion' as SectionKey,
-      title: 'Gestion Académique',
+      key: 'pedagogique' as SectionKey,
+      title: 'Gestion Pédagogique',
       icon: AcademicCapIcon,
       items: [
+        { key: 'formations' as ActiveSection, label: 'Formations', icon: BookOpenIcon },
+        { key: 'classes' as ActiveSection, label: 'Classes', icon: AcademicCapIcon },
+        { key: 'matieres' as ActiveSection, label: 'Matières', icon: DocumentChartBarIcon },
+      ],
+    },
+    {
+      key: 'utilisateurs' as SectionKey,
+      title: 'Gestion des Utilisateurs',
+      icon: UsersIcon,
+      items: [
         { key: 'professeurs' as ActiveSection, label: 'Professeurs', icon: UserIcon },
-        { key: 'etudiant' as ActiveSection, label: 'Étudiants', icon: UsersIcon },
-        { key: 'formation' as ActiveSection, label: 'Formations', icon: BookOpenIcon },
-        { key: 'formation-classes' as ActiveSection, label: 'Classes', icon: AcademicCapIcon },
-        { key: 'subject' as ActiveSection, label: 'Matières', icon: DocumentChartBarIcon },
+        { key: 'etudiants' as ActiveSection, label: 'Étudiants', icon: UsersIcon },
       ],
     },
     {
       key: 'evaluations' as SectionKey,
-      title: 'Évaluations',
+      title: 'Évaluations & Examens',
       icon: PresentationChartLineIcon,
       items: [
         {
           key: 'evaluations-live' as ActiveSection,
-          label: 'En cours',
+          label: 'Évaluations en cours',
           icon: () => <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>,
         },
-        { key: 'evaluations-programmees' as ActiveSection, label: 'Programmées', icon: ClockIcon },
-        { key: 'resultats' as ActiveSection, label: 'Résultats', icon: DocumentChartBarIcon },
+        { key: 'evaluations-programmees' as ActiveSection, label: 'Évaluations programmées', icon: ClockIcon },
+        { key: 'resultats' as ActiveSection, label: 'Résultats & Corrections', icon: DocumentChartBarIcon },
       ],
     },
     {
-      key: 'rapports' as SectionKey,
+      key: 'analytics' as SectionKey,
       title: 'Analytics & Rapports',
       icon: ChartBarIcon,
       items: [
-        { key: 'analytics' as ActiveSection, label: 'Statistiques & Analyses', icon: ChartBarIcon },
-        { key: 'examens-programmes' as ActiveSection, label: 'Examens Programmés', icon: ClockIcon },
+        { key: 'statistiques' as ActiveSection, label: 'Statistiques générales', icon: ChartBarIcon },
+        { key: 'rapports-examens' as ActiveSection, label: 'Rapports d\'examens', icon: PresentationChartLineIcon },
+        { key: 'analyses-detaillees' as ActiveSection, label: 'Analyses détaillées', icon: DocumentChartBarIcon },
       ],
     },
     {
@@ -118,8 +129,8 @@ export default function AdminSideBar() {
       title: 'Administration Système',
       icon: Cog6ToothIcon,
       items: [
-        { key: 'utilisateurs' as ActiveSection, label: 'Gestion des Utilisateurs', icon: UsersIcon },
-        { key: 'parametres' as ActiveSection, label: 'Paramètres Système', icon: Cog6ToothIcon },
+        { key: 'gestion-utilisateurs' as ActiveSection, label: 'Gestion des utilisateurs', icon: UsersIcon },
+        { key: 'parametres-systeme' as ActiveSection, label: 'Paramètres système', icon: Cog6ToothIcon },
       ],
     },
   ];
@@ -178,22 +189,24 @@ export default function AdminSideBar() {
         </div>
 
         {/* Menu Sections */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {menuSections.map((section) => {
             const SectionIcon = section.icon;
             const isExpanded = expandedSections[section.key];
 
             return (
-              <div key={section.key} className="border-b border-gray-50 pb-4 last:border-b-0">
+              <div key={section.key} className="border-b border-gray-100 pb-4 last:border-b-0">
                 <button
                   onClick={() => toggleSection(section.key)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200 mb-3 group"
+                  className="w-full flex items-center justify-between px-3 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200 mb-3 group"
                 >
-                  <div className="flex items-center space-x-3">
-                    <SectionIcon className="w-5 h-5 text-gray-500 group-hover:text-forest-600 transition-colors" />
-                    <span className="font-poppins font-semibold">{section.title}</span>
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <SectionIcon className="w-5 h-5 text-gray-500 group-hover:text-forest-600 transition-colors flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-poppins font-semibold text-gray-900 truncate">{section.title}</div>
+                    </div>
                   </div>
-                  <div className="transform transition-transform duration-200">
+                  <div className="transform transition-transform duration-200 flex-shrink-0">
                     {isExpanded ? (
                       <ChevronDownIcon className="w-4 h-4 text-gray-400" />
                     ) : (
