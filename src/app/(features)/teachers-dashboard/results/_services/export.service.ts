@@ -23,7 +23,6 @@ class ExportService {
   async exportSessionResultsCSV(sessionId: number, options: ExportOptions): Promise<ExportResult> {
     try {
       // Simulation de l'export CSV
-      console.log(`Export CSV pour session ${sessionId}:`, options);
 
       // Simuler un délai de traitement
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -44,7 +43,6 @@ class ExportService {
         downloadUrl: `resultats-session-${sessionId}.csv`
       };
     } catch (error) {
-      console.error('Erreur lors de l\'export CSV:', error);
       return {
         success: false,
         message: 'Erreur lors de l\'export CSV'
@@ -58,14 +56,12 @@ class ExportService {
   async exportSessionResultsPDF(sessionId: number, options: ExportOptions): Promise<ExportResult> {
     try {
       // Simulation de l'export PDF
-      console.log(`Export PDF pour session ${sessionId}:`, options);
 
       // Simuler un délai de traitement
       await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Simuler le téléchargement d'un PDF
       // Dans un vrai scénario, on utiliserait une bibliothèque comme jsPDF ou Puppeteer
-      alert(`PDF généré pour la session ${sessionId}`);
 
       return {
         success: true,
@@ -73,7 +69,6 @@ class ExportService {
         downloadUrl: `resultats-session-${sessionId}.pdf`
       };
     } catch (error) {
-      console.error('Erreur lors de l\'export PDF:', error);
       return {
         success: false,
         message: 'Erreur lors de l\'export PDF'
@@ -122,7 +117,6 @@ class ExportService {
    */
   async exportGlobalStatistics(options: ExportOptions): Promise<ExportResult> {
     try {
-      console.log('Export statistiques globales:', options);
 
       await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -146,7 +140,6 @@ Export généré le,${new Date().toLocaleDateString('fr-FR')}`;
         message: 'Export des statistiques réussi'
       };
     } catch (error) {
-      console.error('Erreur lors de l\'export des statistiques:', error);
       return {
         success: false,
         message: 'Erreur lors de l\'export des statistiques'

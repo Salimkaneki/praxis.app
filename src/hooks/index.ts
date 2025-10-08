@@ -2,3 +2,4 @@
 export { useCrud } from './useCrud';
 export { usePagination } from './usePagination';
 export { useSearch } from './useSearch';
+export { useConfirmation } from './useConfirmation';

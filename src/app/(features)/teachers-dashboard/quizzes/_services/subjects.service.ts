@@ -17,7 +17,6 @@ export const SubjectService = {
       const response = await axios.get<TeacherSubject[]>("/teacher/my-subjects");
       return response.data;
     } catch (error: any) {
-      console.error("Erreur lors de la récupération des matières :", error);
       throw error;
     }
   },

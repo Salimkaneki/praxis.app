@@ -11,31 +11,40 @@ interface UseCrudOptions<T> {
 export function useCrud<T extends { id: number }>(options: UseCrudOptions<T> = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<T | null>(null);
 
   const handleDelete = async (
     item: T,
     deleteFunction: (id: number) => Promise<void>,
     customMessage?: string
   ) => {
-    const message = customMessage || options.deleteMessage || `Voulez-vous vraiment supprimer cet élément ?`;
+    setItemToDelete(item);
+    setShowDeleteDialog(true);
+  };
 
-    if (!confirm(message)) return false;
+  const confirmDelete = async (
+    deleteFunction: (id: number) => Promise<void>
+  ) => {
+    if (!itemToDelete) return false;
 
     try {
       setLoading(true);
       setError(null);
-      await deleteFunction(item.id);
+      await deleteFunction(itemToDelete.id);
 
       if (options.successMessage) {
-        alert(options.successMessage);
+        // Message de succès géré par le composant parent
       }
 
       options.onSuccess?.();
+      setShowDeleteDialog(false);
+      setItemToDelete(null);
       return true;
     } catch (err: any) {
       const errorMsg = err?.response?.data?.message || options.errorMessage || "Une erreur est survenue";
       setError(errorMsg);
-      alert(errorMsg);
+      // Erreur affichée via l'état error
       options.onError?.(err);
       return false;
     } finally {
@@ -43,11 +52,18 @@ export function useCrud<T extends { id: number }>(options: UseCrudOptions<T> = {
     }
   };
 
+  const cancelDelete = () => {
+    setShowDeleteDialog(false);
+    setItemToDelete(null);
+  };
+
   const handleBulkDelete = async (
     items: T[],
     deleteFunction: (ids: number[]) => Promise<void>,
     customMessage?: string
   ) => {
+    // Pour la suppression en masse, nous pourrions avoir besoin d'un état séparé
+    // Pour l'instant, utilisons confirm() comme fallback
     const message = customMessage || `Voulez-vous vraiment supprimer ${items.length} élément(s) ?`;
 
     if (!confirm(message)) return false;
@@ -58,7 +74,7 @@ export function useCrud<T extends { id: number }>(options: UseCrudOptions<T> = {
       await deleteFunction(items.map(item => item.id));
 
       if (options.successMessage) {
-        alert(options.successMessage);
+        // Message de succès géré par le composant parent
       }
 
       options.onSuccess?.();
@@ -66,7 +82,7 @@ export function useCrud<T extends { id: number }>(options: UseCrudOptions<T> = {
     } catch (err: any) {
       const errorMsg = err?.response?.data?.message || options.errorMessage || "Une erreur est survenue";
       setError(errorMsg);
-      alert(errorMsg);
+      // Erreur affichée via l'état error
       options.onError?.(err);
       return false;
     } finally {
@@ -78,7 +94,11 @@ export function useCrud<T extends { id: number }>(options: UseCrudOptions<T> = {
     loading,
     error,
     setError,
+    showDeleteDialog,
+    itemToDelete,
     handleDelete,
+    confirmDelete,
+    cancelDelete,
     handleBulkDelete
   };
 }

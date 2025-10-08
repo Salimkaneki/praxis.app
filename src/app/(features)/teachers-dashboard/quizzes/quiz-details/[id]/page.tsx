@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import TeacherPageHeader from "../../../_components/page-header";
 import QuestionDetailsModal from "../../../_components/QuestionDetailsModal"; // Import du modal
+import { ConfirmationDialog } from "../../../../../../components/ui"; // Import du composant de confirmation
 import { QuizzesService, Quiz, QuestionsService, Question } from "../../_services/quizzes.service";
 
 // Type pour les options du modal (ajustez selon votre interface dans le modal)
@@ -46,6 +47,12 @@ const QuizDetailsPage = () => {
   // États pour le modal
   const [selectedQuestion, setSelectedQuestion] = useState<ModalQuestion | null>(null);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
+
+  // États pour le dialogue de confirmation
+  const [showDeleteQuizDialog, setShowDeleteQuizDialog] = useState(false);
+  const [showDeleteQuestionDialog, setShowDeleteQuestionDialog] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Récupération des données du quiz et des questions
   useEffect(() => {
@@ -85,7 +92,6 @@ const QuizDetailsPage = () => {
         
         setQuestions(sortedQuestions);
       } catch (err: any) {
-        console.error("Erreur lors de la récupération du quiz :", err);
         setError("Impossible de récupérer les détails du quiz");
       } finally {
         setLoading(false);
@@ -115,7 +121,6 @@ const QuizDetailsPage = () => {
       });
       setQuestions(sortedQuestions);
     } catch (error) {
-      console.error("Erreur lors du rafraîchissement des questions:", error);
     }
   };
 
@@ -161,7 +166,6 @@ const QuizDetailsPage = () => {
 
   const handleEditQuiz = () => {
     // TODO: Implémenter quand la page d'édition sera créée
-    console.log("Éditer le quiz");
   };
 
   const handleAddQuestion = () => {
@@ -171,7 +175,6 @@ const QuizDetailsPage = () => {
 
   const handleEditQuestion = (questionId: number) => {
     // TODO: Implémenter quand la page d'édition de question sera créée
-    console.log("Éditer la question", questionId);
   };
 
   // Nouvelle fonction pour voir les détails de la question
@@ -207,35 +210,46 @@ const QuizDetailsPage = () => {
 
   const handlePreviewQuiz = () => {
     // TODO: Implémenter quand la page de prévisualisation sera créée
-    console.log("Prévisualiser le quiz");
   };
 
-  const handleDeleteQuiz = async () => {
-    if (!quiz || !window.confirm("Êtes-vous sûr de vouloir supprimer ce quiz ?")) {
-      return;
-    }
+  const handleDeleteQuiz = () => {
+    setShowDeleteQuizDialog(true);
+  };
 
+  const confirmDeleteQuiz = async () => {
+    if (!quiz) return;
+
+    setIsDeleting(true);
     try {
       await QuizzesService.delete(quiz.id);
       router.push("/teachers-dashboard/quizzes");
     } catch (error) {
-      console.error("Erreur lors de la suppression :", error);
-      alert("Erreur lors de la suppression du quiz");
+      // L'erreur sera gérée par le service
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteQuizDialog(false);
     }
   };
 
-  const handleDeleteQuestion = async (questionId: number) => {
-    if (!quiz || !window.confirm("Êtes-vous sûr de vouloir supprimer cette question ?")) {
-      return;
-    }
+  const handleDeleteQuestion = (questionId: number) => {
+    setQuestionToDelete(questionId);
+    setShowDeleteQuestionDialog(true);
+  };
 
+  const confirmDeleteQuestion = async () => {
+    if (!quiz || !questionToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await QuestionsService.delete(quiz.id, questionId);
-      // CORRECTION: Rafraîchir depuis le serveur au lieu de filtrer localement
+      await QuestionsService.delete(quiz.id, questionToDelete);
+      // Rafraîchir depuis le serveur au lieu de filtrer localement
       await refreshQuestions();
     } catch (error) {
-      console.error("Erreur lors de la suppression de la question :", error);
-      alert("Erreur lors de la suppression de la question");
+      // L'erreur sera gérée par le service
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteQuestionDialog(false);
+      setQuestionToDelete(null);
     }
   };
 
@@ -352,7 +366,6 @@ const QuizDetailsPage = () => {
                       <button
                         onClick={() => {
                           // Logique de duplication à implémenter
-                          console.log("Dupliquer le quiz");
                           setShowActions(false);
                         }}
                         className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
@@ -584,6 +597,35 @@ const QuizDetailsPage = () => {
           }}
         />
       )}
+
+      {/* Dialogue de confirmation pour supprimer le quiz */}
+      <ConfirmationDialog
+        isOpen={showDeleteQuizDialog}
+        title="Supprimer le quiz"
+        message={`Êtes-vous sûr de vouloir supprimer le quiz "${quiz?.title}" ? Cette action est irréversible et supprimera également toutes les questions associées.`}
+        confirmText="Supprimer le quiz"
+        cancelText="Annuler"
+        confirmButtonColor="red"
+        onConfirm={confirmDeleteQuiz}
+        onCancel={() => setShowDeleteQuizDialog(false)}
+        isLoading={isDeleting}
+      />
+
+      {/* Dialogue de confirmation pour supprimer une question */}
+      <ConfirmationDialog
+        isOpen={showDeleteQuestionDialog}
+        title="Supprimer la question"
+        message="Êtes-vous sûr de vouloir supprimer cette question ? Cette action est irréversible."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        confirmButtonColor="red"
+        onConfirm={confirmDeleteQuestion}
+        onCancel={() => {
+          setShowDeleteQuestionDialog(false);
+          setQuestionToDelete(null);
+        }}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

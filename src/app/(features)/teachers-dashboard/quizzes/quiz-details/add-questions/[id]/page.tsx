@@ -76,7 +76,6 @@ const AddQuestionPage = () => {
         const quizData = await QuizzesService.getById(Number(quizId));
         setQuiz(quizData);
       } catch (err: any) {
-        console.error("Erreur lors de la récupération du quiz :", err);
         setError("Impossible de récupérer les informations du quiz");
       } finally {
         setLoading(false);
@@ -236,7 +235,6 @@ const handleSubmit = async () => {
     // Retour à la page de détails du quiz
     router.back();
   } catch (error) {
-    console.error("Erreur lors de la sauvegarde :", error);
     setError("Erreur lors de la sauvegarde de la question");
   } finally {
     setSaving(false);

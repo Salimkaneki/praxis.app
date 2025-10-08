@@ -168,19 +168,12 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
     try {
       await SessionsService.delete(session.id);
       
-      // Afficher un message de succès (optionnel)
-      console.log(`Session "${session.title}" supprimée avec succès`);
-      
       // Appeler le callback pour rafraîchir la liste
       onDelete(session.id);
       
     } catch (error: any) {
-      console.error("Erreur lors de la suppression de la session:", error);
-      
       // Afficher un message d'erreur à l'utilisateur
       const errorMessage = error?.message || error?.response?.data?.message || "Une erreur est survenue lors de la suppression";
-      alert(`Erreur: ${errorMessage}`);
-      
     } finally {
       setIsDeleting(false);
     }

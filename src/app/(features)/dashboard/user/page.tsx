@@ -47,7 +47,6 @@ export default function UserManagementPage() {
       setCurrentPage(response.current_page);
       setTotalPages(response.last_page);
     } catch (err: any) {
-      console.error("Erreur chargement utilisateurs:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -79,7 +78,6 @@ export default function UserManagementPage() {
       // Recharger la liste
       loadUsers(currentPage, searchTerm, selectedRole);
     } catch (err: any) {
-      alert(`Erreur lors de la suppression: ${err.message}`);
     }
   };
 

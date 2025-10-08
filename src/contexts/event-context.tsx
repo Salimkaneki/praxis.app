@@ -50,7 +50,7 @@ export const EventProvider: React.FC<EventProviderProps> = ({ children }) => {
       try {
         callback(event);
       } catch (error) {
-        console.error('Error in event subscriber:', error);
+        // Erreur dans le subscriber gérée silencieusement
       }
     });
   }, [subscribers]);

@@ -39,6 +39,10 @@ export default function StudentImport() {
   const [loadingClasses, setLoadingClasses] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // États pour les erreurs
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [processingError, setProcessingError] = useState<string | null>(null);
+
   useEffect(() => {
     const loadClasses = async () => {
       try {
@@ -59,11 +63,12 @@ export default function StudentImport() {
     if (!selectedFile) return;
 
     if (!selectedFile.name.toLowerCase().endsWith('.csv')) {
-      alert("Veuillez sélectionner un fichier CSV valide.");
+      setFileError("Veuillez sélectionner un fichier CSV valide.");
       return;
     }
 
     setFile(selectedFile);
+    setFileError(null);
     processCSVFile(selectedFile);
   };
 
@@ -92,7 +97,7 @@ export default function StudentImport() {
         
         if (results.errors.length > 0) {
           console.error("Erreurs de parsing:", results.errors);
-          alert("Erreur de format CSV: " + results.errors[0].message);
+          setProcessingError("Erreur de format CSV: " + results.errors[0].message);
           setIsProcessing(false);
           return;
         }
@@ -129,14 +134,14 @@ export default function StudentImport() {
         setPreviewData(processedData);
       } catch (error) {
         console.error("Erreur lors du traitement du fichier:", error);
-        alert("Erreur lors de la lecture du fichier.");
+        setProcessingError("Erreur lors de la lecture du fichier.");
       } finally {
         setIsProcessing(false);
       }
     };
 
     reader.onerror = () => {
-      alert("Erreur lors de la lecture du fichier.");
+      setProcessingError("Erreur lors de la lecture du fichier.");
       setIsProcessing(false);
     };
 
@@ -296,6 +301,41 @@ export default function StudentImport() {
         </div>
       )}
 
+      {/* Messages d'erreur */}
+      {fileError && (
+        <div className="px-8 py-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
+              <span className="text-sm text-red-800 font-medium">{fileError}</span>
+              <button
+                onClick={() => setFileError(null)}
+                className="ml-auto text-red-600 hover:text-red-800"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {processingError && (
+        <div className="px-8 py-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
+              <span className="text-sm text-red-800 font-medium">{processingError}</span>
+              <button
+                onClick={() => setProcessingError(null)}
+                className="ml-auto text-red-600 hover:text-red-800"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       <div className="px-8 py-8">
         <div className="w-full mx-auto">
@@ -352,10 +392,10 @@ export default function StudentImport() {
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-medium text-gray-900">
-                        {file.name}
+                        {file?.name}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {(file.size / 1024).toFixed(1)} KB
+                        {(file?.size ? (file.size / 1024).toFixed(1) : 0)} KB
                       </p>
                     </div>
                   </div>

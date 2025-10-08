@@ -125,7 +125,6 @@ export default function ResultsPage() {
       const results = await resultService.getExamResults();
       setExamResults(results);
     } catch (err) {
-      console.error('Erreur lors du chargement des résultats:', err);
       setError('Impossible de charger les résultats. Veuillez réessayer.');
     } finally {
       setLoading(false);
@@ -138,8 +137,7 @@ export default function ResultsPage() {
       // Recharger la liste après suppression
       await loadExamResults();
     } catch (err) {
-      console.error('Erreur lors de la suppression:', err);
-      alert('Erreur lors de la suppression du résultat');
+      setError('Erreur lors de la suppression du résultat');
     }
   };
 

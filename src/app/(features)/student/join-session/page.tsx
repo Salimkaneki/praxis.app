@@ -89,7 +89,6 @@ export default function JoinSessionPage() {
         router.push(`/student/sessions/participate?sessionId=${joinedSession.id}`);
       }, 2000);
     } catch (err: any) {
-      console.error('Erreur lors de la jonction de session:', err);
       setError(err.response?.data?.message || "Code de session invalide. Vérifiez le code et réessayez.");
     } finally {
       setLoading(false);

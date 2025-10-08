@@ -185,20 +185,6 @@ export default function SessionsEditPage() {
       // Simulation d'un appel API - remplacez par votre logique réelle
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      console.log("Données à envoyer:", {
-        quiz_id: parseInt(formData.quiz_id),
-        title: formData.title,
-        starts_at: `${formData.starts_at_date} ${formData.starts_at_time}:00`,
-        ends_at: `${formData.ends_at_date} ${formData.ends_at_time}:00`,
-        max_participants: parseInt(formData.max_participants),
-        settings: {
-          shuffle_questions: formData.shuffle_questions,
-          time_limit: parseInt(formData.time_limit),
-          proctoring: formData.proctoring,
-          allow_pause: formData.allow_pause
-        }
-      });
-      
       setSubmitStatus('success');
       // Redirection après 2 secondes
       setTimeout(() => {
@@ -206,7 +192,6 @@ export default function SessionsEditPage() {
       }, 2000);
 
     } catch (error: any) {
-      console.error("Erreur lors de la modification:", error);
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);

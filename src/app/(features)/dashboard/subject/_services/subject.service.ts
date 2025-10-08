@@ -56,15 +56,6 @@ export async function getSubjects(page: number = 1, search?: string) {
     });
     return res.data;
   } catch (err: any) {
-    console.error("Erreur API getSubjects:", {
-      message: err.message,
-      status: err.response?.status,
-      statusText: err.response?.statusText,
-      data: err.response?.data,
-      url: err.config?.url,
-      method: err.config?.method
-    });
-    
     const errorMessage = err.response?.data?.message || 
                         (err.response?.status === 401 ? "Accès non autorisé. Veuillez vous reconnecter." :
                          err.response?.status === 403 ? "Accès interdit." :

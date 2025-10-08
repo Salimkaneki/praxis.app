@@ -50,7 +50,6 @@ export const getDashboardData = async (): Promise<DashboardData> => {
     const response = await api.get('/admin/dashboard');
     return response.data;
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
     throw error;
   }
 };
@@ -60,7 +59,6 @@ export const getChartData = async (chartType: string): Promise<any> => {
     const response = await api.get(`/admin/dashboard/charts/${chartType}`);
     return response.data;
   } catch (error) {
-    console.error(`Error fetching chart data for ${chartType}:`, error);
     throw error;
   }
 };
@@ -70,7 +68,6 @@ export const getAdministrators = async (params?: { type?: string; institution_id
     const response = await api.get('/administrators', { params });
     return response.data.data || response.data; // Assuming paginated or direct array
   } catch (error) {
-    console.error('Error fetching administrators:', error);
     throw error;
   }
 };

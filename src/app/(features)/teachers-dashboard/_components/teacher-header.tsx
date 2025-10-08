@@ -68,7 +68,6 @@ export default function TeacherHeader() {
           setDepartment(teacherAuthService.getTeacherDepartment());
         }
       } catch (error) {
-        console.error("Erreur lors du chargement des données enseignant:", error);
         // Fallback vers les données locales
         setTeacherName(teacherAuthService.getTeacherName());
         setInstitutionName(teacherAuthService.getInstitutionName());

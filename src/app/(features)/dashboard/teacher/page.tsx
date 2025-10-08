@@ -22,6 +22,7 @@ import { fetchTeachers, Teacher, PaginatedResponse, deleteTeacher} from "./_serv
 
 import { useRouter } from "next/navigation";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
+import ConfirmationDialog from "@/components/ui/Feedback/ConfirmationDialog";
 
 
 // -----------------------------
@@ -116,6 +117,11 @@ export default function TeachersList() {
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [selectedAction, setSelectedAction] = useState("");
 
+  // États pour la confirmation de suppression
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const departments = [
     { value: "all", label: "Tous les départements" },
     { value: "Informatique", label: "Informatique" },
@@ -146,7 +152,6 @@ export default function TeachersList() {
         setTeachers(data.data);
         setPagination(data);
       } catch (error) {
-        console.error("Erreur chargement enseignants:", error);
       } finally {
         setLoading(false);
       }
@@ -209,24 +214,38 @@ export default function TeachersList() {
 
   const handleAction = (action: string) => {
     if (action) {
-      console.log(`Action sélectionnée: ${action}`);
       setSelectedAction("");
     }
   };
 
   const router = useRouter();
 
-  const handleDelete = async (id: number) => {
-  try {
-    await deleteTeacher(id);
-    alert("Enseignant supprimé avec succès !");
+  const handleDelete = (teacher: Teacher) => {
+    setTeacherToDelete(teacher);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteTeacher = async () => {
+    if (!teacherToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteTeacher(teacherToDelete.id);
       // Mettre à jour la liste après suppression
-      setTeachers(prev => prev.filter(t => t.id !== id));
+      setTeachers(prev => prev.filter(t => t.id !== teacherToDelete.id));
       setPagination(prev => prev ? { ...prev, total: prev.total - 1 } : prev);
+      setShowDeleteDialog(false);
+      setTeacherToDelete(null);
     } catch (error) {
-    console.error("Erreur suppression enseignant:", error);
-    alert("Impossible de supprimer cet enseignant.");
-  }
+      // L'erreur sera gérée par le service
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDeleteTeacher = () => {
+    setShowDeleteDialog(false);
+    setTeacherToDelete(null);
   };
 
 
@@ -368,7 +387,7 @@ export default function TeachersList() {
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(t.id)}
+                            onClick={() => handleDelete(t)}
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -423,6 +442,19 @@ export default function TeachersList() {
           </div>
         )}
       </div>
+
+      {/* Dialogue de confirmation de suppression */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Supprimer l'enseignant"
+        message={`Êtes-vous sûr de vouloir supprimer l'enseignant "${teacherToDelete?.user?.name}" ? Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        confirmButtonColor="red"
+        onConfirm={confirmDeleteTeacher}
+        onCancel={cancelDeleteTeacher}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

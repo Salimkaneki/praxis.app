@@ -184,7 +184,6 @@ const AddQuestionPage = () => {
   const handleSubmit = () => {
     if (validateForm()) {
       // Logique de sauvegarde
-      console.log('Question sauvegardée:', formData);
       // router.push('/dashboard/teacher/quizzes/1'); // Retour au quiz
     }
   };

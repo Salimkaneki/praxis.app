@@ -65,8 +65,6 @@ export default function TeacherEditPage() {
       }));
       setUserOptions(options);
     } catch (error) {
-      console.error("Erreur récupération des utilisateurs :", error);
-      alert("Erreur lors du chargement des utilisateurs disponibles.");
     } finally {
       setLoadingUsers(false);
     }
@@ -90,8 +88,6 @@ export default function TeacherEditPage() {
         },
       });
     } catch (error) {
-      console.error("Erreur récupération de l’enseignant :", error);
-      alert("Impossible de charger les informations de l’enseignant.");
     } finally {
       setLoadingData(false);
     }
@@ -145,11 +141,8 @@ export default function TeacherEditPage() {
           },
         };
         await api.put(`/admin/teachers/${id}`, apiData);
-        alert("Enseignant modifié avec succès !");
         router.push("/dashboard/teacher");
       } catch (error) {
-        console.error("Erreur modification:", error);
-        alert("Erreur lors de la modification de l'enseignant.");
       } finally {
         setLoading(false);
       }

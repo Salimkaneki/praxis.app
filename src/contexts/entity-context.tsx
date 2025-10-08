@@ -65,7 +65,6 @@ export function createEntityContext<T extends BaseEntity>(
 
         setEntities(Array.isArray(data) ? data : []);
       } catch (err: any) {
-        console.error(`Erreur lors du chargement des ${entityName}:`, err);
         setError(`Impossible de récupérer les ${entityName}.`);
       } finally {
         setLoading(false);

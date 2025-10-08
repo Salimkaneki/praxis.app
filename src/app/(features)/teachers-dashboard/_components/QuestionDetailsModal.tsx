@@ -99,7 +99,6 @@ const QuestionDetailsModal: React.FC<QuestionDetailsModalProps> = ({
         await onDelete();
         onClose();
       } catch (error) {
-        console.error("Erreur lors de la suppression :", error);
       } finally {
         setDeleting(false);
         setShowDeleteConfirm(false);

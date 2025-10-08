@@ -98,13 +98,11 @@ export const StudentSessionsService = {
       const response = await api.get('/student/sessions');
       return response.data.sessions || response.data || [];
     } catch (error: any) {
-      console.error('Erreur lors de la récupération des sessions disponibles:', error);
 
       if (error.response?.status === 401) {
         throw new Error('Session expirée. Veuillez vous reconnecter.');
       } else if (error.response?.status === 403) {
         const errorMsg = error.response?.data?.error || 'Accès refusé.';
-        console.error('🚫 403 Forbidden details:', errorMsg);
         throw new Error(`Accès refusé: ${errorMsg}`);
       } else if (error.response?.status === 404) {
         throw new Error('Service non disponible. L\'endpoint des sessions n\'existe pas.');
@@ -120,7 +118,6 @@ export const StudentSessionsService = {
       const response = await api.get(`/student/sessions/${sessionId}`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération des détails de session:', error);
       throw error;
     }
   },
@@ -128,15 +125,12 @@ export const StudentSessionsService = {
   // Rejoindre une session avec un code
   joinSession: async (sessionCode: string): Promise<StudentSession> => {
     try {
-      console.log('🔗 API: Tentative de rejoindre la session avec le code:', sessionCode);
       const response = await api.post('/student/session/join', {
         session_code: sessionCode
       });
 
-      console.log('✅ API: Session rejointe avec succès:', response.data.session.title);
       return response.data.session;
     } catch (error) {
-      console.error('Erreur lors de la jonction de session:', error);
       throw error;
     }
   },
@@ -144,10 +138,7 @@ export const StudentSessionsService = {
   // Démarrer un examen pour une session (récupérer les questions)
   startExam: async (sessionId: number): Promise<ExamData> => {
     try {
-      console.log('🔗 API: Récupération des questions pour la session:', sessionId);
       const response = await api.get(`/student/session/${sessionId}/questions`);
-
-      console.log('✅ API: Questions récupérées avec succès:', response.data.questions?.length || 0, 'questions');
 
       // Transformer les données pour correspondre à l'interface ExamData
       const examData: ExamData = {
@@ -189,7 +180,6 @@ export const StudentSessionsService = {
 
       return examData;
     } catch (error) {
-      console.error('Erreur lors de la récupération des questions:', error);
       throw error;
     }
   },
@@ -197,12 +187,8 @@ export const StudentSessionsService = {
   // Soumettre les réponses d'un examen
   submitExam: async (resultId: number, answers: StudentAnswer[], startedAt?: string): Promise<ExamResult> => {
     try {
-      console.log('🔗 API: Soumission des réponses pour le résultat:', resultId);
-      console.log('📝 Réponses à soumettre:', answers.length);
-
       // Calculer le temps écoulé si l'heure de début est fournie
       const timeSpent = startedAt ? Math.floor((Date.now() - new Date(startedAt).getTime()) / (1000 * 60)) : 0;
-      console.log('⏱️ Temps écoulé calculé:', timeSpent, 'minutes');
 
       // Transformer les réponses selon le format attendu par le contrôleur Laravel
       const responses = answers.map(answer => ({
@@ -215,9 +201,6 @@ export const StudentSessionsService = {
         time_spent: timeSpent
       });
 
-      console.log('✅ API: Réponses soumises avec succès');
-      console.log('📊 Résultats:', response.data);
-
       // Transformer la réponse pour correspondre à l'interface ExamResult
       return {
         attempt_id: resultId,
@@ -229,7 +212,6 @@ export const StudentSessionsService = {
         answers: [] // Les détails des réponses ne sont pas retournés dans cette réponse
       };
     } catch (error: any) {
-      console.error('❌ Erreur lors de la soumission de l\'examen:', error);
 
       if (error.response?.status === 400) {
         const errorMsg = error.response?.data?.error || 'Erreur de validation';
@@ -250,7 +232,6 @@ export const StudentSessionsService = {
       const response = await api.get(`/student/sessions/${sessionId}/results`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération des résultats:', error);
       throw error;
     }
   },
@@ -258,57 +239,36 @@ export const StudentSessionsService = {
   // Vérifier si l'étudiant a déjà rejoint une session
   hasJoinedSession: async (sessionId: number): Promise<boolean> => {
     try {
-      console.log('🔍 Vérification si l\'étudiant a déjà rejoint la session:', sessionId);
 
       // Essayer d'abord l'endpoint status s'il existe
       try {
         const response = await api.get(`/student/sessions/${sessionId}/status`);
-        console.log('🔍 Réponse de l\'API status:', response.data);
 
         const hasResult = !!(response.data?.result_id);
         const isSubmitted = !!(response.data?.submitted || response.data?.is_submitted);
 
-        console.log('🔍 Analyse de la réponse:', {
-          hasResult,
-          isSubmitted,
-          result_id: response.data?.result_id,
-          submitted: response.data?.submitted,
-          is_submitted: response.data?.is_submitted
-        });
-
         const result = hasResult && isSubmitted;
-        console.log('🔍 Résultat final de hasJoinedSession:', result);
         return result;
-      } catch (statusError: any) { 
+      } catch (statusError: any) {
         // Si l'endpoint status n'existe pas (404), essayer une autre approche
         if (statusError.response?.status === 404) {
-          console.log('🔍 Endpoint status non trouvé, tentative avec getSessionDetails');
 
           // Essayer de récupérer les détails de session et voir s'il y a un résultat
           const sessionDetails = await api.get(`/student/sessions/${sessionId}`);
-          console.log('🔍 Détails de session récupérés:', sessionDetails.data);
 
           // Vérifier si la session a un résultat associé
           if (sessionDetails.data?.result) {
             const result = sessionDetails.data.result;
             const isCompleted = result.status === 'completed' || result.submitted_at !== null;
-            console.log('🔍 Résultat trouvé dans session details:', {
-              result_id: result.id,
-              status: result.status,
-              submitted_at: result.submitted_at,
-              isCompleted
-            });
             return isCompleted;
           }
 
-          console.log('🔍 Aucun résultat trouvé dans session details');
           return false;
         } else {
           throw statusError; // Relancer l'erreur si ce n'est pas un 404
         }
       }
     } catch (error: any) {
-      console.error('❌ Erreur lors de la vérification du statut de session:', error);
       // En cas d'erreur, on considère qu'il n'a pas rejoint pour éviter de bloquer
       return false;
     }
@@ -321,7 +281,6 @@ export const StudentSessionsService = {
         answers
       });
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde automatique:', error);
       throw error;
     }
   }

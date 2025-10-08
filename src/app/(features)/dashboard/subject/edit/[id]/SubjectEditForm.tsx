@@ -40,6 +40,9 @@ export default function SubjectEditForm({ subjectId }: SubjectEditFormProps) {
   const [loadingFormations, setLoadingFormations] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
 
+  // État pour les erreurs de soumission
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   // Options pour les types de matière
   const typeOptions = [
     { value: "cours", label: "Cours" },
@@ -82,7 +85,6 @@ export default function SubjectEditForm({ subjectId }: SubjectEditFormProps) {
       }));
       setFormationOptions(formatted);
     } catch (error) {
-      console.error("Erreur récupération des formations :", error);
     } finally {
       setLoadingFormations(false);
     }
@@ -93,8 +95,6 @@ export default function SubjectEditForm({ subjectId }: SubjectEditFormProps) {
     try {
       setLoadingSubject(true);
       setPageError(null);
-      
-      console.log("Subject ID reçu:", subjectId, "Type:", typeof subjectId);
       
       // Vérifier si subjectId est défini et non vide
       if (!subjectId || subjectId.trim() === "") {
@@ -121,7 +121,6 @@ export default function SubjectEditForm({ subjectId }: SubjectEditFormProps) {
         is_active: subject.is_active ?? true,
       });
     } catch (error: any) {
-      console.error("Erreur récupération de la matière :", error);
       setPageError(error.message || "Erreur lors du chargement de la matière");
     } finally {
       setLoadingSubject(false);
@@ -193,11 +192,9 @@ export default function SubjectEditForm({ subjectId }: SubjectEditFormProps) {
         };
 
         await updateSubject(id, apiData);
-        alert("✅ Matière modifiée avec succès !");
         router.push("/dashboard/subjects");
       } catch (error: any) {
-        console.error("Erreur modification:", error);
-        alert(error.message || "Erreur lors de la modification de la matière.");
+        setSubmitError(error.message || "Erreur lors de la modification de la matière.");
       } finally {
         setLoading(false);
       }
@@ -284,6 +281,23 @@ export default function SubjectEditForm({ subjectId }: SubjectEditFormProps) {
           </div>
         </div>
       </div>
+
+      {/* Message d'erreur de soumission */}
+      {submitError && (
+        <div className="px-8 py-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <div className="text-red-800 font-poppins text-sm">{submitError}</div>
+              <button
+                onClick={() => setSubmitError(null)}
+                className="ml-auto text-red-600 hover:text-red-800"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       <div className="px-8 py-8 flex-1">

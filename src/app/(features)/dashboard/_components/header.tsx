@@ -34,19 +34,19 @@ export default function Header() {
       icon: UserIcon, 
       label: "Enregistrer un professeur", 
       color: "text-blue-600",
-      action: () => console.log("Enregistrer professeur")
+      action: () => {}
     },
     { 
       icon: UsersIcon, 
       label: "Enregistrer des étudiants", 
       color: "text-green-600",
-      action: () => console.log("Enregistrer étudiants")
+      action: () => {}
     },
     { 
       icon: DocumentArrowUpIcon, 
       label: "Importer des étudiants", 
       color: "text-purple-600",
-      action: () => console.log("Importer étudiants")
+      action: () => {}
     }
   ];
 
@@ -60,7 +60,6 @@ export default function Header() {
       setAdminName(data?.user?.name || "Administrateur");
       setInstitutionSlug(data?.institution?.slug || "université");
     } catch (err) {
-      console.error("Impossible de parser admin_data :", err);
     }
   }, []);
 

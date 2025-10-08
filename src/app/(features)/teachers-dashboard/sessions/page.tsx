@@ -22,8 +22,7 @@ export default function SessionsPage() {
       const sessionsData = await SessionsService.getAll();
       setSessions(sessionsData);
     } catch (err: any) {
-      console.error('Erreur lors de la récupération des sessions:', err);
-      
+
       // Gestion spécifique des erreurs d'authentification
       if (err.response?.status === 401) {
         setError('Votre session a expiré. Veuillez vous reconnecter.');

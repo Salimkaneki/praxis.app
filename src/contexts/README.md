@@ -101,7 +101,6 @@ const QuizManager = () => {
       const newQuiz = await QuizzesService.create(quizData);
       addQuiz(newQuiz); // Ajout immédiat à l'interface
     } catch (error) {
-      console.error('Erreur:', error);
     }
   };
 
@@ -185,7 +184,6 @@ const { EntityProvider: CourseProvider, useEntityContext: useCourseContext } =
 
 ```typescript
 const { entities, loading, error } = useStudentContext();
-console.log('Étudiants:', entities.length, 'Loading:', loading);
 ```
 
 ### Forcer un Rafraîchissement

@@ -75,29 +75,22 @@ export default function StudentEditPage() {
     { value: "F", label: "Féminin" }
   ];
 
-  // Log des params pour debugging
-  console.log('StudentEditPage - Params récupérés:', { params, studentId });
-
   // Charger les données de l'étudiant
   useEffect(() => {
     const loadStudent = async () => {
       if (!studentId) {
-        console.error('❌ StudentId manquant:', studentId);
         setLoadError("ID étudiant manquant");
         setIsLoading(false);
         return;
       }
 
       try {
-        console.log('🔄 Début chargement étudiant, ID:', studentId);
         setIsLoading(true);
         setLoadError(null);
         
         const response = await getStudentById(studentId);
-        console.log('📥 Réponse complète getStudentById:', response);
         
         const student = response.data;
-        console.log('👤 Données étudiant extraites:', student);
         
         if (!student) {
           throw new Error('Aucune donnée étudiant trouvée dans la réponse');
@@ -119,15 +112,9 @@ export default function StudentEditPage() {
           address: student.metadata?.address || ""
         };
         
-        console.log('📝 FormData à appliquer:', newFormData);
         setFormData(newFormData);
-        console.log('✅ FormData mis à jour avec succès');
         
       } catch (err: any) {
-        console.error("❌ Erreur détaillée lors du chargement de l'étudiant:", err);
-        console.error("📄 Message d'erreur:", err?.message);
-        console.error("🌐 Réponse d'erreur:", err?.response);
-        
         let errorMessage = "Erreur lors du chargement des données de l'étudiant";
         
         if (err?.response?.status === 404) {
@@ -141,7 +128,6 @@ export default function StudentEditPage() {
         setLoadError(errorMessage);
       } finally {
         setIsLoading(false);
-        console.log('🏁 Fin du chargement étudiant');
       }
     };
 
@@ -155,10 +141,8 @@ export default function StudentEditPage() {
         setLoadingClasses(true);
         setClassesError(null);
         const response = await ClasseService.getClasses();
-        console.log('📚 Classes chargées:', response.data);
         setClasses(response.data);
       } catch (err) {
-        console.error("Erreur lors du chargement des classes", err);
         setClassesError("Erreur lors du chargement des classes");
       } finally {
         setLoadingClasses(false);
@@ -175,7 +159,6 @@ export default function StudentEditPage() {
   const handleInputChange = (field: keyof FormData) => 
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { value: string } }) => {
       const value = e.target.value;
-      console.log(`🔄 Changement ${field}:`, value);
       setFormData(prev => ({ ...prev, [field]: value }));
       if (errors[field]) setErrors(prev => ({ ...prev, [field]: "" }));
     };
@@ -200,11 +183,9 @@ export default function StudentEditPage() {
   };
 
   const handleSubmit = async (): Promise<void> => {
-    console.log('💾 Début soumission du formulaire');
     
     const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
-      console.log('❌ Erreurs de validation:', newErrors);
       setErrors(newErrors);
       return;
     }
@@ -227,9 +208,7 @@ export default function StudentEditPage() {
         }
       };
 
-      console.log('📤 Données à envoyer:', studentData);
       await updateStudent(studentId, studentData);
-      console.log('✅ Mise à jour réussie');
       setSubmitStatus('success');
       setErrors({});
       
@@ -239,7 +218,6 @@ export default function StudentEditPage() {
       }, 2000);
       
     } catch (error: any) {
-      console.error("❌ Erreur lors de la modification:", error);
       setSubmitStatus('error');
       if (error?.response?.status === 422 && error?.response?.data?.errors) {
         const apiErrors: FormErrors = {};
@@ -256,13 +234,11 @@ export default function StudentEditPage() {
   };
 
   const handleCancel = () => {
-    console.log('🔙 Annulation demandée');
     router.push('/dashboard/student');
   };
 
   // Affichage conditionnel avec logs
   if (isLoading) {
-    console.log('⏳ Affichage du loader');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex items-center gap-3 text-gray-600">
@@ -274,7 +250,6 @@ export default function StudentEditPage() {
   }
 
   if (loadError) {
-    console.log('❌ Affichage de l\'erreur:', loadError);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
@@ -292,8 +267,6 @@ export default function StudentEditPage() {
       </div>
     );
   }
-
-  console.log('🎨 Affichage du formulaire avec données:', formData);
 
   return (
     <div className="min-h-screen bg-gray-50">

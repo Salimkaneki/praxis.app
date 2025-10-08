@@ -81,7 +81,6 @@ export default function AdminSubjectsList() {
       setLastPage(res.last_page);
       setTotal(res.total);
     } catch (error: any) {
-      console.error("Erreur lors du chargement des matières:", error);
       setError(error.message || "Une erreur inattendue s'est produite");
     } finally {
       setLoading(false);
@@ -150,7 +149,6 @@ export default function AdminSubjectsList() {
       setSubjects(prev => prev.filter(s => s.id !== id));
       setTotal(prev => prev - 1);
     } catch (error: any) {
-      console.error("Erreur suppression matière:", error);
       setError(error.message || "Erreur lors de la suppression de la matière");
     } finally {
       setLoading(false);

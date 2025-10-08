@@ -64,9 +64,6 @@ export default function TeacherCreationForm() {
       }));
       setUserOptions(options);
     } catch (error) {
-      console.error("Erreur récupération des utilisateurs :", error);
-      // Optionnel : afficher un message d'erreur à l'utilisateur
-      alert("Erreur lors du chargement des utilisateurs disponibles.");
     } finally {
       setLoadingUsers(false);
     }
@@ -120,11 +117,8 @@ export default function TeacherCreationForm() {
           }
         };
         await createTeacher(apiData);
-        alert("Enseignant créé avec succès !");
         router.push("/dashboard/teacher");
       } catch (error) {
-        console.error("Erreur création:", error);
-        alert("Erreur lors de la création de l'enseignant.");
       } finally {
         setLoading(false);
       }

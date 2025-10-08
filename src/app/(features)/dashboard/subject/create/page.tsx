@@ -138,7 +138,7 @@ export default function SubjectCreationForm() {
         await createSubject(apiData);
         router.push("/dashboard/subject");
       } catch (error: any) {
-        console.error("Erreur création:", error);
+        // Erreur gérée silencieusement
       } finally {
         setLoading(false);
       }

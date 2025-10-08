@@ -68,7 +68,6 @@ export default function StudentProfilePage() {
         // Les autres champs peuvent être vides pour l'instant car ils ne sont pas dans l'API
       }));
     } catch (err: any) {
-      console.error('Erreur lors du chargement du profil:', err);
       setError(err.message || 'Erreur lors du chargement du profil');
     } finally {
       setLoading(false);
@@ -81,7 +80,6 @@ export default function StudentProfilePage() {
       await logoutStudent();
       // La redirection est gérée dans la fonction logoutStudent
     } catch (err: any) {
-      console.error('Erreur lors de la déconnexion:', err);
       // Même en cas d'erreur, la fonction logoutStudent fait la redirection
     } finally {
       setLoggingOut(false);
@@ -172,7 +170,6 @@ export default function StudentProfilePage() {
     e.preventDefault();
     if (validateForm()) {
       // Ici on pourrait faire un appel API
-      console.log("Sauvegarde du profil:", formData);
       setIsEditing(false);
       // Afficher un message de succès
     }

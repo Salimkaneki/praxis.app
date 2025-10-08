@@ -76,12 +76,11 @@ export default function SimpleFormationForm() {
       };
 
       const res = await createFormation(apiData);
-      console.log("✅ Formation créée :", res);
 
       // Après création -> redirection vers la liste
       router.push("/dashboard/formation");
     } catch (err: any) {
-      console.error("❌ Erreur lors de la création :", err.message);
+      // Erreur gérée silencieusement
     } finally {
       setLoading(false);
     }

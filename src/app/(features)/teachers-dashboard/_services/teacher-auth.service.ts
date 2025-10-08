@@ -40,8 +40,6 @@ class TeacherAuthService {
 
       return teacherData;
     } catch (error) {
-      console.error('Erreur lors de la récupération des infos enseignant:', error);
-
       // En cas d'erreur, essayer de récupérer depuis localStorage
       return this.getTeacherData();
     }
@@ -55,7 +53,6 @@ class TeacherAuthService {
       const stored = localStorage.getItem(this.DATA_KEY);
       return stored ? JSON.parse(stored) : null;
     } catch (error) {
-      console.error('Erreur lors de la lecture des données enseignant:', error);
       return null;
     }
   }
@@ -67,7 +64,6 @@ class TeacherAuthService {
     try {
       localStorage.setItem(this.DATA_KEY, JSON.stringify(data));
     } catch (error) {
-      console.error('Erreur lors du stockage des données enseignant:', error);
     }
   }
 

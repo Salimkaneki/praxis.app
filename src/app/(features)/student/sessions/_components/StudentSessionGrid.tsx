@@ -35,7 +35,6 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
           const joined = await StudentSessionsService.hasJoinedSession(session.id);
           setHasJoined(joined);
         } catch (error) {
-          console.error('Erreur lors de la vérification du statut de session:', error);
           setHasJoined(false); // En cas d'erreur, considérer comme non rejoint
         } finally {
           setCheckingJoinStatus(false);
@@ -169,7 +168,6 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
         router.push(`/student/join-session?code=${session.session_code}`);
       }
     } catch (error) {
-      console.error('Erreur lors de la vérification du statut de session:', error);
       // En cas d'erreur, aller à la page de join
       router.push(`/student/join-session?code=${session.session_code}`);
     }

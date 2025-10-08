@@ -77,7 +77,6 @@ export const fetchStudents = async (params?: {
     });
     return response.data;
   } catch (error: any) {
-    console.error("Erreur fetchStudents:", error);
     throw error;
   }
 };
@@ -88,7 +87,6 @@ export const getStudentById = async (id: string | number): Promise<{ data: Stude
     const response = await axios.get(`/admin/students/${id}`);
     return { data: response.data };
   } catch (error: any) {
-    console.error("Erreur API getStudentById:", error);
     throw error;
   }
 };
@@ -102,7 +100,6 @@ export const updateStudent = async (
     const response = await axios.put(`/admin/students/${id}`, data);
     return response.data.data;
   } catch (error: any) {
-    console.error("Erreur API updateStudent:", error);
     throw error;
   }
 };
@@ -131,16 +128,13 @@ export const importStudents = async (file: File) => {
       },
     });
     
-    console.log("Réponse du serveur:", response.data);
     return response.data;
     
   } catch (error: any) {
-    console.error("Erreur complète d'import:", error);
     
     if (error.response?.status === 422) {
       // Erreur de validation - affichez les détails
       const validationErrors = error.response.data;
-      console.error("Erreurs de validation:", validationErrors);
       
       let errorMessage = "Erreurs de validation :\n";
       

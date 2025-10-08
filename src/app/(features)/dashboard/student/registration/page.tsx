@@ -77,7 +77,6 @@ export default function StudentRegistration() {
         const response = await ClasseService.getClasses();
         setClasses(response.data); // data contient le tableau rÃ©el
       } catch (err) {
-        console.error("Erreur lors du chargement des classes", err);
         setClassesError("Erreur lors du chargement des classes");
       } finally {
         setLoadingClasses(false);
@@ -165,7 +164,6 @@ export default function StudentRegistration() {
       });
       setErrors({});
     } catch (error: any) {
-      console.error("Erreur lors de l'enregistrement:", error);
       setSubmitStatus('error');
       if (error?.response?.status === 422 && error?.response?.data?.errors) {
         const apiErrors: FormErrors = {};

@@ -138,22 +138,17 @@ const StudentQuizInterface = () => {
         setSessionId(sessionIdNum);
 
         // Vérifier si l'étudiant a déjà rejoint cette session
-        console.log('🔍 Vérification si l\'étudiant a déjà rejoint la session:', sessionIdNum);
         const hasJoined = await StudentSessionsService.hasJoinedSession(sessionIdNum);
-        console.log('🔍 Résultat de hasJoinedSession:', hasJoined);
 
         if (hasJoined) {
-          console.log('⚠️ L\'étudiant a déjà rejoint cette session - ACCÈS BLOQUÉ');
           throw new Error('ALREADY_JOINED: Vous avez déjà participé à cette session d\'examen. Vous ne pouvez pas la rejoindre à nouveau.');
         }
 
         // Démarrer l'examen et récupérer les données
-        console.log('🚀 Démarrage de l\'examen pour la session:', sessionIdNum);
         const data = await StudentSessionsService.startExam(sessionIdNum);
         setExamData(data);
 
       } catch (err: any) {
-        console.error('Erreur lors du chargement de l\'examen:', err);
 
         // Vérifier si c'est une erreur de session déjà rejointe
         if (err.message && err.message.includes('ALREADY_JOINED')) {
@@ -187,13 +182,10 @@ const StudentQuizInterface = () => {
     if (!sessionId || answers.size === 0 || isSubmitted || submitting) return;
 
     try {
-      console.log('💾 Auto-save en cours...');
       const studentAnswers: StudentAnswer[] = Array.from(answers.values());
       await StudentSessionsService.saveProgress(sessionId, studentAnswers);
       setLastAutoSave(new Date());
-      console.log('✅ Auto-save réussi');
     } catch (error) {
-      console.error('❌ Erreur lors de l\'auto-save:', error);
       // Ne pas afficher d'erreur à l'utilisateur pour l'auto-save
     }
   }, [sessionId, answers, isSubmitted, submitting]);
@@ -296,13 +288,9 @@ const StudentQuizInterface = () => {
     if (!examData || !sessionId) return;
 
     // Double vérification avant soumission
-    console.log('🔍 Double vérification avant soumission pour session:', sessionId);
     const hasJoinedBeforeSubmit = await StudentSessionsService.hasJoinedSession(sessionId);
-    console.log('🔍 Résultat de la double vérification:', hasJoinedBeforeSubmit);
 
     if (hasJoinedBeforeSubmit) {
-      console.log('⚠️ Tentative de soumission pour une session déjà terminée - BLOQUÉ');
-      alert('Vous avez déjà soumis cet examen. Vous ne pouvez pas le soumettre à nouveau.');
       return;
     }
 
@@ -310,7 +298,6 @@ const StudentQuizInterface = () => {
     setShowConfirmSubmit(false);
 
     try {
-      console.log('🔗 Soumission de l\'examen en cours...');
 
       // Préparer les réponses au format attendu par le service
       const studentAnswers: StudentAnswer[] = Array.from(answers.values());
@@ -318,8 +305,6 @@ const StudentQuizInterface = () => {
       // Utiliser le resultId (attempt.id) pour soumettre les réponses
       const resultId = examData.attempt.id;
       const result = await StudentSessionsService.submitExam(resultId, studentAnswers, examData.attempt.started_at);
-
-      console.log('✅ Examen soumis avec succès:', result);
 
       // Transformer le résultat pour l'affichage
       const displayResult = {
@@ -334,10 +319,7 @@ const StudentQuizInterface = () => {
       setIsSubmitted(true);
 
     } catch (error: any) {
-      console.error('❌ Erreur lors de la soumission:', error);
-
       // Afficher un message d'erreur à l'utilisateur
-      alert(`Erreur lors de la soumission: ${error.message || 'Veuillez réessayer.'}`);
 
       // Réactiver la possibilité de soumettre
       setSubmitting(false);
