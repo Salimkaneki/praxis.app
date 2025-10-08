@@ -12,8 +12,10 @@ import Input from "@/components/ui/Inputs/Input";
 import SelectInput from "@/components/ui/Inputs/Select";
 import { getFormations } from "../../formation/_services/formation.service";
 import { createSubject } from "../_services/subject.service";
+import { useRouter } from "next/navigation";
 
 export default function SubjectCreationForm() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -73,7 +75,7 @@ export default function SubjectCreationForm() {
       }));
       setFormationOptions(formatted);
     } catch (error) {
-      console.error("Erreur récupération des formations :", error);
+      // Erreur récupération formations - affichage silencieux
     } finally {
       setLoadingFormations(false);
     }
@@ -134,11 +136,9 @@ export default function SubjectCreationForm() {
         };
 
         await createSubject(apiData);
-        alert("✅ Matière créée avec succès !");
-        // router.push("/dashboard/subjects");
+        router.push("/dashboard/subject");
       } catch (error: any) {
         console.error("Erreur création:", error);
-        alert(error.message || "Erreur lors de la création de la matière.");
       } finally {
         setLoading(false);
       }
@@ -146,13 +146,11 @@ export default function SubjectCreationForm() {
   };
 
   const handleBack = () => {
-    console.log("Retour à la liste des matières");
-    // router.back();
+    router.push("/dashboard/subject");
   };
 
   const handleCancel = () => {
-    console.log("Annulation - retour à la liste");
-    // router.push("/dashboard/subjects");
+    router.push("/dashboard/subject");
   };
 
   return (

@@ -130,7 +130,7 @@ export default function SelectInput({
       {/* Dropdown custom - ne s'affiche que si pas disabled */}
       {open && !disabled && (
         <ul
-          className={`absolute left-0 z-50 w-full mt-0.5 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-auto
+          className={`absolute left-0 z-[100] w-full mt-0.5 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-auto
             ${dropUp ? "bottom-full mb-1" : "top-full mt-1"}`}
         >
           {options.map((opt, idx) => (

@@ -139,7 +139,7 @@ export default function ClassePage() {
       </div>
 
       <div className="px-8 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="w-full mx-auto">
           <div className="bg-white border border-gray-200 rounded-lg p-8">
             <div className="flex items-center mb-8">
               <div className="w-8 h-8 bg-forest-100 rounded-lg flex items-center justify-center mr-3">

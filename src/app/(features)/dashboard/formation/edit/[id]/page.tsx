@@ -206,7 +206,7 @@ export default function EditFormation() {
 
       {/* Form */}
       <div className="px-8 py-8 flex-1">
-        <div className="max-w-4xl mx-auto">
+        <div className="w-full mx-auto">
           <form onSubmit={handleSubmit} className="h-full">
             <div className="bg-white border border-gray-200 rounded-lg p-8 flex flex-col">
               <div className="flex items-center mb-8">

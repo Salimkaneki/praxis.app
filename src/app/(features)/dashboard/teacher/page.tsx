@@ -236,7 +236,7 @@ export default function TeachersList() {
   // Render
   // -----------------------------
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-poppins">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white">
         <div className="px-8 py-6 flex items-center justify-between">

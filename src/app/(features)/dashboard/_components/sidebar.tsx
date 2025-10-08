@@ -14,7 +14,8 @@ import {
   UsersIcon,
   PresentationChartLineIcon,
   DocumentChartBarIcon,
-  ClockIcon
+  ClockIcon,
+  UserPlusIcon
 } from "@heroicons/react/24/outline";
 
 type SectionKey = 'pedagogique' | 'utilisateurs' | 'evaluations' | 'analytics' | 'administration';
@@ -25,6 +26,8 @@ type ActiveSection =
   | 'matieres'
   | 'professeurs'
   | 'etudiants'
+  | 'liste-utilisateurs'
+  | 'creer-utilisateur'
   | 'evaluations-live'
   | 'evaluations-programmees'
   | 'resultats'
@@ -64,13 +67,15 @@ export default function AdminSideBar() {
       'matieres': '/dashboard/subject',
       'professeurs': '/dashboard/teacher',
       'etudiants': '/dashboard/student',
+      'liste-utilisateurs': '/dashboard/user',
+      'creer-utilisateur': '/dashboard/user/create',
       'evaluations-live': '/dashboard/evaluations/live',
       'evaluations-programmees': '/dashboard/evaluations/programmees',
       'resultats': '/dashboard/evaluations/resultats',
       'statistiques': '/dashboard/analytics',
       'rapports-examens': '/dashboard/analytics/examens-programmes',
       'analyses-detaillees': '/dashboard/analytics/detaillees',
-      'gestion-utilisateurs': '/dashboard/administration/utilisateurs',
+      'gestion-utilisateurs': '/dashboard/user',
       'parametres-systeme': '/dashboard/administration/parametres'
     };
 
@@ -98,6 +103,8 @@ export default function AdminSideBar() {
       items: [
         { key: 'professeurs' as ActiveSection, label: 'Professeurs', icon: UserIcon },
         { key: 'etudiants' as ActiveSection, label: 'Étudiants', icon: UsersIcon },
+        { key: 'liste-utilisateurs' as ActiveSection, label: 'Liste des utilisateurs', icon: UsersIcon },
+        { key: 'creer-utilisateur' as ActiveSection, label: 'Créer un utilisateur', icon: UserPlusIcon },
       ],
     },
     {

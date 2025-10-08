@@ -156,7 +156,7 @@ export default function TeacherCreationForm() {
 
       {/* Form */}
       <div className="px-8 py-8 flex-1">
-        <div className="max-w-4xl mx-auto h-full bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="w-full mx-auto h-full bg-white border border-gray-200 rounded-lg">
           
           {/* Informations Générales */}
           <div className="p-8 border-b border-gray-200">
