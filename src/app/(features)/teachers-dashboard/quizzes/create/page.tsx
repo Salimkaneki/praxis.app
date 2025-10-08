@@ -17,6 +17,7 @@ import TeacherPageHeader from "../../_components/page-header";
 import { SubjectService, TeacherSubject } from "../../quizzes/_services/subjects.service";
 import { QuizzesService } from "../../quizzes/_services/quizzes.service";
 import { useQuizContext } from "../../_contexts/quiz-context";
+import { useToast } from "@/hooks/useToast";
 
 // Types pour le formulaire
 interface FormData {
@@ -48,6 +49,7 @@ type SubmitStatus = 'success' | 'error' | null;
 export default function CreateQuizPage() {
   const router = useRouter();
   const { addEntity: addQuiz } = useQuizContext();
+  const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState<FormData>({
     title: "",
     description: "",
@@ -181,13 +183,15 @@ export default function CreateQuizPage() {
       });
       
       setSubmitStatus('success');
-      // Redirection après 2 secondes
+      showSuccess("Quiz créé avec succès !");
+      // Redirection après un court délai
       setTimeout(() => {
         router.push('/teachers-dashboard/quizzes');
-      }, 2000);
+      }, 1500);
 
     } catch (error: any) {
       setSubmitStatus('error');
+      showError("Une erreur est survenue lors de la création.");
     } finally {
       setIsSubmitting(false);
     }
@@ -213,24 +217,6 @@ export default function CreateQuizPage() {
           onClick: handleCancel
         }}
       />
-
-      {/* Status Messages */}
-      {submitStatus && (
-        <div className="px-8 py-4">
-          {submitStatus === 'success' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-              <span className="text-sm text-green-800">Quiz créé avec succès ! Redirection en cours...</span>
-            </div>
-          )}
-          {submitStatus === 'error' && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
-              <span className="text-sm text-red-800">Une erreur est survenue lors de la création.</span>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Message d'erreur pour le chargement des matières */}
       {subjectsError && (

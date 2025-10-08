@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
+import { useCrud } from "@/hooks/useCrud";
+import ConfirmationDialog from "@/components/ui/Feedback/ConfirmationDialog";
 
 export type QuizCard = {
   id?: number; // Ajout de l'ID pour la navigation
@@ -17,6 +19,9 @@ export type QuizCard = {
   category?: string;
 };
 
+// Type pour useCrud (avec id obligatoire)
+type QuizCardWithId = QuizCard & { id: number };
+
 type QuizCardProps = {
   quiz: QuizCard;
   index: number;
@@ -25,6 +30,19 @@ type QuizCardProps = {
 const QuizCardComponent = ({ quiz, index }: QuizCardProps) => {
   const router = useRouter();
   const [showActions, setShowActions] = useState(false);
+
+  // Hook pour la gestion CRUD avec confirmation et toasts
+  const {
+    loading: crudLoading,
+    showDeleteDialog,
+    itemToDelete,
+    handleDelete: handleDeleteRequest,
+    confirmDelete,
+    cancelDelete
+  } = useCrud<QuizCardWithId>({
+    successMessage: "Quiz supprimé avec succès",
+    errorMessage: "Erreur lors de la suppression du quiz"
+  });
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -84,11 +102,22 @@ const QuizCardComponent = ({ quiz, index }: QuizCardProps) => {
         }
         break;
       case 'delete':
-        if (window.confirm(`Êtes-vous sûr de vouloir supprimer le quiz "${quiz.title}" ?`)) {
-          // Logique de suppression à implémenter
+        if (quiz.id) {
+          handleDeleteRequest(quiz as QuizCardWithId, async (id: number) => {
+            // Ici nous allons utiliser le contexte pour supprimer
+            // Pour l'instant, on simule la suppression
+            console.log('Suppression du quiz:', id);
+          }, `Voulez-vous vraiment supprimer le quiz "${quiz.title}" ?`);
         }
         break;
     }
+  };
+
+  const handleConfirmDelete = async () => {
+    await confirmDelete(async (id: number) => {
+      // Ici nous allons utiliser le contexte pour supprimer
+      console.log('Confirmation de suppression du quiz:', id);
+    });
   };
 
   return (
@@ -170,6 +199,16 @@ const QuizCardComponent = ({ quiz, index }: QuizCardProps) => {
 
       {/* Overlay pour indiquer que c'est cliquable */}
       <div className="absolute inset-0 bg-emerald-500 opacity-0 group-hover:opacity-5 transition-opacity rounded-lg pointer-events-none"></div>
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Confirmer la suppression"
+        message={`Voulez-vous vraiment supprimer le quiz "${itemToDelete?.title}" ? Cette action est irréversible.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={cancelDelete}
+        isLoading={crudLoading}
+      />
     </div>
   );
 };

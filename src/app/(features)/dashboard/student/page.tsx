@@ -10,6 +10,7 @@ import axios from "@/lib/server/interceptor/axios";
 import { deleteStudent, fetchStudents, Student, PaginatedResponse } from "./_services/student.service";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
 import ConfirmationDialog from "@/components/ui/Feedback/ConfirmationDialog";
+import { useCrud } from "@/hooks/useCrud";
 
 
 // Types
@@ -38,6 +39,21 @@ export default function StudentPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Hook pour la gestion CRUD avec confirmation et toasts
+  const {
+    loading: crudLoading,
+    error: crudError,
+    showDeleteDialog: showCrudDeleteDialog,
+    itemToDelete: crudItemToDelete,
+    handleDelete: handleDeleteRequest,
+    confirmDelete,
+    cancelDelete,
+    setError: setCrudError
+  } = useCrud<Student>({
+    successMessage: "Étudiant supprimé avec succès",
+    errorMessage: "Erreur lors de la suppression de l'étudiant"
+  });
 
   // Données mockées pour les classes (à remplacer par une API si nécessaire)
   const classes = [
@@ -213,29 +229,15 @@ export default function StudentPage() {
 
   // Fonction pour supprimer un étudiant
   const handleDeleteStudent = (student: Student) => {
-    setStudentToDelete(student);
-    setShowDeleteDialog(true);
+    handleDeleteRequest(student, deleteStudent, `Voulez-vous vraiment supprimer l'étudiant "${student.first_name} ${student.last_name}" ?`);
   };
 
   const confirmDeleteStudent = async () => {
-    if (!studentToDelete) return;
-
-    setIsDeleting(true);
-    try {
-      await deleteStudent(studentToDelete.id);
-      setStudents(prev => prev.filter(student => student.id !== studentToDelete.id));
-      setShowDeleteDialog(false);
-      setStudentToDelete(null);
-    } catch (err) {
-      // L'erreur sera gérée par le service ou un état d'erreur
-    } finally {
-      setIsDeleting(false);
+    const success = await confirmDelete(deleteStudent);
+    if (success) {
+      setStudents(prev => prev.filter(student => student.id !== crudItemToDelete?.id));
+      setPagination(prev => ({ ...prev, total: prev.total - 1 }));
     }
-  };
-
-  const cancelDeleteStudent = () => {
-    setShowDeleteDialog(false);
-    setStudentToDelete(null);
   };
 
   // Fonction pour naviguer vers la page d'édition
@@ -483,15 +485,15 @@ export default function StudentPage() {
 
       {/* Dialogue de confirmation de suppression */}
       <ConfirmationDialog
-        isOpen={showDeleteDialog}
+        isOpen={showCrudDeleteDialog}
         title="Supprimer l'étudiant"
-        message={`Êtes-vous sûr de vouloir supprimer l'étudiant "${studentToDelete?.first_name} ${studentToDelete?.last_name}" ? Cette action est irréversible.`}
+        message={`Êtes-vous sûr de vouloir supprimer l'étudiant "${crudItemToDelete?.first_name} ${crudItemToDelete?.last_name}" ? Cette action est irréversible.`}
         confirmText="Supprimer"
         cancelText="Annuler"
         confirmButtonColor="red"
         onConfirm={confirmDeleteStudent}
-        onCancel={cancelDeleteStudent}
-        isLoading={isDeleting}
+        onCancel={cancelDelete}
+        isLoading={crudLoading}
       />
     </div>
   );

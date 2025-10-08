@@ -9,9 +9,11 @@ import { createFormation } from "../_services/formation.service";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Inputs/Input";
 import Textarea from "@/components/ui/Inputs/Textarea";
+import { useToast } from "@/hooks/useToast";
 
 export default function SimpleFormationForm() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -77,10 +79,14 @@ export default function SimpleFormationForm() {
 
       const res = await createFormation(apiData);
 
-      // Après création -> redirection vers la liste
-      router.push("/dashboard/formation");
+      // Après création -> afficher toast de succès puis redirection
+      showSuccess("Formation créée avec succès !");
+      setTimeout(() => {
+        router.push("/dashboard/formation");
+      }, 1500);
     } catch (err: any) {
       // Erreur gérée silencieusement
+      showError("Erreur lors de la création de la formation");
     } finally {
       setLoading(false);
     }

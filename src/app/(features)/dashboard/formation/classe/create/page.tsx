@@ -7,6 +7,7 @@ import SelectInput from "@/components/ui/Inputs/Select";
 import { GraduationCap } from "lucide-react";
 import ClasseService from "../_services/classe.service";
 import { getFormations, Formation } from "../../_services/formation.service";
+import { useToast } from "@/hooks/useToast";
 
 // Types
 interface Classe {
@@ -23,6 +24,7 @@ interface Classe {
 
 export default function ClassePage() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loading, setLoading] = useState(false);
   
@@ -94,10 +96,13 @@ export default function ClassePage() {
         is_active: formData.is_active,
       });
       resetForm();
-      // Rediriger vers la liste des classes ou afficher un message de succès
-      router.push('/dashboard/formation/classe');
+      showSuccess("Classe créée avec succès !");
+      // Rediriger vers la liste des classes après un court délai
+      setTimeout(() => {
+        router.push('/dashboard/formation/classe');
+      }, 1500);
     } catch (error: any) {
-      setApiError(error?.response?.data?.message || "Erreur lors de la création");
+      showError(error?.response?.data?.message || "Erreur lors de la création");
     } finally {
       setLoading(false);
     }
@@ -147,12 +152,6 @@ export default function ClassePage() {
               </div>
               <h2 className="text-lg font-poppins font-medium text-gray-900">Informations de la classe</h2>
             </div>
-
-            {apiError && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600 font-poppins">{apiError}</p>
-              </div>
-            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="flex gap-6">

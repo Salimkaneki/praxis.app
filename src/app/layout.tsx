@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppProvider } from "../contexts/app-provider";
+import { Toast } from "../components/ui/Feedback/Toast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -30,6 +31,7 @@ export default function RootLayout({
       >
         <AppProvider>
           {children}
+          <Toast />
         </AppProvider>
       </body>
     </html>

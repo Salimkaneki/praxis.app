@@ -6,6 +6,7 @@ export { default as Pagination } from './Tables/Pagination';
 export { default as TableActions } from './Actions/TableActions';
 export { default as Alert } from './Feedback/Alert';
 export { default as ConfirmationDialog } from './Feedback/ConfirmationDialog';
+export { Toast } from './Feedback/Toast';
 export { default as SearchBar } from './Search/SearchBar';
 
 // Composants existants

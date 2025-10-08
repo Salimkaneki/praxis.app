@@ -17,6 +17,7 @@ import TeacherPageHeader from "../../_components/page-header";
 import { QuizzesService } from "../../quizzes/_services/quizzes.service";
 // import { StudentsService } from "../../dashboard/students/_services/students.service";
 import { SessionsService } from "../_services/sessions.service";
+import { useToast } from "@/hooks/useToast";
 
 // Types pour le formulaire
 interface Quiz {
@@ -62,6 +63,7 @@ type SubmitStatus = 'success' | 'error' | null;
 
 export default function CreateSessionPage() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState<FormData>({
     quiz_id: "",
     title: "",
@@ -195,10 +197,11 @@ export default function CreateSessionPage() {
       await SessionsService.create(sessionData);
       
       setSubmitStatus('success');
-      // Redirection après 2 secondes
+      showSuccess("Session créée avec succès !");
+      // Redirection après un court délai
       setTimeout(() => {
         router.push('/teachers-dashboard/sessions');
-      }, 2000);
+      }, 1500);
 
     } catch (error: any) {
       
@@ -211,9 +214,11 @@ export default function CreateSessionPage() {
       } else if (error.response?.data?.error) {
         setSubmitErrorMessage(error.response.data.error);
         setSubmitStatus('error');
+        showError(error.response.data.error);
       } else {
         setSubmitErrorMessage('');
         setSubmitStatus('error');
+        showError('Une erreur est survenue lors de la création.');
       }
     } finally {
       setIsSubmitting(false);
@@ -265,31 +270,6 @@ export default function CreateSessionPage() {
           onClick: handleCancel
         }}
       />
-
-      {/* Status Messages */}
-      {submitStatus && (
-        <div className="px-8 py-4">
-          {submitStatus === 'success' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-              <span className="text-sm text-green-800">Session créée avec succès ! Redirection en cours...</span>
-            </div>
-          )}
-          {submitStatus === 'error' && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
-              <div>
-                <span className="text-sm text-red-800">Une erreur est survenue lors de la création.</span>
-                {submitErrorMessage && (
-                  <div className="mt-2 text-xs text-red-600">
-                    Détails: {submitErrorMessage}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Messages d'erreur */}
       {quizzesError && (
