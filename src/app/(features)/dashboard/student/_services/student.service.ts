@@ -16,6 +16,7 @@ export interface Student {
   metadata?: Record<string, any>;
   user?: {
     id: number;
+    name: string;
     email: string;
     is_active: boolean;
   };
@@ -69,8 +70,16 @@ export const fetchStudents = async (params?: {
   page?: number;
   per_page?: number;
 }): Promise<PaginatedResponse<Student>> => {
-  const response = await axios.get("/admin/students", { params });
-  return response.data;
+  try {
+    const response = await axios.get("/admin/students", { 
+      params,
+      timeout: 30000 // 30 secondes pour cette requête spécifique
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Erreur fetchStudents:", error);
+    throw error;
+  }
 };
 
 // 🔹 Récupérer un étudiant par ID

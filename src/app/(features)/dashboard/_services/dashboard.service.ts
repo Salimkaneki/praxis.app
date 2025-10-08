@@ -2,9 +2,9 @@ import api from '@/lib/server/interceptor/axios';
 
 export interface KPI {
   label: string;
-  value: string;
+  value: string | number;
   period: string;
-  trend: 'positive' | 'negative';
+  trend: 'positive' | 'negative' | 'stable';
 }
 
 export interface Metric {

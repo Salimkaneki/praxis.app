@@ -6,7 +6,7 @@ import { MoreHorizontal, ArrowUpRight, ArrowDownRight } from "lucide-react";
 export type KPI = {
   label: string;
   value: string | number;
-  trend: "positive" | "negative";
+  trend: "positive" | "negative" | "stable";
   period: string;
 };
 
@@ -32,14 +32,16 @@ export default function KPIGrid({ kpis }: KPIGridProps) {
                 </div>
                 <div className="flex items-center text-sm">
                   <span className={`inline-flex items-center font-poppins font-medium ${
-                    kpi.trend === 'positive' ? 'text-green-700' : 'text-red-700'
+                    kpi.trend === 'positive' ? 'text-green-700' : 
+                    kpi.trend === 'negative' ? 'text-red-700' : 'text-gray-600'
                   }`}>
                     {kpi.trend === 'positive' ? (
                       <ArrowUpRight className="w-3 h-3 mr-1" />
-                    ) : (
+                    ) : kpi.trend === 'negative' ? (
                       <ArrowDownRight className="w-3 h-3 mr-1" />
+                    ) : (
+                      <span className="w-3 h-3 mr-1 flex items-center justify-center text-xs">-</span>
                     )}
-                    {/* {calculateChange(kpi.value, kpi.previousValue)} */}
                   </span>
                   <span className="text-gray-500 font-poppins ml-2">{kpi.period}</span>
                 </div>

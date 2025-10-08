@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   User,
   Users,
@@ -9,45 +9,96 @@ import {
   Download,
   Calendar,
 } from "lucide-react";
-import KPIGrid from "@/components/ui/Cards/kpi-grid";
+import KPIGrid, { KPI } from "@/components/ui/Cards/kpi-grid";
 import { getDashboardData, DashboardData } from "./_services/dashboard.service";
+
 import { useAppData } from "../../../contexts/hooks";export default function Dashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [contextError, setContextError] = useState<string | null>(null);
 
   // Utilisation des contextes pour les données en temps réel
   const { students, teachers, subjects, classes } = useAppData();
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const dashboardData = await getDashboardData();
-        setData(dashboardData);
+        const data = await getDashboardData();
+        setDashboardData(data);
+        setApiError(null);
       } catch (err) {
-        setError('Erreur lors du chargement des données');
-        console.error(err);
+        console.error('Erreur lors du chargement des données du dashboard:', err);
+        setApiError('Le serveur backend n\'est pas accessible. Les KPIs affichent les données locales.');
+        // Continuer sans les données du dashboard, afficher seulement les KPIs
+        setDashboardData({ kpis: [], metrics: [], recentEvents: [] });
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchDashboardData();
   }, []);
 
   // Charger les données des contextes au montage
   useEffect(() => {
     const loadContextData = async () => {
-      await Promise.all([
-        students.refreshEntities(),
-        teachers.refreshEntities(),
-        subjects.refreshEntities(),
-        classes.refreshEntities(),
-      ]);
+      try {
+        setContextError(null);
+        // Charger seulement les étudiants pour commencer
+        await students.refreshEntities();
+        console.log('Étudiants chargés:', students.entities.length);
+        
+        // Charger les autres données après
+        setTimeout(async () => {
+          try {
+            await teachers.refreshEntities();
+            await subjects.refreshEntities();
+            await classes.refreshEntities();
+          } catch (secondaryError) {
+            console.error('Erreur chargement context secondaire:', secondaryError);
+            setContextError('Certaines données n\'ont pas pu être chargées depuis le serveur.');
+          }
+        }, 1000); // Délai de 1 seconde
+        
+      } catch (error) {
+        console.error('Erreur chargement étudiants:', error);
+        setContextError('Impossible de charger les données depuis le serveur. Vérifiez que le backend Laravel est démarré.');
+        // Continuer avec les autres données même si étudiants échoue
+        try {
+          await teachers.refreshEntities();
+          await subjects.refreshEntities();
+          await classes.refreshEntities();
+        } catch (secondaryError) {
+          console.error('Erreur chargement context secondaire:', secondaryError);
+        }
+      }
     };
 
     loadContextData();
   }, [students, teachers, subjects, classes]);
+
+  const recentEvents: { title: string; status: string; location: string; date: string; time: string }[] = dashboardData?.recentEvents || [];
+
+  const kpis = useMemo(() => {
+    // Utiliser les KPIs du backend si disponibles, sinon fallback vers les données context
+    if (dashboardData?.kpis && dashboardData.kpis.length > 0) {
+      return dashboardData.kpis.map(kpi => ({
+        label: kpi.label,
+        value: typeof kpi.value === 'number' ? kpi.value.toString() : kpi.value,
+        trend: kpi.trend as 'positive' | 'negative' | 'stable',
+        period: kpi.period
+      }));
+    }
+    
+    // Fallback vers les données context si l'API ne retourne pas de KPIs
+    return [
+      { label: 'Étudiants', value: students.entities.length.toString(), trend: 'positive' as const, period: 'Actuel' },
+      { label: 'Enseignants', value: teachers.entities.length.toString(), trend: 'positive' as const, period: 'Actuel' },
+      { label: 'Matières', value: subjects.entities.length.toString(), trend: 'positive' as const, period: 'Actuel' },
+      { label: 'Classes', value: classes.entities.length.toString(), trend: 'positive' as const, period: 'Actuel' },
+    ];
+  }, [dashboardData?.kpis, students.entities.length, teachers.entities.length, subjects.entities.length, classes.entities.length]);
 
   if (loading) {
     return (
@@ -59,22 +110,6 @@ import { useAppData } from "../../../contexts/hooks";export default function Das
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
-
-  const { kpis = [], metrics = [], recentEvents = [] } = data;
 
   return (
     <div className="min-h-screen bg-white">
@@ -113,94 +148,29 @@ import { useAppData } from "../../../contexts/hooks";export default function Das
       </div>
 
       <div className="px-8 py-8">
-        {/* Debug Context Data - À supprimer en production */}
-        <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">Données Context (Connectées aux APIs)</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="font-medium">Étudiants:</span> {students.entities.length}
-              {students.loading && <span className="text-blue-600 ml-1">Chargement...</span>}
-              {students.error && <span className="text-red-600 ml-1">Erreur</span>}
-            </div>
-            <div>
-              <span className="font-medium">Enseignants:</span> {teachers.entities.length}
-              {teachers.loading && <span className="text-blue-600 ml-1">Chargement...</span>}
-              {teachers.error && <span className="text-red-600 ml-1">Erreur</span>}
-            </div>
-            <div>
-              <span className="font-medium">Matières:</span> {subjects.entities.length}
-              {subjects.loading && <span className="text-blue-600 ml-1">Chargement...</span>}
-              {subjects.error && <span className="text-red-600 ml-1">Erreur</span>}
-            </div>
-            <div>
-              <span className="font-medium">Classes:</span> {classes.entities.length}
-              {classes.loading && <span className="text-blue-600 ml-1">Chargement...</span>}
-              {classes.error && <span className="text-red-600 ml-1">Erreur</span>}
-            </div>
-          </div>
-          {students.entities.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-xs font-medium text-blue-800 mb-2">Derniers étudiants ajoutés:</h4>
-              <div className="flex flex-wrap gap-2">
-                {students.entities.slice(0, 3).map(student => (
-                  <span key={student.id} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                    {student.user?.name || `Étudiant ${student.id}`}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* KPIs */}
         <KPIGrid kpis={kpis} />
-
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Metrics Grid */}
-          <div className="lg:col-span-2">
-            <div className="bg-white border border-gray-200 rounded-lg">
-              <div className="px-6 py-5 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-poppins font-medium text-gray-900">
-                    Indicateurs de performance
-                  </h2>
-                  <button className="text-sm font-poppins text-gray-500 hover:text-gray-700">
-                    Voir tout
-                  </button>
-                </div>
+        
+        {apiError && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
               </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {metrics.map((metric, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <div className="text-sm font-poppins font-medium text-gray-600 mb-1">
-                          {metric.label}
-                        </div>
-                        <div className="text-2xl font-poppins font-light text-gray-900">
-                          {metric.value}
-                        </div>
-                      </div>
-                      <div className={`text-right ${
-                        metric.change.startsWith('+') ? 'text-green-700' : 'text-red-700'
-                      }`}>
-                        <div className="text-sm font-poppins font-medium">
-                          {metric.change}{metric.unit}
-                        </div>
-                        <div className="text-xs font-poppins text-gray-500">
-                          30j
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-800">
+                  {apiError}
+                </p>
               </div>
             </div>
           </div>
+        )}
 
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 gap-8">
+          
           {/* Schedule */}
           <div className="bg-white border border-gray-200 rounded-lg">
             <div className="px-6 py-5 border-b border-gray-200">
@@ -252,6 +222,193 @@ import { useAppData } from "../../../contexts/hooks";export default function Das
           </div>
         </div>
 
+        {/* Lists Section */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Recent Students */}
+          <div className="bg-white border border-gray-200 rounded-lg">
+            <div className="px-6 py-5 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-poppins font-medium text-gray-900">
+                  Derniers étudiants
+                </h2>
+                <User className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-3">
+                {students.entities.slice(0, 5).map((student) => (
+                  <div key={student.id} className="flex items-center justify-between py-2">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-poppins font-medium text-gray-900">
+                          {student.user?.name || 'N/A'}
+                        </p>
+                        <p className="text-xs font-poppins text-gray-500">
+                          {student.registration_number}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-poppins text-gray-400">
+                      {student.classe?.name || 'N/A'}
+                    </span>
+                  </div>
+                ))}
+                {students.entities.length === 0 && (
+                  <p className="text-sm font-poppins text-gray-500 text-center py-4">
+                    Aucun étudiant trouvé
+                  </p>
+                )}
+              </div>
+              
+              <button className="w-full mt-4 py-2 text-sm font-poppins font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors">
+                Voir tous les étudiants
+              </button>
+            </div>
+          </div>
+
+          {/* Recent Teachers */}
+          <div className="bg-white border border-gray-200 rounded-lg">
+            <div className="px-6 py-5 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-poppins font-medium text-gray-900">
+                  Derniers enseignants
+                </h2>
+                <Users className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-3">
+                {teachers.entities.slice(0, 5).map((teacher) => (
+                  <div key={teacher.id} className="flex items-center justify-between py-2">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <Users className="w-4 h-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-poppins font-medium text-gray-900">
+                          {teacher.user?.name || 'N/A'}
+                        </p>
+                        <p className="text-xs font-poppins text-gray-500">
+                          {teacher.department || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-poppins text-gray-400">
+                      {teacher.specialization || 'N/A'}
+                    </span>
+                  </div>
+                ))}
+                {teachers.entities.length === 0 && (
+                  <p className="text-sm font-poppins text-gray-500 text-center py-4">
+                    Aucun enseignant trouvé
+                  </p>
+                )}
+              </div>
+              
+              <button className="w-full mt-4 py-2 text-sm font-poppins font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors">
+                Voir tous les enseignants
+              </button>
+            </div>
+          </div>
+
+          {/* Subjects List */}
+          <div className="bg-white border border-gray-200 rounded-lg">
+            <div className="px-6 py-5 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-poppins font-medium text-gray-900">
+                  Matières
+                </h2>
+                <BookOpen className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-3">
+                {subjects.entities.slice(0, 5).map((subject) => (
+                  <div key={subject.id} className="flex items-center justify-between py-2">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <BookOpen className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-poppins font-medium text-gray-900">
+                          {subject.name}
+                        </p>
+                        <p className="text-xs font-poppins text-gray-500">
+                          {subject.code || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-poppins text-gray-400">
+                      {subject.coefficient || 0} coeff.
+                    </span>
+                  </div>
+                ))}
+                {subjects.entities.length === 0 && (
+                  <p className="text-sm font-poppins text-gray-500 text-center py-4">
+                    Aucune matière trouvée
+                  </p>
+                )}
+              </div>
+              
+              <button className="w-full mt-4 py-2 text-sm font-poppins font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors">
+                Voir toutes les matières
+              </button>
+            </div>
+          </div>
+
+          {/* Classes List */}
+          <div className="bg-white border border-gray-200 rounded-lg">
+            <div className="px-6 py-5 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-poppins font-medium text-gray-900">
+                  Classes
+                </h2>
+                <GraduationCap className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-3">
+                {classes.entities.slice(0, 5).map((classe) => (
+                  <div key={classe.id} className="flex items-center justify-between py-2">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                        <GraduationCap className="w-4 h-4 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-poppins font-medium text-gray-900">
+                          {classe.name}
+                        </p>
+                        <p className="text-xs font-poppins text-gray-500">
+                          {classe.level || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-poppins text-gray-400">
+                      {classe.capacity || 0} places
+                    </span>
+                  </div>
+                ))}
+                {classes.entities.length === 0 && (
+                  <p className="text-sm font-poppins text-gray-500 text-center py-4">
+                    Aucune classe trouvée
+                  </p>
+                )}
+              </div>
+              
+              <button className="w-full mt-4 py-2 text-sm font-poppins font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors">
+                Voir toutes les classes
+              </button>
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>
