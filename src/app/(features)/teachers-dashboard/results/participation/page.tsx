@@ -149,7 +149,6 @@ const QuizParticipationContent = () => {
       const data = await resultService.getSessionParticipation(sessionId);
       setSubmissions(data);
     } catch (err) {
-      console.error('Erreur lors du chargement de la participation:', err);
       setError('Impossible de charger les données de participation');
     } finally {
       setLoading(false);
@@ -217,7 +216,6 @@ const QuizParticipationContent = () => {
 
   const handleExportResults = () => {
     // TODO: Implémenter l'export des résultats
-    console.log("Exporter les résultats");
   };
 
   const formatDate = (dateString: string) => {

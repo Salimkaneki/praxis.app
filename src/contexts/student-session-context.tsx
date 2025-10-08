@@ -48,7 +48,6 @@ const useStudentSessionContext = () => {
   useEffect(() => {
     // Écouter les événements DOM de changement de statut de session
     const handleSessionStatusChanged = (event: CustomEvent) => {
-      console.log('Session status changed, refreshing student sessions:', event.detail);
       // Rafraîchir les sessions quand le statut change
       context.refreshEntities();
     };

@@ -28,7 +28,6 @@ import { useAppData } from "../../../contexts/hooks";export default function Das
         setDashboardData(data);
         setApiError(null);
       } catch (err) {
-        console.error('Erreur lors du chargement des données du dashboard:', err);
         setApiError('Le serveur backend n\'est pas accessible. Les KPIs affichent les données locales.');
         // Continuer sans les données du dashboard, afficher seulement les KPIs
         setDashboardData({ kpis: [], metrics: [], recentEvents: [] });
@@ -47,7 +46,6 @@ import { useAppData } from "../../../contexts/hooks";export default function Das
         setContextError(null);
         // Charger seulement les étudiants pour commencer
         await students.refreshEntities();
-        console.log('Étudiants chargés:', students.entities.length);
         
         // Charger les autres données après
         setTimeout(async () => {
@@ -56,13 +54,11 @@ import { useAppData } from "../../../contexts/hooks";export default function Das
             await subjects.refreshEntities();
             await classes.refreshEntities();
           } catch (secondaryError) {
-            console.error('Erreur chargement context secondaire:', secondaryError);
             setContextError('Certaines données n\'ont pas pu être chargées depuis le serveur.');
           }
         }, 1000); // Délai de 1 seconde
         
       } catch (error) {
-        console.error('Erreur chargement étudiants:', error);
         setContextError('Impossible de charger les données depuis le serveur. Vérifiez que le backend Laravel est démarré.');
         // Continuer avec les autres données même si étudiants échoue
         try {
@@ -70,7 +66,6 @@ import { useAppData } from "../../../contexts/hooks";export default function Das
           await subjects.refreshEntities();
           await classes.refreshEntities();
         } catch (secondaryError) {
-          console.error('Erreur chargement context secondaire:', secondaryError);
         }
       }
     };

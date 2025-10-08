@@ -85,8 +85,6 @@ const SessionDetailsPage = () => {
         await fetchQuestions(sessionData.quiz_id);
       }
     } catch (err: any) {
-      console.error('Erreur lors de la récupération de la session:', err);
-      
       if (err.response?.status === 401) {
         setError('Votre session a expiré. Veuillez vous reconnecter.');
       } else if (err.response?.status === 403) {
@@ -124,7 +122,6 @@ const SessionDetailsPage = () => {
       
       setQuestions(sortedQuestions);
     } catch (err: any) {
-      console.error('Erreur lors du chargement des questions:', err);
       // Ne pas afficher d'erreur pour les questions, juste les laisser vides
     } finally {
       setLoadingQuestions(false);
@@ -154,7 +151,6 @@ const SessionDetailsPage = () => {
       await SessionsService.changeStatus(session.id, 'activate');
       await fetchSession(); // Recharger les données
     } catch (error: any) {
-      console.error('Erreur lors de l\'activation:', error);
     }
   };
 
@@ -176,7 +172,6 @@ const SessionDetailsPage = () => {
       await SessionsService.delete(session.id);
       router.push('/teachers-dashboard/sessions');
     } catch (error: any) {
-      console.error('Erreur lors de la suppression:', error);
     }
   };
 
@@ -404,7 +399,6 @@ const SessionDetailsPage = () => {
       const updatedSession = await SessionsService.complete(session.id);
       setSession(updatedSession);
     } catch (error: any) {
-      console.error('Erreur lors de la finalisation:', error);
     }
   };
 
@@ -420,7 +414,6 @@ const SessionDetailsPage = () => {
       const updatedSession = await SessionsService.cancel(session.id);
       setSession(updatedSession);
     } catch (error: any) {
-      console.error('Erreur lors de l\'annulation:', error);
     }
   };
 

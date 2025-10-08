@@ -56,11 +56,8 @@ const StudentResponsesPage = () => {
       }
 
       const data = await resultService.getStudentResponses(parseInt(sessionId), studentId);
-      console.log('Student responses loaded:', data);
-      console.log('Responses count:', data.responses?.length || 0);
       setStudentResponse(data);
     } catch (err) {
-      console.error('Erreur lors du chargement des réponses:', err);
       setError('Impossible de charger les réponses de l\'étudiant');
     } finally {
       setLoading(false);
@@ -108,11 +105,8 @@ const StudentResponsesPage = () => {
       setEditingResponse(null);
       setEditingPoints({});
       setEditingComments({});
-      
-      console.log('Correction sauvegardée pour la réponse:', responseId);
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
-      alert('Erreur lors de la sauvegarde de la correction');
+      setError('Erreur lors de la sauvegarde de la correction');
     } finally {
       setSavingCorrection(false);
     }
@@ -125,12 +119,8 @@ const StudentResponsesPage = () => {
     try {
       // Simulation de l'appel API
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('Résultat publié pour l\'étudiant:', studentResponse.student.name);
-      alert('Résultat publié avec succès !');
     } catch (error) {
-      console.error('Erreur lors de la publication:', error);
-      alert('Erreur lors de la publication du résultat');
+      setError('Erreur lors de la publication du résultat');
     } finally {
       setPublishingResult(false);
     }
@@ -143,12 +133,8 @@ const StudentResponsesPage = () => {
     try {
       // Simulation de l'appel API
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Résultat marqué comme corrigé pour l\'étudiant:', studentResponse.student.name);
-      alert('Résultat marqué comme corrigé !');
     } catch (error) {
-      console.error('Erreur lors du marquage:', error);
-      alert('Erreur lors du marquage comme corrigé');
+      setError('Erreur lors du marquage comme corrigé');
     } finally {
       setMarkingGraded(false);
     }
@@ -294,7 +280,7 @@ const StudentResponsesPage = () => {
                   {markingGraded ? "Marquage..." : "Marquer comme corrigé"}
                 </button>
                 <button
-                  onClick={() => console.log("Exporter PDF")}
+                  onClick={() => {}}
                   className="px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 flex items-center gap-2"
                 >
                   <Download className="w-4 h-4" />

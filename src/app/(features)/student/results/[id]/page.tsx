@@ -38,7 +38,6 @@ export default function ExamResultsPage() {
       const examResult = await StudentSessionsService.getExamResults(sessionId);
       setResult(examResult);
     } catch (err: any) {
-      console.error('Erreur lors du chargement des résultats:', err);
       setError(err.response?.data?.message || 'Erreur lors du chargement des résultats');
     } finally {
       setLoading(false);

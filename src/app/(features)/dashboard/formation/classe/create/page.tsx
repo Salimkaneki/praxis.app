@@ -43,7 +43,7 @@ export default function ClassePage() {
       const data = await getFormations(1);
       setFormations(data?.data || []);
     } catch (err) {
-      console.error("Erreur récupération formations:", err);
+      // Erreur récupération formations gérée silencieusement
     }
   };
 

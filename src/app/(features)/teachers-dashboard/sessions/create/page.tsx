@@ -95,7 +95,6 @@ export default function CreateSessionPage() {
         const quizzesData = await QuizzesService.getAll(); // Utilise la méthode getAll du service
         setQuizzes(quizzesData);
       } catch (err) {
-        console.error("Erreur lors du chargement des quiz", err);
         setQuizzesError("Erreur lors du chargement des quiz. Veuillez réessayer.");
       } finally {
         setLoadingQuizzes(false);
@@ -193,8 +192,6 @@ export default function CreateSessionPage() {
         // }
       };
 
-      console.log('Données envoyées:', sessionData); // Debug
-
       await SessionsService.create(sessionData);
       
       setSubmitStatus('success');
@@ -204,7 +201,6 @@ export default function CreateSessionPage() {
       }, 2000);
 
     } catch (error: any) {
-      console.error("Erreur lors de la création:", error);
       
       // Afficher les erreurs de validation spécifiques si disponibles
       if (error.response?.status === 422 && error.response?.data?.errors) {

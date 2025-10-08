@@ -204,12 +204,10 @@ const QuizDetailsPage = () => {
 
   const handleDuplicateQuestion = (questionId: string) => {
     // Logique de duplication
-    console.log('Dupliquer question:', questionId);
   };
 
   const handleDeleteQuestion = (questionId: string) => {
     // Logique de suppression
-    console.log('Supprimer question:', questionId);
   };
 
   const handlePreviewQuiz = () => {
@@ -218,7 +216,6 @@ const QuizDetailsPage = () => {
 
   const handleBulkDelete = () => {
     // Supprimer les questions sélectionnées
-    console.log('Supprimer questions:', selectedQuestions);
     setSelectedQuestions([]);
   };
 

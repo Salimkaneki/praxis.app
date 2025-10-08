@@ -93,7 +93,6 @@ export default function CreateQuizPage() {
         const teacherSubjects = await SubjectService.getMySubjects(); // CORRECTION ICI
         setSubjects(teacherSubjects);
       } catch (err) {
-        console.error("Erreur lors du chargement des matières", err);
         setSubjectsError("Erreur lors du chargement des matières. Veuillez réessayer.");
       } finally {
         setLoadingSubjects(false);
@@ -188,7 +187,6 @@ export default function CreateQuizPage() {
       }, 2000);
 
     } catch (error: any) {
-      console.error("Erreur lors de la création:", error);
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);

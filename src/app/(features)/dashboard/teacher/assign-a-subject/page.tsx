@@ -71,7 +71,6 @@ export default function TeacherSubjectAssignment() {
         }));
         setTeacherOptions(options);
         } catch (err) {
-        console.error("Erreur rÃ©cupÃ©ration des enseignants :", err);
         } finally {
         setLoadingTeachers(false);
         }
@@ -91,7 +90,6 @@ export default function TeacherSubjectAssignment() {
             }));
             setSubjectOptions(options);
             } catch (err) {
-            console.error("Erreur rÃ©cupÃ©ration des matiÃ¨res :", err);
             } finally {
             setLoadingSubjects(false);
             }
@@ -110,7 +108,6 @@ export default function TeacherSubjectAssignment() {
             }));
             setClasseOptions(options);
             } catch (err) {
-            console.error("Erreur rÃ©cupÃ©ration des classes :", err);
             } finally {
             setLoadingClasses(false);
             }
@@ -156,15 +153,8 @@ export default function TeacherSubjectAssignment() {
           is_active: formData.is_active,
         };
         const res = await assignSubject(payload);
-        alert(res.message);
         router.push("/dashboard/subject");
       } catch (error: any) {
-        console.error("Erreur crÃ©ation:", error);
-        if (error.response?.status === 409) {
-          alert(error.response.data.message);
-        } else {
-          alert("Erreur lors de la crÃ©ation de l'\''attribution.");
-        }
       } finally {
         setLoading(false);
       }

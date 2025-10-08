@@ -5,6 +5,7 @@ export { default as DataTable } from './Tables/DataTable';
 export { default as Pagination } from './Tables/Pagination';
 export { default as TableActions } from './Actions/TableActions';
 export { default as Alert } from './Feedback/Alert';
+export { default as ConfirmationDialog } from './Feedback/ConfirmationDialog';
 export { default as SearchBar } from './Search/SearchBar';
 
 // Composants existants

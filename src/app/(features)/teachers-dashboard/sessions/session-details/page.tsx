@@ -253,7 +253,6 @@ const SessionDetailsPage = () => {
 
   const handleActivateSession = () => {
     // Logique d'activation de session
-    alert("Activer la session - fonctionnalité à implémenter");
   };
 
   const formatDateTime = (dateString: string) => {

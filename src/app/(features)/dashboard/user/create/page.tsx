@@ -70,15 +70,11 @@ export default function UserCreationForm() {
         // Appel API pour créer l'utilisateur
         const createdUser = await createUser(userData);
 
-        console.log("Utilisateur créé avec succès:", createdUser);
-
         // Redirection vers la liste des utilisateurs (à créer plus tard)
         // Pour l'instant, on redirige vers le dashboard
         router.push("/dashboard");
 
       } catch (error: any) {
-        console.error("Erreur création utilisateur:", error);
-
         // Gestion des erreurs spécifiques
         if (error.message.includes("email")) {
           setErrors({ email: error.message });
@@ -88,7 +84,6 @@ export default function UserCreationForm() {
           setErrors({ role: error.message });
         } else {
           // Erreur générale
-          alert(`Erreur lors de la création de l'utilisateur: ${error.message}`);
         }
       } finally {
         setLoading(false);

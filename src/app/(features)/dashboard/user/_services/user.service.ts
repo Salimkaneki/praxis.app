@@ -66,15 +66,6 @@ export async function getUsers(
     const res = await api.get<PaginatedResponse<User>>("/users", { params });
     return res.data;
   } catch (err: any) {
-    console.error("Erreur API getUsers:", {
-      message: err.message,
-      status: err.response?.status,
-      statusText: err.response?.statusText,
-      data: err.response?.data,
-      url: err.config?.url,
-      method: err.config?.method
-    });
-
     const errorMessage = err.response?.data?.message ||
                         (err.response?.status === 401 ? "Accès non autorisé. Veuillez vous reconnecter." :
                          err.response?.status === 403 ? "Accès interdit." :

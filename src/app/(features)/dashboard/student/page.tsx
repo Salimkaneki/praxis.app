@@ -9,6 +9,7 @@ import {
 import axios from "@/lib/server/interceptor/axios"; 
 import { deleteStudent, fetchStudents, Student, PaginatedResponse } from "./_services/student.service";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
+import ConfirmationDialog from "@/components/ui/Feedback/ConfirmationDialog";
 
 
 // Types
@@ -32,6 +33,11 @@ export default function StudentPage() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage] = useState(10);
+
+  // États pour la confirmation de suppression
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Données mockées pour les classes (à remplacer par une API si nécessaire)
   const classes = [
@@ -116,7 +122,6 @@ export default function StudentPage() {
         total: response.total
       });
     } catch (err) {
-      console.error('Erreur lors du chargement des étudiants:', err);
       setError("Erreur lors du chargement des étudiants");
     } finally {
       setLoading(false);
@@ -207,15 +212,30 @@ export default function StudentPage() {
   };
 
   // Fonction pour supprimer un étudiant
-  const handleDeleteStudent = async (studentId: number) => {
+  const handleDeleteStudent = (student: Student) => {
+    setStudentToDelete(student);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteStudent = async () => {
+    if (!studentToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await deleteStudent(studentId);
-      setStudents(prev => prev.filter(student => student.id !== studentId));
-      alert("Étudiant supprimé avec succès !");
+      await deleteStudent(studentToDelete.id);
+      setStudents(prev => prev.filter(student => student.id !== studentToDelete.id));
+      setShowDeleteDialog(false);
+      setStudentToDelete(null);
     } catch (err) {
-      console.error("Erreur lors de la suppression de l'étudiant:", err);
-      alert("Une erreur est survenue lors de la suppression.");
+      // L'erreur sera gérée par le service ou un état d'erreur
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const cancelDeleteStudent = () => {
+    setShowDeleteDialog(false);
+    setStudentToDelete(null);
   };
 
   // Fonction pour naviguer vers la page d'édition
@@ -405,7 +425,7 @@ export default function StudentPage() {
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteStudent(student.id)}
+                            onClick={() => handleDeleteStudent(student)}
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Supprimer"
                           >
@@ -460,6 +480,19 @@ export default function StudentPage() {
           </div>
         )}
       </div>
+
+      {/* Dialogue de confirmation de suppression */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Supprimer l'étudiant"
+        message={`Êtes-vous sûr de vouloir supprimer l'étudiant "${studentToDelete?.first_name} ${studentToDelete?.last_name}" ? Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        confirmButtonColor="red"
+        onConfirm={confirmDeleteStudent}
+        onCancel={cancelDeleteStudent}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

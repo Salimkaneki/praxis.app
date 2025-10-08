@@ -19,6 +19,7 @@ import DataTable from "@/components/ui/Tables/DataTable";
 import Pagination from "@/components/ui/Tables/Pagination";
 import TableActions from "@/components/ui/Actions/TableActions";
 import Alert from "@/components/ui/Feedback/Alert";
+import ConfirmationDialog from "@/components/ui/Feedback/ConfirmationDialog";
 import { useCrud } from "@/hooks/useCrud";
 import { usePagination } from "@/hooks/usePagination";
 import { useSearch } from "@/hooks/useSearch";
@@ -45,7 +46,7 @@ export default function FormationsList() {
   const { query, updateQuery } = useSearch({
     onSearch: () => updatePagination({ current_page: 1, last_page: 1, total: 0 })
   });
-  const { loading: crudLoading, handleDelete } = useCrud({
+  const { loading: crudLoading, showDeleteDialog, itemToDelete, handleDelete, confirmDelete, cancelDelete } = useCrud<Formation>({
     deleteMessage: "Êtes-vous sûr de vouloir supprimer cette formation ?",
     successMessage: "Formation supprimée avec succès !"
   });
@@ -115,8 +116,8 @@ export default function FormationsList() {
   ], [stats]);
 
   // Gestionnaire de suppression
-  const onDeleteFormation = async (formation: Formation) => {
-    const success = await handleDelete(formation, async (id) => {
+  const onDeleteFormation = (formation: Formation) => {
+    handleDelete(formation, async (id) => {
       await deleteFormation(id);
       // Recharger les données après suppression
       const response = await getFormations(currentPage, query);
@@ -128,10 +129,22 @@ export default function FormationsList() {
       });
       setTotal(response.total);
     });
+  };
 
-    if (success) {
-      // La liste sera automatiquement mise à jour via le rechargement
-    }
+  // Gestionnaire de confirmation de suppression
+  const onConfirmDeleteFormation = async () => {
+    await confirmDelete(async (id) => {
+      await deleteFormation(id);
+      // Recharger les données après suppression
+      const response = await getFormations(currentPage, query);
+      setFormations(response.data);
+      updatePagination({
+        current_page: response.current_page,
+        last_page: response.last_page,
+        total: response.total
+      });
+      setTotal(response.total);
+    });
   };
 
 
@@ -264,6 +277,19 @@ export default function FormationsList() {
           />
         )}
       </div>
+
+      {/* Dialogue de confirmation de suppression */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Supprimer la formation"
+        message={`Êtes-vous sûr de vouloir supprimer la formation "${itemToDelete?.name}" ? Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        confirmButtonColor="red"
+        onConfirm={onConfirmDeleteFormation}
+        onCancel={cancelDelete}
+        isLoading={crudLoading}
+      />
     </div>
   );
 }

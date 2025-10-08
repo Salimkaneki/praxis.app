@@ -127,14 +127,12 @@ class ResultService {
             });
           }
         } catch (error) {
-          console.warn(`Erreur lors de la récupération des résultats pour la session ${session.id}:`, error);
           // Continuer avec les autres sessions même si une échoue
         }
       }
 
       return examResults;
     } catch (error) {
-      console.error('Erreur lors de la récupération des résultats:', error);
       throw error;
     }
   }
@@ -146,12 +144,9 @@ class ResultService {
   async getSessionParticipation(sessionId: number): Promise<StudentSubmission[]> {
     try {
       const response = await api.get(`/teacher/quiz/${sessionId}/results`);
-      console.log('API Response for session participation:', response.data);
 
       // Transformer les données pour correspondre à notre interface StudentSubmission
       return response.data.map((result: any) => {
-        console.log('Individual result:', result);
-
         // Essayer différentes structures possibles pour le nom de l'étudiant
         let studentName = 'Étudiant';
         if (result.student?.first_name && result.student?.last_name) {
@@ -167,13 +162,6 @@ class ResultService {
         } else if (result.user?.first_name && result.user?.last_name) {
           studentName = `${result.user.first_name} ${result.user.last_name}`;
         }
-
-        console.log('Student name resolution:', {
-          result,
-          studentName,
-          student: result.student,
-          user: result.user
-        });
 
         return {
           id: result.id,
@@ -193,7 +181,6 @@ class ResultService {
         };
       });
     } catch (error) {
-      console.error('Erreur lors de la récupération de la participation:', error);
       throw error;
     }
   }
@@ -220,7 +207,6 @@ class ResultService {
       } catch (error: any) {
         // Si l'endpoint n'existe pas (404) ou erreur serveur (500), essayer un endpoint alternatif
         if (error.response?.status === 404 || error.response?.status === 500) {
-          console.warn(`Endpoint /teacher/results/${studentResult.id} non disponible, utilisation des données de session`);
           // Retourner les données limitées de la session au lieu de rien
           return {
             id: studentResult.id,
@@ -243,7 +229,6 @@ class ResultService {
 
       // Transformer les données pour correspondre à notre interface StudentQuizResponse
       const result = response.data;
-      console.log('Student response data:', result);
 
       // Essayer différentes structures possibles pour le nom de l'étudiant
       let studentName = 'Étudiant';
@@ -260,18 +245,6 @@ class ResultService {
       } else if (result.user?.first_name && result.user?.last_name) {
         studentName = `${result.user.first_name} ${result.user.last_name}`;
       }
-
-      console.log('Transformed student response:', {
-        id: result.id,
-        student: {
-          id: result.student_id,
-          name: studentName,
-          email: result.student?.email || '',
-        },
-        score: parseFloat(result.total_points) || 0,
-        percentage: parseFloat(result.percentage) || 0,
-        responsesCount: (result.student_responses || []).length
-      });
 
       return {
         id: result.id,
@@ -326,7 +299,6 @@ class ResultService {
         })
       };
     } catch (error) {
-      console.error('Erreur lors de la récupération des réponses:', error);
       throw error;
     }
   }
@@ -346,7 +318,6 @@ class ResultService {
       const response = await api.put(`/teacher/results/${resultId}`, data);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du résultat:', error);
       throw error;
     }
   }
@@ -364,7 +335,6 @@ class ResultService {
       const response = await api.put(`/teacher/results/${resultId}/responses/${responseId}`, data);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la correction de la réponse:', error);
       throw error;
     }
   }
@@ -378,7 +348,6 @@ class ResultService {
       const response = await api.post(`/teacher/results/${resultId}/mark-graded`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors du marquage comme corrigé:', error);
       throw error;
     }
   }
@@ -392,7 +361,6 @@ class ResultService {
       const response = await api.post(`/teacher/results/${resultId}/publish`);
       return response.data;
     } catch (error) {
-      console.error('Erreur lors de la publication du résultat:', error);
       throw error;
     }
   }
@@ -404,7 +372,6 @@ class ResultService {
     try {
       await api.delete(`/api/results/${resultId}`);
     } catch (error) {
-      console.error('Erreur lors de la suppression du résultat:', error);
       throw error;
     }
   }

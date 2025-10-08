@@ -42,12 +42,9 @@ export default function SessionDetailsPage() {
       setSession(sessionData);
 
       // Vérifier si l'étudiant a déjà rejoint cette session
-      console.log('🔍 Vérification si l\'étudiant a déjà rejoint la session:', sessionId);
       const joined = await StudentSessionsService.hasJoinedSession(sessionId);
       setHasJoined(joined);
-      console.log('✅ État de participation:', joined);
     } catch (err: any) {
-      console.error('Erreur lors du chargement des détails de session:', err);
       setError(err.response?.data?.message || 'Erreur lors du chargement des détails de session');
     } finally {
       setLoading(false);
@@ -73,7 +70,6 @@ export default function SessionDetailsPage() {
       // Rediriger vers l'examen
       router.push(`/student/test?session=${session.id}`);
     } catch (err: any) {
-      console.error('Erreur lors du démarrage de l\'examen:', err);
       setError(err.response?.data?.message || 'Erreur lors du démarrage de l\'examen');
     } finally {
       setStartingExam(false);

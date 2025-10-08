@@ -142,10 +142,8 @@ const ExamResultCard = ({ result, index, onDelete }: ExamResultCardProps) => {
 
   const handleDownload = async () => {
     try {
-      console.log(`Téléchargement des résultats pour: ${result.session_title}`);
       // Logique de téléchargement
     } catch (error) {
-      console.error("Erreur lors du téléchargement:", error);
     }
   };
 
@@ -164,12 +162,9 @@ const ExamResultCard = ({ result, index, onDelete }: ExamResultCardProps) => {
       // Simuler l'appel API de suppression
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log(`Résultats "${result.session_title}" supprimés avec succès`);
       onDelete(result.id);
       
     } catch (error: any) {
-      console.error("Erreur lors de la suppression des résultats:", error);
-      alert(`Erreur: Une erreur est survenue lors de la suppression`);
     } finally {
       setIsDeleting(false);
     }

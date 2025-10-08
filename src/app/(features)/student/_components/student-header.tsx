@@ -67,7 +67,6 @@ export default function StudentHeader() {
         const profile = await getStudentProfile();
         setStudentProfile(profile);
       } catch (error) {
-        console.error('Erreur lors du chargement du profil:', error);
         // En cas d'erreur, garder les données du localStorage si elles existent
       } finally {
         setLoading(false);
@@ -84,7 +83,6 @@ export default function StudentHeader() {
       await logoutStudent();
       // La redirection est gérée dans la fonction logoutStudent
     } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
       // Même en cas d'erreur, forcer la déconnexion
       localStorage.removeItem('student_token');
       localStorage.removeItem('student_data');

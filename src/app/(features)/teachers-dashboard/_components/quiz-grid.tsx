@@ -85,7 +85,6 @@ const QuizCardComponent = ({ quiz, index }: QuizCardProps) => {
         break;
       case 'delete':
         if (window.confirm(`Êtes-vous sûr de vouloir supprimer le quiz "${quiz.title}" ?`)) {
-          console.log("Supprimer le quiz:", quiz.id);
           // Logique de suppression à implémenter
         }
         break;
