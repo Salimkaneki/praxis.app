@@ -140,7 +140,7 @@ export default function Header() {
               </div>
               <div className="p-3 text-center border-t border-gray-100">
                 <button className="text-sm font-poppins text-forest-600 hover:text-forest-700 font-medium transition-colors">
-                  Voir toutes les notifications
+                  <a href="/dashboard/notifications">Voir toutes les notifications</a>
                 </button>
               </div>
             </div>

@@ -71,12 +71,13 @@ export const fetchStudents = async (params?: {
   per_page?: number;
 }): Promise<PaginatedResponse<Student>> => {
   try {
-    const response = await axios.get("/admin/students", { 
+    const response = await axios.get("/admin/students", {
       params,
       timeout: 30000 // 30 secondes pour cette requête spécifique
     });
     return response.data;
   } catch (error: any) {
+    console.error('Erreur fetchStudents:', error);
     throw error;
   }
 };
@@ -127,30 +128,30 @@ export const importStudents = async (file: File) => {
         "Content-Type": "multipart/form-data",
       },
     });
-    
+
     return response.data;
-    
+
   } catch (error: any) {
-    
+
     if (error.response?.status === 422) {
       // Erreur de validation - affichez les détails
       const validationErrors = error.response.data;
-      
+
       let errorMessage = "Erreurs de validation :\n";
-      
+
       if (validationErrors.message) {
         errorMessage += validationErrors.message + "\n";
       }
-      
+
       if (validationErrors.errors) {
         Object.entries(validationErrors.errors).forEach(([field, messages]) => {
           errorMessage += `${field}: ${(messages as string[]).join(', ')}\n`;
         });
       }
-      
+
       throw new Error(errorMessage);
     }
-    
+
     throw new Error(error.response?.data?.message || "Erreur lors de l'importation");
   }
 };
