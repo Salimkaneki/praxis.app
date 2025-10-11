@@ -1,0 +1,46 @@
+Vérifiez aussi votre StoreQuizSessionRequest. Les règles de validation typiques devraient être:
+
+```php
+public function rules(): array
+{
+    return [
+        'quiz_id' => 'required|exists:quizzes,id',
+        'title' => 'required|string|max:255',
+        'starts_at' => 'required|date|after:now',
+        'ends_at' => 'required|date|after:starts_at',
+        'max_participants' => 'required|integer|min:1|max:1000',
+        'allowed_students' => 'nullable|array',
+        'allowed_students.*' => 'exists:students,id',
+        // Autres règles...
+    ];
+}
+```
+
+Le problème pourrait être:
+- `starts_at` doit être `after:now` (dans le futur)
+- Format de date incorrect
+- `quiz_id` n'existe pas
+- Contraintes de base de données
+
+Vérifiez aussi votre AuthorizationTrait:
+
+```php
+// Dans AuthorizationTrait
+public function checkScheduleConflicts($teacher, $startsAt, $endsAt, $excludeSessionId = null)
+{
+    // Cette méthode peut lancer une ValidationException
+}
+
+public function validateStudentsInstitution($studentIds, $teacher)
+{
+    // Cette méthode peut aussi lancer une ValidationException
+}
+```
+
+**Résumé des causes possibles:**
+
+1. **Validation Request** (422 automatique par Laravel)
+2. **AuthorizationTrait exceptions** (ValidationException → 422)
+3. **Erreur de parsing de dates**
+4. **Contraintes base de données**
+5. **Erreur dans les notifications** (mais la session serait quand même créée)

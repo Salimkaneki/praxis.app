@@ -26,24 +26,13 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
   const [hasJoined, setHasJoined] = useState<boolean | null>(null);
   const [checkingJoinStatus, setCheckingJoinStatus] = useState(false);
 
-  // Vérifier si l'étudiant a déjà rejoint cette session
+  // Utiliser le join_status fourni par l'API au lieu de faire un appel supplémentaire
   useEffect(() => {
-    const checkJoinStatus = async () => {
-      if (session.status === 'active') {
-        setCheckingJoinStatus(true);
-        try {
-          const joined = await StudentSessionsService.hasJoinedSession(session.id);
-          setHasJoined(joined);
-        } catch (error) {
-          setHasJoined(false); // En cas d'erreur, considérer comme non rejoint
-        } finally {
-          setCheckingJoinStatus(false);
-        }
-      }
-    };
-
-    checkJoinStatus();
-  }, [session.id, session.status]);
+    // Le join_status "disponible" signifie que l'étudiant a rejoint et peut participer
+    // Le join_status "à venir" signifie que la session est programmée mais pas encore rejointe
+    // Le join_status "terminée" signifie que la session est terminée
+    setHasJoined(session.join_status === 'disponible');
+  }, [session.join_status]);
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -156,19 +145,12 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
   const handleStartExam = async () => {
     if (!canStartExam()) return;
 
-    try {
-      // Vérifier si l'étudiant a déjà rejoint cette session
-      const hasJoined = await StudentSessionsService.hasJoinedSession(session.id);
-
-      if (hasJoined) {
-        // Si déjà rejoint, aller directement à la participation
-        router.push(`/student/sessions/participate?sessionId=${session.id}`);
-      } else {
-        // Sinon, aller à la page de join avec le code pré-rempli
-        router.push(`/student/join-session?code=${session.session_code}`);
-      }
-    } catch (error) {
-      // En cas d'erreur, aller à la page de join
+    // Utiliser le join_status déterminé précédemment
+    if (hasJoined) {
+      // Si déjà rejoint, aller directement à la participation
+      router.push(`/student/sessions/participate?sessionId=${session.id}`);
+    } else {
+      // Sinon, aller à la page de join avec le code pré-rempli
       router.push(`/student/join-session?code=${session.session_code}`);
     }
   };

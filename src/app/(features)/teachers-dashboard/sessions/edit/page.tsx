@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useEffect } from "react";
-import { useRouter } from 'next/navigation';
-import { 
-  FileText, Clock, Calendar, Users, Settings, 
-  Save, AlertCircle, CheckCircle, Shield, 
+import { useRouter, useParams } from 'next/navigation';
+import {
+  FileText, Clock, Calendar, Users, Settings,
+  Save, AlertCircle, CheckCircle, Shield,
   Pause, Shuffle, Loader2
 } from "lucide-react";
 
@@ -12,13 +12,12 @@ import Input from "@/components/ui/Inputs/Input";
 import Select from "@/components/ui/Inputs/Select";
 import TeacherPageHeader from "../../_components/page-header";
 
-// Types pour le formulaire
-interface Quiz {
-  id: number;
-  title: string;
-  subject_name?: string;
-}
+// Import des services
+import { SessionsService, Session } from "../_services/sessions.service";
+import { QuizzesService, Quiz } from "../../quizzes/_services/quizzes.service";
+import { useToast } from "@/hooks/useToast";
 
+// Types pour le formulaire
 interface FormData {
   quiz_id: string;
   title: string;
@@ -50,6 +49,11 @@ type SubmitStatus = 'success' | 'error' | null;
 
 export default function SessionsEditPage() {
   const router = useRouter();
+  const params = useParams();
+  const sessionId = parseInt(params.id as string);
+
+  const { showSuccess, showError } = useToast();
+
   const [formData, setFormData] = useState<FormData>({
     quiz_id: "",
     title: "",
@@ -67,60 +71,115 @@ export default function SessionsEditPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
 
   // États pour les données externes
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
   const [quizzesError, setQuizzesError] = useState<string | null>(null);
-  const [isLoadingSession, setIsLoadingSession] = useState(true);
 
-  // Simulation de données (vous remplacerez par un appel API réel)
+  // Vérification que l'ID est valide
+  if (!sessionId || isNaN(sessionId)) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-poppins flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">ID de session invalide</h2>
+          <p className="text-gray-600 mb-6">L'identifiant de la session n'est pas valide.</p>
+          <button
+            onClick={() => router.push('/teachers-dashboard/sessions')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retour à la liste
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Charger les données de la session
   useEffect(() => {
-    // Simuler le chargement des données de la session
-    const loadSessionData = () => {
-      // Données exemple - remplacez par un appel API réel
-      const mockSessionData = {
-        quiz_id: "1",
-        title: "Session 1 - Quiz UX Design - Groupe A",
-        starts_at_date: "2025-09-25",
-        starts_at_time: "09:00",
-        ends_at_date: "2025-09-25",
-        ends_at_time: "11:00",
-        max_participants: "50",
-        shuffle_questions: true,
-        time_limit: "90",
-        proctoring: false,
-        allow_pause: true
-      };
+    const loadSession = async () => {
+      try {
+        setIsLoading(true);
+        setLoadingError(null);
 
-      setFormData(mockSessionData);
-      setIsLoadingSession(false);
+        console.log('Chargement de la session ID:', sessionId);
+        const session = await SessionsService.getById(sessionId);
+        console.log('Session chargée:', session);
+
+        // Vérifier que la session a bien été chargée
+        if (!session || !session.id) {
+          throw new Error('Session non trouvée ou données invalides');
+        }
+
+        // Convertir les dates pour le formulaire
+        const startsAt = new Date(session.starts_at);
+        const endsAt = new Date(session.ends_at);
+
+        // Pré-remplir le formulaire avec les données de la session
+        setFormData({
+          quiz_id: session.quiz_id?.toString() || "",
+          title: session.title || "",
+          starts_at_date: startsAt.toISOString().split('T')[0],
+          starts_at_time: startsAt.toTimeString().slice(0, 5),
+          ends_at_date: endsAt.toISOString().split('T')[0],
+          ends_at_time: endsAt.toTimeString().slice(0, 5),
+          max_participants: session.max_participants?.toString() || "100",
+          shuffle_questions: session.settings?.shuffle_questions ?? true,
+          time_limit: session.settings?.time_limit?.toString() || session.duration_minutes?.toString() || "60",
+          proctoring: session.settings?.proctoring ?? true,
+          allow_pause: session.settings?.allow_pause ?? false
+        });
+
+      } catch (error: any) {
+        console.error('Erreur lors du chargement de la session:', error);
+
+        // Gestion spécifique des erreurs HTTP
+        if (error.response?.status === 404) {
+          setLoadingError("Session non trouvée. Elle a peut-être été supprimée.");
+        } else if (error.response?.status === 403) {
+          setLoadingError("Accès refusé. Vous n'avez pas les permissions pour modifier cette session.");
+        } else if (error.response?.status >= 500) {
+          setLoadingError("Erreur serveur. Veuillez réessayer plus tard.");
+        } else {
+          setLoadingError("Erreur lors du chargement de la session. Veuillez réessayer.");
+        }
+
+        showError("Impossible de charger les données de la session");
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    loadSessionData();
-  }, []);
+    if (sessionId) {
+      loadSession();
+    }
+  }, [sessionId, showError]);
 
-  // Simulation du chargement des quiz
+  // Charger les quiz disponibles
   useEffect(() => {
-    const loadQuizzes = () => {
-      // Données exemple - remplacez par un appel API réel
-      const mockQuizzes = [
-        { id: 1, title: "Quiz UX Design", subject_name: "Design" },
-        { id: 2, title: "Quiz React", subject_name: "Développement" },
-        { id: 3, title: "Quiz Marketing", subject_name: "Marketing" }
-      ];
-
-      setQuizzes(mockQuizzes);
-      setLoadingQuizzes(false);
+    const loadQuizzes = async () => {
+      try {
+        setLoadingQuizzes(true);
+        setQuizzesError(null);
+        const quizzesData = await QuizzesService.getAll();
+        setQuizzes(quizzesData);
+      } catch (err) {
+        console.error('Erreur lors du chargement des quiz:', err);
+        setQuizzesError("Erreur lors du chargement des quiz. Veuillez réessayer.");
+      } finally {
+        setLoadingQuizzes(false);
+      }
     };
-
     loadQuizzes();
   }, []);
 
   // Options pour les selects
   const quizOptions = quizzes.map(quiz => ({
     value: quiz.id.toString(),
-    label: `${quiz.title}${quiz.subject_name ? ` - ${quiz.subject_name}` : ''}`
+    label: quiz.title
   }));
 
   // Gestion des changements de formulaire
@@ -182,17 +241,36 @@ export default function SessionsEditPage() {
     setSubmitStatus(null);
 
     try {
-      // Simulation d'un appel API - remplacez par votre logique réelle
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Préparer les données pour l'API
+      const sessionData = {
+        quiz_id: parseInt(formData.quiz_id),
+        title: formData.title,
+        starts_at: `${formData.starts_at_date}T${formData.starts_at_time}:00`,
+        ends_at: `${formData.ends_at_date}T${formData.ends_at_time}:00`,
+        max_participants: parseInt(formData.max_participants),
+        settings: {
+          shuffle_questions: formData.shuffle_questions,
+          time_limit: parseInt(formData.time_limit),
+          proctoring: formData.proctoring,
+          allow_pause: formData.allow_pause
+        }
+      };
+
+      // Utilisation du service de mise à jour
+      const updatedSession = await SessionsService.update(sessionId, sessionData);
+
       setSubmitStatus('success');
-      // Redirection après 2 secondes
+      showSuccess("Session modifiée avec succès !");
+
+      // Redirection après un court délai
       setTimeout(() => {
         router.push('/teachers-dashboard/sessions');
-      }, 2000);
+      }, 1500);
 
     } catch (error: any) {
+      console.error('Erreur lors de la modification:', error);
       setSubmitStatus('error');
+      showError("Une erreur est survenue lors de la modification.");
     } finally {
       setIsSubmitting(false);
     }
@@ -203,7 +281,7 @@ export default function SessionsEditPage() {
   };
 
   // Afficher un loader pendant le chargement initial
-  if (isLoadingSession) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 font-poppins">
         <TeacherPageHeader
@@ -214,6 +292,25 @@ export default function SessionsEditPage() {
         />
         <div className="flex justify-center items-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      </div>
+    );
+  }
+
+  // Afficher une erreur si le chargement a échoué
+  if (loadingError) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-poppins flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Erreur de chargement</h2>
+          <p className="text-gray-600 mb-6">{loadingError}</p>
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retour
+          </button>
         </div>
       </div>
     );

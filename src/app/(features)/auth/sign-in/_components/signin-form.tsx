@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Inputs/Input";
 import Button from "@/components/ui/Buttons/Button";
 import { loginAdmin } from "../_services/auth.service";
+import { useToast } from "@/hooks/useToast";
 
 export default function SignInForm() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,29 +27,32 @@ export default function SignInForm() {
       if ("error" in res) {
         const msg = res.error.toLowerCase();
         if (msg.includes("identifiants invalides")) {
-          router.push("/error-page?code=401");
+          showError("Identifiants invalides. V�rifiez votre email et mot de passe.");
         } else if (msg.includes("pas d’accès")) {
-          router.push("/error-page?code=403");
+          showError("Acc�s refus�. Vous n'avez pas les permissions n�cessaires.");
         } else {
-          router.push("/error-page?code=500");
+          showError("Une erreur est survenue. Veuillez r�essayer.");
         }
         return;
       }
 
       // Vérification type utilisateur
       if (res.user.account_type !== "admin") {
-        router.push("/error-page?code=403");
+        showError("Acc�s refus�. Vous n'avez pas les permissions n�cessaires.");
         return;
       }
 
       // Stockage du token sécurisé
       localStorage.setItem("admin_token", res.token);
 
+      // Toast de succès
+      showSuccess("Connexion réussie ! Bienvenue dans votre espace administrateur.");
+
       // Redirection vers dashboard
       router.push("/dashboard/");
     } catch (err) {
       console.error(err);
-      router.push("/error-page?code=500");
+      showError("Une erreur est survenue. Veuillez r�essayer.");
     } finally {
       setLoading(false);
     }

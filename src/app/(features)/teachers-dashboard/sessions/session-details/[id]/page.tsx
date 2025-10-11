@@ -41,37 +41,15 @@ const SessionDetailsPage = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
 
-  // Données simulées des étudiants (à remplacer par de vraies données plus tard)
-  const [students, setStudents] = useState<Student[]>([
-    {
-      id: 1,
-      name: "Marie Dubois",
-      email: "marie.dubois@email.com",
-      status: "completed",
-      started_at: "2025-09-05T09:05:00Z",
-      submitted_at: "2025-09-05T09:45:00Z",
-      score: 85,
-      time_spent: 40
-    },
-    {
-      id: 2,
-      name: "Jean Martin",
-      email: "jean.martin@email.com", 
-      status: "in_progress",
-      started_at: "2025-09-05T09:10:00Z",
-      time_spent: 25
-    },
-    {
-      id: 3,
-      name: "Sophie Laurent",
-      email: "sophie.laurent@email.com",
-      status: "completed",
-      started_at: "2025-09-05T09:02:00Z",
-      submitted_at: "2025-09-05T09:52:00Z",
-      score: 92,
-      time_spent: 50
-    }
-  ]);
+  // États pour les étudiants
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [studentsError, setStudentsError] = useState<string | null>(null);
+
+  // États pour les résultats
+  const [results, setResults] = useState<Student[]>([]);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [resultsError, setResultsError] = useState<string | null>(null);
 
   // Fonction pour charger les données de la session
   const fetchSession = async () => {
@@ -84,6 +62,9 @@ const SessionDetailsPage = () => {
       if (sessionData.quiz_id) {
         await fetchQuestions(sessionData.quiz_id);
       }
+
+      // Charger les participants de la session
+      await fetchStudents(parseInt(sessionId));
     } catch (err: any) {
       if (err.response?.status === 401) {
         setError('Votre session a expiré. Veuillez vous reconnecter.');
@@ -128,6 +109,38 @@ const SessionDetailsPage = () => {
     }
   };
 
+  // Fonction pour charger les étudiants participants
+  const fetchStudents = async (sessionId: number) => {
+    try {
+      setLoadingStudents(true);
+      setStudentsError(null);
+      const studentsData = await SessionsService.getParticipants(sessionId);
+      setStudents(studentsData);
+    } catch (err: any) {
+      setStudentsError(err.response?.data?.error || err.message || 'Erreur lors du chargement des participants');
+      // Garder les étudiants vides en cas d'erreur
+      setStudents([]);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  // Fonction pour charger les résultats de la session
+  const fetchResults = async (sessionId: number) => {
+    try {
+      setLoadingResults(true);
+      setResultsError(null);
+      const resultsData = await SessionsService.getResults(sessionId);
+      setResults(resultsData);
+    } catch (err: any) {
+      setResultsError(err.response?.data?.error || err.message || 'Erreur lors du chargement des résultats');
+      // Garder les résultats vides en cas d'erreur
+      setResults([]);
+    } finally {
+      setLoadingResults(false);
+    }
+  };
+
   // Chargement initial
   useEffect(() => {
     if (sessionId) {
@@ -157,7 +170,7 @@ const SessionDetailsPage = () => {
   // Fonction pour éditer une session
   const handleEditSession = () => {
     if (!session) return;
-    router.push(`/teachers-dashboard/sessions/${session.id}/edit`);
+    router.push(`/teachers-dashboard/sessions/edit/${session.id}`);
   };
 
   // Fonction pour supprimer une session
@@ -685,7 +698,13 @@ const SessionDetailsPage = () => {
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        // Charger les résultats quand on clique sur l'onglet résultats
+                        if (tab.id === 'results' && session && results.length === 0 && !loadingResults) {
+                          fetchResults(session.id);
+                        }
+                      }}
                       className={`pb-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                         activeTab === tab.id
                           ? 'border-blue-500 text-blue-600'
@@ -846,7 +865,7 @@ const SessionDetailsPage = () => {
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">Participants à la session</h3>
                       <p className="text-sm text-gray-600">
-                        {allowedStudentsCount} étudiants autorisés
+                        {loadingStudents ? 'Chargement...' : `${students.length} participant${students.length > 1 ? 's' : ''}`}
                       </p>
                     </div>
                     <button
@@ -858,48 +877,86 @@ const SessionDetailsPage = () => {
                     </button>
                   </div>
 
-                  <div className="space-y-2">
-                    {students.map((student) => {
-                      const statusConfig = getStudentStatusConfig(student.status);
-                      const StatusIcon = statusConfig.icon;
-                      
-                      return (
-                        <div
-                          key={student.id}
-                          className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-gray-700">
-                                {student.name.split(' ').map(n => n[0]).join('')}
-                              </span>
-                            </div>
-                            <div>
-                              <h4 className="font-medium text-gray-900">{student.name}</h4>
-                              <p className="text-sm text-gray-600">{student.email}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-4">
-                            {student.score !== undefined && (
-                              <span className="text-sm font-medium text-gray-900">
-                                {student.score}%
-                              </span>
-                            )}
-                            {student.time_spent && (
-                              <span className="text-sm text-gray-600">
-                                {student.time_spent} min
-                              </span>
-                            )}
-                            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 ${statusConfig.className}`}>
-                              <StatusIcon className="w-3 h-3" />
-                              {statusConfig.label}
+                  {studentsError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                      <div className="flex items-center gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                        <p className="text-red-800 text-sm">{studentsError}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {loadingStudents ? (
+                    <div className="space-y-2">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="border border-gray-200 rounded-lg p-4">
+                          <div className="animate-pulse">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                              <div className="flex-1">
+                                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                                <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                              </div>
+                              <div className="h-6 bg-gray-200 rounded w-20"></div>
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  ) : students.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <UserCheck className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h4 className="text-lg font-medium text-gray-900 mb-2">Aucun participant</h4>
+                      <p className="text-gray-600 max-w-md mx-auto">
+                        Aucun étudiant ne s'est encore inscrit ou n'a commencé cette session.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {students.map((student) => {
+                        const statusConfig = getStudentStatusConfig(student.status);
+                        const StatusIcon = statusConfig.icon;
+                        
+                        return (
+                          <div
+                            key={student.id}
+                            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-medium text-gray-700">
+                                  {student.name.split(' ').map(n => n[0]).join('')}
+                                </span>
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-gray-900">{student.name}</h4>
+                                <p className="text-sm text-gray-600">{student.email}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-4">
+                              {student.score !== undefined && (
+                                <span className="text-sm font-medium text-gray-900">
+                                  {student.score}%
+                                </span>
+                              )}
+                              {student.time_spent && (
+                                <span className="text-sm text-gray-600">
+                                  {student.time_spent} min
+                                </span>
+                              )}
+                              <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 ${statusConfig.className}`}>
+                                <StatusIcon className="w-3 h-3" />
+                                {statusConfig.label}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -997,7 +1054,43 @@ const SessionDetailsPage = () => {
                     </button>
                   </div>
 
-                  {completedStudents === 0 ? (
+                  {resultsError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                      <div className="flex items-center gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                        <p className="text-red-800 text-sm">{resultsError}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {loadingResults ? (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {[...Array(4)].map((_, i) => (
+                          <div key={i} className="bg-gray-50 p-4 rounded-lg text-center">
+                            <div className="animate-pulse">
+                              <div className="h-8 bg-gray-200 rounded w-16 mx-auto mb-2"></div>
+                              <div className="h-4 bg-gray-200 rounded w-20 mx-auto"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="bg-gray-50 p-6 rounded-lg">
+                        <div className="animate-pulse">
+                          <div className="h-6 bg-gray-200 rounded w-48 mb-4"></div>
+                          <div className="space-y-2">
+                            {[...Array(5)].map((_, i) => (
+                              <div key={i} className="flex items-center gap-4">
+                                <div className="h-4 bg-gray-200 rounded w-16"></div>
+                                <div className="flex-1 h-4 bg-gray-200 rounded"></div>
+                                <div className="h-4 bg-gray-200 rounded w-8"></div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : results.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Target className="w-8 h-8 text-gray-400" />
@@ -1012,25 +1105,27 @@ const SessionDetailsPage = () => {
                       {/* Statistiques globales */}
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="bg-blue-50 p-4 rounded-lg text-center">
-                          <p className="text-2xl font-bold text-blue-600">{Math.round(averageScore)}%</p>
+                          <p className="text-2xl font-bold text-blue-600">
+                            {results.filter(r => r.score).length > 0 ? Math.round(results.filter(r => r.score).reduce((acc, r) => acc + (r.score || 0), 0) / results.filter(r => r.score).length) : 0}%
+                          </p>
                           <p className="text-sm text-blue-800">Score moyen</p>
                         </div>
                         <div className="bg-green-50 p-4 rounded-lg text-center">
                           <p className="text-2xl font-bold text-green-600">
-                            {students.filter(s => s.score).length > 0 ? Math.max(...students.filter(s => s.score).map(s => s.score || 0)) : 0}%
+                            {results.filter(r => r.score).length > 0 ? Math.max(...results.filter(r => r.score).map(r => r.score || 0)) : 0}%
                           </p>
                           <p className="text-sm text-green-800">Meilleur score</p>
                         </div>
                         <div className="bg-red-50 p-4 rounded-lg text-center">
                           <p className="text-2xl font-bold text-red-600">
-                            {students.filter(s => s.score).length > 0 ? Math.min(...students.filter(s => s.score).map(s => s.score || 0)) : 0}%
+                            {results.filter(r => r.score).length > 0 ? Math.min(...results.filter(r => r.score).map(r => r.score || 0)) : 0}%
                           </p>
                           <p className="text-sm text-red-800">Score le plus bas</p>
                         </div>
                         <div className="bg-purple-50 p-4 rounded-lg text-center">
                           <p className="text-2xl font-bold text-purple-600">
-                            {students.filter(s => s.time_spent).length > 0 ? 
-                              Math.round(students.filter(s => s.time_spent).reduce((acc, s) => acc + (s.time_spent || 0), 0) / completedStudents) : 0
+                            {results.filter(r => r.time_spent).length > 0 ? 
+                              Math.round(results.filter(r => r.time_spent).reduce((acc, r) => acc + (r.time_spent || 0), 0) / results.filter(r => r.time_spent).length) : 0
                             }
                           </p>
                           <p className="text-sm text-purple-800">Temps moyen (min)</p>
@@ -1042,18 +1137,18 @@ const SessionDetailsPage = () => {
                         <h4 className="font-medium text-gray-900 mb-4">Distribution des scores</h4>
                         <div className="space-y-2">
                           {[
-                            { range: '90-100%', count: students.filter(s => s.score && s.score >= 90).length, color: 'bg-green-500' },
-                            { range: '80-89%', count: students.filter(s => s.score && s.score >= 80 && s.score < 90).length, color: 'bg-blue-500' },
-                            { range: '70-79%', count: students.filter(s => s.score && s.score >= 70 && s.score < 80).length, color: 'bg-yellow-500' },
-                            { range: '60-69%', count: students.filter(s => s.score && s.score >= 60 && s.score < 70).length, color: 'bg-orange-500' },
-                            { range: '0-59%', count: students.filter(s => s.score && s.score < 60).length, color: 'bg-red-500' }
+                            { range: '90-100%', count: results.filter(r => r.score && r.score >= 90).length, color: 'bg-green-500' },
+                            { range: '80-89%', count: results.filter(r => r.score && r.score >= 80 && r.score < 90).length, color: 'bg-blue-500' },
+                            { range: '70-79%', count: results.filter(r => r.score && r.score >= 70 && r.score < 80).length, color: 'bg-yellow-500' },
+                            { range: '60-69%', count: results.filter(r => r.score && r.score >= 60 && r.score < 70).length, color: 'bg-orange-500' },
+                            { range: '0-59%', count: results.filter(r => r.score && r.score < 60).length, color: 'bg-red-500' }
                           ].map(item => (
                             <div key={item.range} className="flex items-center gap-4">
                               <span className="text-sm font-medium text-gray-700 w-16">{item.range}</span>
                               <div className="flex-1 bg-gray-200 rounded-full h-4 relative">
                                 <div 
                                   className={`${item.color} h-4 rounded-full transition-all duration-500`}
-                                  style={{width: completedStudents > 0 ? `${(item.count / completedStudents) * 100}%` : '0%'}}
+                                  style={{width: results.filter(r => r.score).length > 0 ? `${(item.count / results.filter(r => r.score).length) * 100}%` : '0%'}}
                                 ></div>
                               </div>
                               <span className="text-sm text-gray-600 w-8">{item.count}</span>
@@ -1066,8 +1161,8 @@ const SessionDetailsPage = () => {
                       <div>
                         <h4 className="font-medium text-gray-900 mb-4">Résultats détaillés</h4>
                         <div className="space-y-2">
-                          {students
-                            .filter(s => s.status === 'completed')
+                          {results
+                            .filter(r => r.status === 'completed')
                             .sort((a, b) => (b.score || 0) - (a.score || 0))
                             .map((student, index) => (
                             <div

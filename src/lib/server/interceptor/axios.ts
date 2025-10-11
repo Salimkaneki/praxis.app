@@ -50,7 +50,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (typeof window !== "undefined") {
-      console.error(`❌ [AXIOS ERROR] ${error.config?.method?.toUpperCase()} ${error.config?.url} - Status: ${error.response?.status}`, error.response?.data);
+      // Ne pas logger les erreurs 403 pour les vérifications de participation aux sessions
+      // car c'est un comportement normal (étudiant n'a pas rejoint la session)
+      const isSessionJoinCheck = error.config?.url?.includes('/student/sessions/') && 
+                                error.config?.method === 'get' && 
+                                error.response?.status === 403;
+      
+      if (!isSessionJoinCheck) {
+        console.error(`❌ [AXIOS ERROR] ${error.config?.method?.toUpperCase()} ${error.config?.url} - Status: ${error.response?.status}`, error.response?.data);
+      }
 
       if (error.response?.status === 401) {
         console.warn('🚨 [AXIOS] Erreur 401 détectée, redirection en cours...');
