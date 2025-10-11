@@ -98,7 +98,7 @@ const QuizCardComponent = ({ quiz, index }: QuizCardProps) => {
         break;
       case 'edit':
         if (quiz.id) {
-          router.push(`/teachers-dashboard/quizzes/${quiz.id}/edit`);
+          router.push(`/teachers-dashboard/quizzes/edit/${quiz.id}`);
         }
         break;
       case 'delete':

@@ -239,37 +239,19 @@ export const StudentSessionsService = {
   // Vérifier si l'étudiant a déjà rejoint une session
   hasJoinedSession: async (sessionId: number): Promise<boolean> => {
     try {
+      // Récupérer les détails de session directement (méthode show du contrôleur)
+      const sessionDetails = await api.get(`/student/sessions/${sessionId}`);
 
-      // Essayer d'abord l'endpoint status s'il existe
-      try {
-        const response = await api.get(`/student/sessions/${sessionId}/status`);
-
-        const hasResult = !!(response.data?.result_id);
-        const isSubmitted = !!(response.data?.submitted || response.data?.is_submitted);
-
-        const result = hasResult && isSubmitted;
-        return result;
-      } catch (statusError: any) {
-        // Si l'endpoint status n'existe pas (404), essayer une autre approche
-        if (statusError.response?.status === 404) {
-
-          // Essayer de récupérer les détails de session et voir s'il y a un résultat
-          const sessionDetails = await api.get(`/student/sessions/${sessionId}`);
-
-          // Vérifier si la session a un résultat associé
-          if (sessionDetails.data?.result) {
-            const result = sessionDetails.data.result;
-            const isCompleted = result.status === 'completed' || result.submitted_at !== null;
-            return isCompleted;
-          }
-
-          return false;
-        } else {
-          throw statusError; // Relancer l'erreur si ce n'est pas un 404
-        }
-      }
+      // Si on arrive ici, c'est que l'étudiant participe à la session
+      return true;
     } catch (error: any) {
-      // En cas d'erreur, on considère qu'il n'a pas rejoint pour éviter de bloquer
+      // Si erreur 403, c'est que l'étudiant ne participe pas à la session
+      if (error.response?.status === 403) {
+        return false;
+      }
+
+      // Pour les autres erreurs (404, 500, etc.), on considère qu'il n'a pas rejoint
+      console.warn(`Erreur lors de la vérification de participation à la session ${sessionId}:`, error.message);
       return false;
     }
   },

@@ -165,7 +165,7 @@ const QuizDetailsPage = () => {
   };
 
   const handleEditQuiz = () => {
-    // TODO: Implémenter quand la page d'édition sera créée
+    router.push(`/teachers-dashboard/quizzes/edit/${quizId}`);
   };
 
   const handleAddQuestion = () => {
