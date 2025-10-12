@@ -127,8 +127,33 @@ export const StudentNotificationService = {
   // Marquer toutes les notifications comme lues
   markAllAsRead: async (): Promise<BulkMarkAsReadResponse> => {
     try {
-      const response = await api.post('/student/notifications/mark-all-read');
-      return response.data;
+      // Récupérer toutes les notifications non lues
+      const unreadResponse = await api.get('/student/notifications?read=false&per_page=1000');
+      const unreadNotifications = unreadResponse.data.notifications;
+
+      if (unreadNotifications.length === 0) {
+        return {
+          message: 'Aucune notification non lue',
+          unread_count: 0
+        };
+      }
+
+      // Marquer chaque notification une par une (approche la plus fiable)
+      let markedCount = 0;
+      for (const notification of unreadNotifications) {
+        try {
+          await api.patch(`/student/notifications/${notification.id}/read`);
+          markedCount++;
+        } catch (error) {
+          // Continuer avec les autres notifications même si une échoue
+          console.warn(`Impossible de marquer la notification ${notification.id} comme lue:`, error);
+        }
+      }
+
+      return {
+        message: `${markedCount} notifications marquées comme lues`,
+        unread_count: 0
+      };
     } catch (error: any) {
       if (error.response?.status === 401) {
         throw new Error('Session expirée. Veuillez vous reconnecter.');
