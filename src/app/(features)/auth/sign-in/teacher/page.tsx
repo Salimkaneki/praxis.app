@@ -6,9 +6,11 @@ import Input from "@/components/ui/Inputs/Input";
 import Button from "@/components/ui/Buttons/Button";
 import { loginTeacher } from "../_services/auth.service";
 import Link from "next/link";
+import { useToast } from "@/hooks/useToast";
 
 export default function SignInTeacherForm() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,7 +23,7 @@ export default function SignInTeacherForm() {
 
     // Validation basique
     if (!email || !password) {
-      setError("Veuillez remplir tous les champs");
+      showError("Veuillez remplir tous les champs");
       setLoading(false);
       return;
     }
@@ -35,18 +37,18 @@ export default function SignInTeacherForm() {
         console.log("Erreur dans la réponse:", res.error);
         const msg = res.error.toLowerCase();
         if (msg.includes("identifiants invalides")) {
-          setError("Email ou mot de passe incorrect");
+          showError("Email ou mot de passe incorrect");
         } else if (msg.includes("pas d'accès") || msg.includes("n'est pas un enseignant")) {
-          setError("Vous n'avez pas accès à l'espace enseignant");
+          showError("Vous n'avez pas accès à l'espace enseignant");
         } else {
-          setError("Une erreur technique est survenue: " + res.error);
+          showError("Une erreur technique est survenue: " + res.error);
         }
         setLoading(false);
         return;
       }
 
       if (res.user.account_type !== "teacher") {
-        setError("Ce compte n'est pas un compte enseignant");
+        showError("Ce compte n'est pas un compte enseignant");
         setLoading(false);
         return;
       }
@@ -55,11 +57,12 @@ export default function SignInTeacherForm() {
       localStorage.setItem("teacher_data", JSON.stringify(res.teacher));
       
       console.log("Connexion réussie, redirection...");
+      showSuccess("Connexion réussie ! Bienvenue dans votre espace enseignant.");
       router.push("/teachers-dashboard");
 
     } catch (err) {
       console.error("Erreur inattendue:", err);
-      setError("Une erreur inattendue est survenue");
+      showError("Une erreur inattendue est survenue");
     } finally {
       setLoading(false);
     }

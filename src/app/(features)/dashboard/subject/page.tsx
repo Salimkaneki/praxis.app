@@ -19,6 +19,8 @@ import { getSubjects, deleteSubject, Subject, PaginatedResponse } from "./_servi
 import { useRouter } from "next/navigation";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
 import Alert from "@/components/ui/Feedback/Alert";
+import { useCrud } from "@/hooks/useCrud";
+import ConfirmationDialog from "@/components/ui/Feedback/ConfirmationDialog";
 
 
 // Fonction utilitaire pour les badges de type
@@ -52,6 +54,21 @@ export default function AdminSubjectsList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedSemester, setSelectedSemester] = useState("all");
+
+  // Hook pour la gestion CRUD avec confirmation
+  const {
+    loading: crudLoading,
+    error: crudError,
+    showDeleteDialog,
+    itemToDelete,
+    handleDelete: handleDeleteRequest,
+    confirmDelete,
+    cancelDelete,
+    setError: setCrudError
+  } = useCrud<Subject>({
+    successMessage: "Matière supprimée avec succès",
+    errorMessage: "Erreur lors de la suppression de la matière"
+  });
 
   // Options pour les filtres
   const typeOptions = [
@@ -140,18 +157,17 @@ export default function AdminSubjectsList() {
     setCurrentPage(1); // Reset à la première page lors d'une nouvelle recherche
   };
 
-  // Suppression avec API
-  const handleDelete = async (id: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      await deleteSubject(id);
-      setSubjects(prev => prev.filter(s => s.id !== id));
+  // Suppression avec confirmation
+  const handleDelete = (subject: Subject) => {
+    handleDeleteRequest(subject, deleteSubject, `Voulez-vous vraiment supprimer la matière "${subject.name}" ?`);
+  };
+
+  // Confirmer la suppression
+  const handleConfirmDelete = async () => {
+    const success = await confirmDelete(deleteSubject);
+    if (success) {
+      setSubjects(prev => prev.filter(s => s.id !== itemToDelete?.id));
       setTotal(prev => prev - 1);
-    } catch (error: any) {
-      setError(error.message || "Erreur lors de la suppression de la matière");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -326,10 +342,10 @@ export default function AdminSubjectsList() {
                               <Edit3 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(subject.id)}
+                              onClick={() => handleDelete(subject)}
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-smooth"
                               title="Supprimer"
-                              disabled={loading}
+                              disabled={crudLoading}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -374,6 +390,16 @@ export default function AdminSubjectsList() {
           </div>
         </div>
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Confirmer la suppression"
+        message={`Voulez-vous vraiment supprimer la matière "${itemToDelete?.name}" ? Cette action est irréversible.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={cancelDelete}
+        isLoading={crudLoading}
+      />
     </div>
   );
 }

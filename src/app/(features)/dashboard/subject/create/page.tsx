@@ -13,9 +13,11 @@ import SelectInput from "@/components/ui/Inputs/Select";
 import { getFormations } from "../../formation/_services/formation.service";
 import { createSubject } from "../_services/subject.service";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/useToast";
 
 export default function SubjectCreationForm() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -137,8 +139,10 @@ export default function SubjectCreationForm() {
 
         await createSubject(apiData);
         router.push("/dashboard/subject");
+        showSuccess("Matière créée avec succès !");
       } catch (error: any) {
         // Erreur gérée silencieusement
+        showError("Erreur lors de la création de la matière");
       } finally {
         setLoading(false);
       }

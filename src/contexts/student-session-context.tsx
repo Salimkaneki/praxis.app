@@ -17,6 +17,7 @@ export interface StudentSession extends BaseEntity {
   max_participants?: number;
   current_participants?: number;
   join_status?: "à venir" | "disponible" | "terminée"; // Nouveau champ ajouté par l'API
+  has_joined?: boolean;
 
   quiz?: {
     id: number;

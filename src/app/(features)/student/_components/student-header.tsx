@@ -15,7 +15,9 @@ import {
   TrophyIcon,
   PlayIcon
 } from "@heroicons/react/24/outline";
+import { MessageSquare } from "lucide-react";
 import { getStudentProfile, logoutStudent, StudentProfile } from "../../auth/sign-in/student/_services/auth.service";
+import { StudentNotificationService, StudentNotification } from "../notifications/_services/S-Notification.service";
 
 export default function StudentHeader() {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -26,6 +28,9 @@ export default function StudentHeader() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [currentTimeString, setCurrentTimeString] = useState<string>("--:--");
   const [isClient, setIsClient] = useState(false);
+  const [notifications, setNotifications] = useState<StudentNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   // Mise à jour de l'heure en temps réel - seulement côté client
   useEffect(() => {
@@ -42,15 +47,6 @@ export default function StudentHeader() {
     return () => clearInterval(timer);
   }, []);
 
-  // Notifications adaptées pour les étudiants
-  const notifications = [
-    { id: 1, title: "Nouveau quiz disponible", time: "Il y a 5 min", unread: true, type: "quiz" },
-    { id: 2, title: "Rappel: Devoir à rendre demain", time: "Il y a 1h", unread: true, type: "reminder" },
-    { id: 3, title: "Notes du dernier quiz publiées", time: "Il y a 3h", unread: false, type: "grades" },
-    { id: 4, title: "Cours annulé demain", time: "Hier", unread: false, type: "announcement" }
-  ];
-  const unreadCount = notifications.filter(n => n.unread).length;
-
   // Actions rapides pour le menu d'accès rapide
   const quickActions = [
     { icon: PlayIcon, label: "Commencer un quiz", color: "text-blue-600" },
@@ -58,6 +54,34 @@ export default function StudentHeader() {
     { icon: ChartBarIcon, label: "Mes résultats", color: "text-purple-600" },
     { icon: CalendarDaysIcon, label: "Mon emploi du temps", color: "text-orange-600" }
   ];
+
+  // Charger les notifications récentes
+  const loadNotifications = async () => {
+    try {
+      setNotificationsLoading(true);
+      const response = await StudentNotificationService.getNotifications({
+        page: 1,
+        per_page: 5 // Charger seulement les 5 plus récentes pour le header
+      });
+      setNotifications(response.notifications);
+      setUnreadCount(response.unread_count);
+    } catch (error) {
+      // En cas d'erreur, garder les valeurs par défaut
+      console.error('Erreur lors du chargement des notifications:', error);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  // Charger le compteur de notifications non lues
+  const loadUnreadCount = async () => {
+    try {
+      const response = await StudentNotificationService.getUnreadCount();
+      setUnreadCount(response.unread_count);
+    } catch (error) {
+      console.error('Erreur lors du chargement du compteur:', error);
+    }
+  };
 
   // Récupération du profil étudiant depuis l'API
   useEffect(() => {
@@ -76,6 +100,20 @@ export default function StudentHeader() {
     loadStudentProfile();
   }, []);
 
+  // Charger les notifications au montage
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  // Rafraîchir le compteur de notifications toutes les 30 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadUnreadCount();
+    }, 30000); // 30 secondes
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Gestionnaire de déconnexion
   const handleLogout = async () => {
     try {
@@ -92,7 +130,7 @@ export default function StudentHeader() {
     }
   };
 
-  const getNotificationIcon = (type: "quiz" | "reminder" | "grades" | "announcement" | string): string => {
+  const getNotificationIcon = (type: string): string => {
     switch (type) {
         case "quiz": return "📝";
         case "reminder": return "⏰";
@@ -100,6 +138,28 @@ export default function StudentHeader() {
         case "announcement": return "📢";
         default: return "📢";
     }
+  };
+
+  // Fonction pour vérifier si une notification est lue
+  const isRead = (notification: StudentNotification): boolean => {
+    return notification.read_at !== null;
+  };
+
+  // Fonction pour formater le temps relatif
+  const getRelativeTime = (dateString: string): string => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInMinutes < 1) return "À l'instant";
+    if (diffInMinutes < 60) return `Il y a ${diffInMinutes} min`;
+    if (diffInHours < 24) return `Il y a ${diffInHours}h`;
+    if (diffInDays === 1) return "Hier";
+    if (diffInDays < 7) return `Il y a ${diffInDays} jours`;
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   };
 
   return (
@@ -145,10 +205,13 @@ export default function StudentHeader() {
           )}
         </div>
 
-        {/* Messages/Communications */}
-        <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
-          <ChatBubbleLeftRightIcon className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full"></span>
+        {/* Chat Assistant */}
+        <button
+          onClick={() => window.location.href = '/student/chat'}
+          className="relative p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          title="Assistant virtuel"
+        >
+          <MessageSquare className="w-5 h-5" />
         </button>
 
         {/* Notifications */}
@@ -168,29 +231,38 @@ export default function StudentHeader() {
             <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
               <div className="p-4 border-b border-gray-100">
                 <h3 className="text-sm font-poppins font-medium text-gray-900">Notifications</h3>
+                {notificationsLoading && (
+                  <p className="text-xs font-poppins text-gray-500 mt-1">Chargement...</p>
+                )}
               </div>
               <div className="max-h-80 overflow-y-auto">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start space-x-3">
-                      <span className="text-lg">{getNotificationIcon(notification.type)}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-poppins font-medium text-gray-900">{notification.title}</p>
-                          {notification.unread && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          )}
+                {notifications.length === 0 && !notificationsLoading ? (
+                  <div className="p-4 text-center text-sm font-poppins text-gray-500">
+                    Aucune notification
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <div key={notification.id} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start space-x-3">
+                        <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm font-poppins font-medium text-gray-900">{notification.title}</p>
+                            {!isRead(notification) && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            )}
+                          </div>
+                          <p className="text-xs font-poppins text-gray-500 mt-1">{getRelativeTime(notification.created_at)}</p>
                         </div>
-                        <p className="text-xs font-poppins text-gray-500 mt-1">{notification.time}</p>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               <div className="p-3 text-center border-t border-gray-100">
-                <button className="text-sm font-poppins text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                <a href="/student/notifications" className="text-sm font-poppins text-blue-600 hover:text-blue-700 font-medium transition-colors">
                   Voir toutes les notifications
-                </button>
+                </a>
               </div>
             </div>
           )}
@@ -234,6 +306,14 @@ export default function StudentHeader() {
                 <button className="w-full px-4 py-2 text-left text-sm font-poppins text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-colors">
                   <UserIcon className="w-4 h-4" />
                   <span>Mon profil</span>
+                </button>
+
+                <button
+                  onClick={() => window.location.href = '/student/chat'}
+                  className="w-full px-4 py-2 text-left text-sm font-poppins text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Assistant virtuel</span>
                 </button>
 
                 <button className="w-full px-4 py-2 text-left text-sm font-poppins text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-colors">

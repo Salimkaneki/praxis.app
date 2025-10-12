@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useToast } from './useToast';
+import toast from 'react-hot-toast';
 
 interface UseCrudOptions<T> {
   deleteMessage?: string;
@@ -13,6 +15,7 @@ export function useCrud<T extends { id: number }>(options: UseCrudOptions<T> = {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<T | null>(null);
+  const { showSuccess, showError } = useToast();
 
   const handleDelete = async (
     item: T,
@@ -34,7 +37,7 @@ export function useCrud<T extends { id: number }>(options: UseCrudOptions<T> = {
       await deleteFunction(itemToDelete.id);
 
       if (options.successMessage) {
-        // Message de succès géré par le composant parent
+        showSuccess(options.successMessage);
       }
 
       options.onSuccess?.();
@@ -44,7 +47,7 @@ export function useCrud<T extends { id: number }>(options: UseCrudOptions<T> = {
     } catch (err: any) {
       const errorMsg = err?.response?.data?.message || options.errorMessage || "Une erreur est survenue";
       setError(errorMsg);
-      // Erreur affichée via l'état error
+      showError(errorMsg);
       options.onError?.(err);
       return false;
     } finally {
@@ -62,31 +65,25 @@ export function useCrud<T extends { id: number }>(options: UseCrudOptions<T> = {
     deleteFunction: (ids: number[]) => Promise<void>,
     customMessage?: string
   ) => {
-    // Pour la suppression en masse, nous pourrions avoir besoin d'un état séparé
-    // Pour l'instant, utilisons confirm() comme fallback
-    const message = customMessage || `Voulez-vous vraiment supprimer ${items.length} élément(s) ?`;
-
-    if (!confirm(message)) return false;
+    const message = customMessage || `Suppression de ${items.length} élément(s)...`;
 
     try {
-      setLoading(true);
-      setError(null);
-      await deleteFunction(items.map(item => item.id));
-
-      if (options.successMessage) {
-        // Message de succès géré par le composant parent
-      }
+      await toast.promise(
+        deleteFunction(items.map(item => item.id)),
+        {
+          loading: message,
+          success: options.successMessage || `${items.length} élément(s) supprimé(s) avec succès`,
+          error: (err: any) => err?.response?.data?.message || options.errorMessage || "Erreur lors de la suppression",
+        }
+      );
 
       options.onSuccess?.();
       return true;
     } catch (err: any) {
       const errorMsg = err?.response?.data?.message || options.errorMessage || "Une erreur est survenue";
       setError(errorMsg);
-      // Erreur affichée via l'état error
       options.onError?.(err);
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 

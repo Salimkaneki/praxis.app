@@ -248,7 +248,7 @@ const SessionDetailsPage = () => {
   };
 
   const handleEditSession = () => {
-    router.push(`/dashboard/teacher/sessions/${session.id}/edit`);
+    router.push(`/teachers-dashboard/sessions/edit/${session.id}`);
   };
 
   const handleActivateSession = () => {

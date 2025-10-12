@@ -17,6 +17,7 @@ import TeacherPageHeader from "../../_components/page-header";
 import { QuizzesService } from "../../quizzes/_services/quizzes.service";
 // import { StudentsService } from "../../dashboard/students/_services/students.service";
 import { SessionsService } from "../_services/sessions.service";
+import { useToast } from "@/hooks/useToast";
 
 // Types pour le formulaire
 interface Quiz {
@@ -62,6 +63,7 @@ type SubmitStatus = 'success' | 'error' | null;
 
 export default function CreateSessionPage() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState<FormData>({
     quiz_id: "",
     title: "",
@@ -128,8 +130,24 @@ export default function CreateSessionPage() {
   const validateForm = (): FormErrors => {
     const newErrors: FormErrors = {};
     
-    if (!formData.quiz_id) newErrors.quiz_id = "Le quiz est requis";
-    if (!formData.title.trim()) newErrors.title = "Le titre est requis";
+    if (!formData.quiz_id) {
+      newErrors.quiz_id = "Le quiz est requis";
+    } else {
+      // Vérifier que le quiz existe dans la liste chargée
+      const selectedQuiz = quizzes.find(q => q.id.toString() === formData.quiz_id);
+      if (!selectedQuiz) {
+        newErrors.quiz_id = "Le quiz sélectionné n'existe pas";
+      }
+    }
+    
+    if (!formData.title.trim()) {
+      newErrors.title = "Le titre est requis";
+    } else if (formData.title.trim().length < 3) {
+      newErrors.title = "Le titre doit contenir au moins 3 caractères";
+    } else if (formData.title.trim().length > 255) {
+      newErrors.title = "Le titre ne peut pas dépasser 255 caractères";
+    }
+    
     if (!formData.starts_at_date) newErrors.starts_at_date = "La date de début est requise";
     if (!formData.starts_at_time) newErrors.starts_at_time = "L'heure de début est requise";
     if (!formData.ends_at_date) newErrors.ends_at_date = "La date de fin est requise";
@@ -137,23 +155,34 @@ export default function CreateSessionPage() {
     
     if (!formData.max_participants || parseInt(formData.max_participants) <= 0) {
       newErrors.max_participants = "Le nombre maximum de participants doit être supérieur à 0";
+    } else if (parseInt(formData.max_participants) > 1000) {
+      newErrors.max_participants = "Le nombre maximum de participants ne peut pas dépasser 1000";
     }
 
     if (!formData.time_limit || parseInt(formData.time_limit) <= 0) {
       newErrors.time_limit = "La durée limite doit être supérieure à 0";
+    } else if (parseInt(formData.time_limit) > 480) { // 8 heures max
+      newErrors.time_limit = "La durée limite ne peut pas dépasser 480 minutes (8 heures)";
     }
 
     // Validation des dates
     if (formData.starts_at_date && formData.starts_at_time && formData.ends_at_date && formData.ends_at_time) {
       const startDateTime = new Date(`${formData.starts_at_date}T${formData.starts_at_time}`);
       const endDateTime = new Date(`${formData.ends_at_date}T${formData.ends_at_time}`);
+      const now = new Date();
+      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000); // +5 minutes
       
-      if (startDateTime >= endDateTime) {
+      if (startDateTime <= fiveMinutesFromNow) {
+        newErrors.dateTime = "La date/heure de début doit être au moins 5 minutes dans le futur";
+      } else if (startDateTime >= endDateTime) {
         newErrors.dateTime = "La date/heure de fin doit être postérieure à celle de début";
-      }
-      
-      if (startDateTime < new Date()) {
-        newErrors.dateTime = "La date/heure de début ne peut pas être dans le passé";
+      } else {
+        // Vérifier que la durée n'est pas trop longue (max 24h)
+        const durationMs = endDateTime.getTime() - startDateTime.getTime();
+        const maxDurationMs = 24 * 60 * 60 * 1000; // 24 heures
+        if (durationMs > maxDurationMs) {
+          newErrors.dateTime = "La durée de la session ne peut pas dépasser 24 heures";
+        }
       }
     }
 
@@ -180,10 +209,10 @@ export default function CreateSessionPage() {
       const sessionData = {
         quiz_id: parseInt(formData.quiz_id),
         title: formData.title.trim(),
-        starts_at: startDateTime.toISOString().slice(0, 19).replace('T', ' '), // Format Y-m-d H:i:s
-        ends_at: endDateTime.toISOString().slice(0, 19).replace('T', ' '),   // Format Y-m-d H:i:s
-        max_participants: parseInt(formData.max_participants),
-        // Ne pas envoyer settings pour l'instant - le backend pourrait ne pas les gérer
+        starts_at: startDateTime.toISOString(), // Format ISO complet
+        ends_at: endDateTime.toISOString(),     // Format ISO complet
+        max_participants: parseInt(formData.max_participants)
+        // Test temporaire : envoyer seulement les champs essentiels
         // settings: {
         //   shuffle_questions: formData.shuffle_questions,
         //   time_limit: parseInt(formData.time_limit),
@@ -192,15 +221,57 @@ export default function CreateSessionPage() {
         // }
       };
 
+      console.log('🚀 CreateSession - Données envoyées:', sessionData);
+      console.log('📅 Dates formatées:', {
+        startDateTime: startDateTime.toISOString(),
+        endDateTime: endDateTime.toISOString(),
+        starts_at_formatted: sessionData.starts_at,
+        ends_at_formatted: sessionData.ends_at
+      });
+
       await SessionsService.create(sessionData);
       
       setSubmitStatus('success');
-      // Redirection après 2 secondes
+      showSuccess("Session créée avec succès !");
+      // Redirection après un court délai
       setTimeout(() => {
         router.push('/teachers-dashboard/sessions');
-      }, 2000);
+      }, 1500);
 
     } catch (error: any) {
+      console.error('❌ CreateSession - Erreur complète:', error);
+      console.error('📋 CreateSession - Détails de la réponse:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+      
+      // Vérifier si la session a été créée malgré l'erreur 422
+      if (error.response?.status === 422) {
+        console.log('🔍 Erreur 422 détectée - vérification si session créée...');
+        
+        // Essayer de récupérer la liste des sessions pour voir si la nouvelle session existe
+        try {
+          const sessions = await SessionsService.getAll();
+          const latestSession = sessions.find(s => 
+            s.title === formData.title && 
+            s.quiz_id === parseInt(formData.quiz_id)
+          );
+          
+          if (latestSession) {
+            console.log('✅ Session trouvée malgré l\'erreur:', latestSession);
+            setSubmitStatus('success');
+            showSuccess("Session créée avec succès !");
+            setTimeout(() => {
+              router.push('/teachers-dashboard/sessions');
+            }, 1500);
+            return;
+          }
+        } catch (checkError) {
+          console.log('❌ Impossible de vérifier si la session a été créée');
+        }
+      }
       
       // Afficher les erreurs de validation spécifiques si disponibles
       if (error.response?.status === 422 && error.response?.data?.errors) {
@@ -208,12 +279,23 @@ export default function CreateSessionPage() {
         const errorMessages = Object.values(validationErrors).flat() as string[];
         setSubmitErrorMessage(errorMessages.join(', '));
         setSubmitStatus('error');
+        console.log('🔍 Erreurs de validation 422:', validationErrors);
+      } else if (error.response?.status === 400 && error.response?.data?.error) {
+        setSubmitErrorMessage(error.response.data.error);
+        setSubmitStatus('error');
+        showError(error.response.data.error);
+        console.log('🔍 Erreur 400:', error.response.data.error);
       } else if (error.response?.data?.error) {
         setSubmitErrorMessage(error.response.data.error);
         setSubmitStatus('error');
+        showError(error.response.data.error);
+        console.log('🔍 Erreur générique:', error.response.data.error);
       } else {
-        setSubmitErrorMessage('');
+        const genericError = 'Une erreur est survenue lors de la création.';
+        setSubmitErrorMessage(genericError);
         setSubmitStatus('error');
+        showError(genericError);
+        console.log('🔍 Erreur sans détails spécifiques');
       }
     } finally {
       setIsSubmitting(false);
@@ -265,31 +347,6 @@ export default function CreateSessionPage() {
           onClick: handleCancel
         }}
       />
-
-      {/* Status Messages */}
-      {submitStatus && (
-        <div className="px-8 py-4">
-          {submitStatus === 'success' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-              <span className="text-sm text-green-800">Session créée avec succès ! Redirection en cours...</span>
-            </div>
-          )}
-          {submitStatus === 'error' && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
-              <div>
-                <span className="text-sm text-red-800">Une erreur est survenue lors de la création.</span>
-                {submitErrorMessage && (
-                  <div className="mt-2 text-xs text-red-600">
-                    Détails: {submitErrorMessage}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Messages d'erreur */}
       {quizzesError && (

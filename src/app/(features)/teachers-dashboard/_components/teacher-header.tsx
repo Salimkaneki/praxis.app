@@ -8,24 +8,23 @@ import {
   ArrowRightOnRectangleIcon,
   AcademicCapIcon,
   DocumentTextIcon,
-  CalendarDaysIcon,
   ClockIcon,
-  ChatBubbleLeftRightIcon,
-  ChartBarIcon,
-  BookOpenIcon,
-  PlusIcon
+  ChartBarIcon
 } from "@heroicons/react/24/outline";
 import teacherAuthService from "../_services/teacher-auth.service";
+import { getNotifications, getUnreadCount, markAsRead, TeacherNotification } from "../notifications/_services/T-Notification.service";
 
 
 export default function TeacherHeader() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [teacherName, setTeacherName] = useState("Professeur");
   const [institutionName, setInstitutionName] = useState("Institution");
   const [department, setDepartment] = useState("Département");
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [notifications, setNotifications] = useState<TeacherNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   // Mise à jour de l'heure en temps réel
   useEffect(() => {
@@ -33,22 +32,35 @@ export default function TeacherHeader() {
     return () => clearInterval(timer);
   }, []);
 
-  // Notifications adaptées pour les professeurs
-  const notifications = [
-    { id: 1, title: "Nouvelle évaluation à corriger", time: "Il y a 10 min", unread: true, type: "evaluation" },
-    { id: 2, title: "Rappel: Cours de demain à 14h", time: "Il y a 2h", unread: true, type: "reminder" },
-    { id: 3, title: "Notes du semestre à valider", time: "Il y a 5h", unread: false, type: "grades" },
-    { id: 4, title: "Réunion pédagogique vendredi", time: "Hier", unread: false, type: "meeting" }
-  ];
-  const unreadCount = notifications.filter(n => n.unread).length;
+  // Charger les notifications et le compteur
+  useEffect(() => {
+    loadNotifications();
+    loadUnreadCount();
+  }, []);
 
-  // Actions rapides pour le menu "+"
-  const quickActions = [
-    { icon: DocumentTextIcon, label: "Nouvelle évaluation", color: "text-blue-600" },
-    { icon: BookOpenIcon, label: "Nouveau cours", color: "text-green-600" },
-    { icon: CalendarDaysIcon, label: "Programmer un examen", color: "text-purple-600" },
-    { icon: ChatBubbleLeftRightIcon, label: "Envoyer un message", color: "text-orange-600" }
-  ];
+  const loadNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+      const response = await getNotifications({ per_page: 5 }); // Charger seulement 5 notifications pour l'aperçu
+      setNotifications(response.data.data);
+    } catch (error) {
+      console.error('Erreur lors du chargement des notifications dans le header:', error);
+      // En cas d'erreur, garder les notifications vides
+      setNotifications([]);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const loadUnreadCount = async () => {
+    try {
+      const response = await getUnreadCount();
+      setUnreadCount(response.data.unread_count);
+    } catch (error) {
+      console.error('Erreur lors du chargement du compteur:', error);
+      setUnreadCount(0);
+    }
+  };
 
   // Récupération des infos professeur depuis l'API et localStorage
   useEffect(() => {
@@ -78,19 +90,54 @@ export default function TeacherHeader() {
     loadTeacherData();
   }, []);
 
-    const handleLogout = () => {
-    teacherAuthService.logout();
-    window.location.href = "/auth/sign-in/teacher";
+    const handleMarkAsRead = async (notificationId: number) => {
+    try {
+      await markAsRead(notificationId);
+      // Mettre à jour localement
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif.id === notificationId ? { ...notif, is_read: true } : notif
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Erreur lors du marquage comme lu:', error);
+    }
   };
 
-  const getNotificationIcon = (type: "evaluation" | "reminder" | "grades" | "meeting" | string): string => {
+  const getNotificationIcon = (type: string): string => {
     switch (type) {
-        case "evaluation": return "📝";
-        case "reminder": return "⏰";
-        case "grades": return "📊";
-        case "meeting": return "👥";
+        case "admin_announcement": return "�";
+        case "schedule_change": return "📅";
+        case "training_required": return "🎓";
+        case "maintenance_warning": return "⚠️";
+        case "policy_update": return "�";
+        case "system_update": return "�";
         default: return "📢";
     }
+  };
+
+  const handleLogout = () => {
+    teacherAuthService.logout();
+    // Redirection vers la page de connexion
+    window.location.href = '/auth/sign-in/teacher';
+  };
+
+  const formatTimeAgo = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+
+    if (diffInMinutes < 1) return "À l'instant";
+    if (diffInMinutes < 60) return `Il y a ${diffInMinutes} min`;
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `Il y a ${diffInHours}h`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `Il y a ${diffInDays}j`;
+
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   };
 
 
@@ -112,47 +159,23 @@ export default function TeacherHeader() {
 
       {/* Right side */}
       <div className="flex items-center space-x-4">
-        {/* Quick Add Menu */}
-        <div className="relative">
-          <button
-            onClick={() => setShowQuickAdd(!showQuickAdd)}
-            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          >
-            <PlusIcon className="w-5 h-5" />
-          </button>
-          {showQuickAdd && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-              <div className="p-2">
-                <div className="px-3 py-2 text-xs font-poppins font-medium text-gray-500 uppercase tracking-wide">
-                  Actions rapides
-                </div>
-                {quickActions.map((action, index) => (
-                  <button key={index} className="w-full px-3 py-2 text-left text-sm font-poppins text-gray-700 hover:bg-gray-50 flex items-center space-x-3 rounded-md transition-colors">
-                    <action.icon className={`w-4 h-4 ${action.color}`} />
-                    <span>{action.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Messages/Communications */}
-        <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
-          <ChatBubbleLeftRightIcon className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full"></span>
-        </button>
-
         {/* Notifications */}
         <div className="relative">
           <button
-            onClick={() => setShowNotifications(!showNotifications)}
+            onClick={() => {
+              setShowNotifications(!showNotifications);
+              if (!showNotifications) {
+                // Recharger les notifications quand on ouvre le dropdown
+                loadNotifications();
+                loadUnreadCount();
+              }
+            }}
             className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
           >
             <BellIcon className="w-5 h-5" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {unreadCount}
+                {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </button>
@@ -162,27 +185,41 @@ export default function TeacherHeader() {
                 <h3 className="text-sm font-poppins font-medium text-gray-900">Notifications</h3>
               </div>
               <div className="max-h-80 overflow-y-auto">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start space-x-3">
-                      <span className="text-lg">{getNotificationIcon(notification.type)}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-poppins font-medium text-gray-900">{notification.title}</p>
-                          {notification.unread && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          )}
+                {loadingNotifications ? (
+                  <div className="p-4 text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-xs font-poppins text-gray-500 mt-2">Chargement...</p>
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="p-4 text-center">
+                    <p className="text-sm font-poppins text-gray-500">Aucune notification</p>
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm font-poppins font-medium text-gray-900">{notification.title}</p>
+                            {!notification.is_read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            )}
+                          </div>
+                          <p className="text-xs font-poppins text-gray-500 mt-1">{formatTimeAgo(notification.created_at)}</p>
                         </div>
-                        <p className="text-xs font-poppins text-gray-500 mt-1">{notification.time}</p>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               <div className="p-3 text-center border-t border-gray-100">
-                <button className="text-sm font-poppins text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                <a href="/teachers-dashboard/notifications" className="text-sm font-poppins text-blue-600 hover:text-blue-700 font-medium transition-colors">
                   Voir toutes les notifications
-                </button>
+                </a>
               </div>
             </div>
           )}
@@ -256,13 +293,12 @@ export default function TeacherHeader() {
       </div>
 
       {/* Click outside handler */}
-      {(showUserMenu || showNotifications || showQuickAdd) && (
+      {(showUserMenu || showNotifications) && (
         <div 
           className="fixed inset-0 z-40" 
           onClick={() => {
             setShowUserMenu(false);
             setShowNotifications(false);
-            setShowQuickAdd(false);
           }}
         />
       )}

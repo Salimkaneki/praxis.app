@@ -12,9 +12,11 @@ import Input from "@/components/ui/Inputs/Input";
 import SelectInput from "@/components/ui/Inputs/Select";
 import { useRouter } from "next/navigation";
 import { createUser } from "../_services/user.service";
+import { useToast } from "@/hooks/useToast";
 
 export default function UserCreationForm() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -72,7 +74,10 @@ export default function UserCreationForm() {
 
         // Redirection vers la liste des utilisateurs (à créer plus tard)
         // Pour l'instant, on redirige vers le dashboard
-        router.push("/dashboard");
+        showSuccess("Utilisateur créé avec succès !");
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1500);
 
       } catch (error: any) {
         // Gestion des erreurs spécifiques
@@ -83,7 +88,7 @@ export default function UserCreationForm() {
         } else if (error.message.includes("Type de compte")) {
           setErrors({ role: error.message });
         } else {
-          // Erreur générale
+          showError("Erreur lors de la création de l'utilisateur");
         }
       } finally {
         setLoading(false);

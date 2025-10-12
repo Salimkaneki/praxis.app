@@ -19,6 +19,8 @@ import {
 
 // Import du service
 import { SessionsService } from "../sessions/_services/sessions.service";
+import { useCrud } from "@/hooks/useCrud";
+import ConfirmationDialog from "@/components/ui/Feedback/ConfirmationDialog";
 
 // Type SessionCard mis à jour pour correspondre à l'API
 export type SessionCard = {
@@ -49,7 +51,19 @@ type SessionCardProps = {
 const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) => {
   const router = useRouter();
   const [showActions, setShowActions] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Hook pour la gestion CRUD avec confirmation et toasts
+  const {
+    loading: crudLoading,
+    showDeleteDialog,
+    itemToDelete,
+    handleDelete: handleDeleteRequest,
+    confirmDelete,
+    cancelDelete
+  } = useCrud<SessionCard>({
+    successMessage: "Session supprimée avec succès",
+    errorMessage: "Erreur lors de la suppression de la session"
+  });
 
   const getStatusConfig = (status: string = "scheduled") => {
     switch (status) {
@@ -127,13 +141,13 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
 
   // Navigation vers la page de détails avec le bon chemin
   const handleCardClick = () => {
-    if (isDeleting) return; // Empêcher le clic pendant la suppression
+    if (crudLoading) return; // Empêcher le clic pendant la suppression
     router.push(`/teachers-dashboard/sessions/session-details/${session.id}`);
   };
 
   const handleMoreClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isDeleting) return;
+    if (crudLoading) return;
     setShowActions(!showActions);
   };
 
@@ -141,7 +155,7 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
     e.stopPropagation();
     setShowActions(false);
     
-    if (isDeleting) return;
+    if (crudLoading) return;
     
     switch (action) {
       case 'view':
@@ -151,31 +165,15 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
         router.push(`/teachers-dashboard/sessions/${session.id}/edit`);
         break;
       case 'delete':
-        handleDelete();
+        handleDeleteRequest(session, SessionsService.delete, `Voulez-vous vraiment supprimer la session "${session.title}" ?`);
         break;
     }
   };
 
-  const handleDelete = async () => {
-    const confirmMessage = `Êtes-vous sûr de vouloir supprimer la session "${session.title}" ?\n\nCette action est irréversible.`;
-    
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
-
-    setIsDeleting(true);
-
-    try {
-      await SessionsService.delete(session.id);
-      
-      // Appeler le callback pour rafraîchir la liste
+  const handleConfirmDelete = async () => {
+    const success = await confirmDelete(SessionsService.delete);
+    if (success) {
       onDelete(session.id);
-      
-    } catch (error: any) {
-      // Afficher un message d'erreur à l'utilisateur
-      const errorMessage = error?.message || error?.response?.data?.message || "Une erreur est survenue lors de la suppression";
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -183,13 +181,13 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
     <div 
       onClick={handleCardClick}
       className={`bg-white border border-gray-200 rounded-lg p-6 transition-all duration-300 w-full aspect-square cursor-pointer group relative font-poppins ${
-        isDeleting 
+        crudLoading 
           ? 'opacity-50 cursor-not-allowed' 
           : 'hover:border-blue-300 hover:shadow-lg'
       }`}
     >
       {/* Overlay de chargement pendant la suppression */}
-      {isDeleting && (
+      {crudLoading && (
         <div className="absolute inset-0 bg-white bg-opacity-75 rounded-lg flex items-center justify-center z-10">
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="w-8 h-8 animate-spin text-red-500" />
@@ -202,16 +200,16 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
         {/* Header */}
         <div className="flex items-start justify-between">
           <h3 className={`text-lg font-semibold leading-tight pr-2 transition-colors line-clamp-2 font-poppins ${
-            isDeleting ? 'text-gray-500' : 'text-gray-800 group-hover:text-blue-600'
+            crudLoading ? 'text-gray-500' : 'text-gray-800 group-hover:text-blue-600'
           }`}>
             {session.title}
           </h3>
           <div className="relative">
             <button
               onClick={handleMoreClick}
-              disabled={isDeleting}
+              disabled={crudLoading}
               className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                isDeleting 
+                crudLoading 
                   ? 'text-gray-300 cursor-not-allowed' 
                   : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
               }`}
@@ -220,7 +218,7 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
             </button>
             
             {/* Menu d'actions */}
-            {showActions && !isDeleting && (
+            {showActions && !crudLoading && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 font-poppins">
                 <button
                   onClick={(e) => handleActionClick(e, 'view')}
@@ -254,7 +252,7 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
           {/* Code de session */}
           {session.session_code && (
             <div className="flex items-center gap-2 text-sm font-mono">
-              <span className={`font-medium ${isDeleting ? 'text-gray-400' : 'text-blue-600'}`}>
+              <span className={`font-medium ${crudLoading ? 'text-gray-400' : 'text-blue-600'}`}>
                 Code: {session.session_code}
               </span>
             </div>
@@ -262,7 +260,7 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
 
           {/* Date et heure sur la même ligne */}
           <div className={`flex items-center gap-2 text-sm font-poppins ${
-            isDeleting ? 'text-gray-400' : 'text-gray-600'
+            crudLoading ? 'text-gray-400' : 'text-gray-600'
           }`}>
             <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <span>
@@ -272,16 +270,16 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
 
           {/* Durée */}
           <div className={`flex items-center gap-2 text-sm font-poppins ${
-            isDeleting ? 'text-gray-400' : 'text-gray-600'
+            crudLoading ? 'text-gray-400' : 'text-gray-600'
           }`}>
             <Clock className="w-4 h-4 text-gray-400" />
-            <span className={`font-medium ${isDeleting ? 'text-gray-400' : 'text-gray-700'}`}>Durée:</span>
+            <span className={`font-medium ${crudLoading ? 'text-gray-400' : 'text-gray-700'}`}>Durée:</span>
             <span>{duration} minutes</span>
           </div>
 
           {/* Quiz associé */}
           {session.quiz && (
-            <div className={`text-xs font-poppins ${isDeleting ? 'text-gray-400' : 'text-gray-500'}`}>
+            <div className={`text-xs font-poppins ${crudLoading ? 'text-gray-400' : 'text-gray-500'}`}>
               <span className="font-medium">Quiz:</span> {session.quiz.title}
             </div>
           )}
@@ -289,11 +287,11 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
 
         {/* Footer avec statut */}
         <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-          <span className={`text-xs font-poppins ${isDeleting ? 'text-gray-300' : 'text-gray-400'}`}>
+          <span className={`text-xs font-poppins ${crudLoading ? 'text-gray-300' : 'text-gray-400'}`}>
             Session #{session.id}
           </span>
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ml-auto font-poppins ${
-            isDeleting 
+            crudLoading 
               ? 'bg-gray-100 text-gray-400 border-gray-200'
               : `${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`
           }`}>
@@ -304,9 +302,19 @@ const SessionCardComponent = ({ session, index, onDelete }: SessionCardProps) =>
       </div>
 
       {/* Overlay pour indiquer que c'est cliquable */}
-      {!isDeleting && (
+      {!crudLoading && (
         <div className="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-5 transition-opacity rounded-lg pointer-events-none"></div>
       )}
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Confirmer la suppression"
+        message={`Voulez-vous vraiment supprimer la session "${itemToDelete?.title}" ? Cette action est irréversible.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={cancelDelete}
+        isLoading={crudLoading}
+      />
     </div>
   );
 };

@@ -23,6 +23,7 @@ import { fetchTeachers, Teacher, PaginatedResponse, deleteTeacher} from "./_serv
 import { useRouter } from "next/navigation";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
 import ConfirmationDialog from "@/components/ui/Feedback/ConfirmationDialog";
+import { useCrud } from "@/hooks/useCrud";
 
 
 // -----------------------------
@@ -121,6 +122,21 @@ export default function TeachersList() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Hook pour la gestion CRUD avec confirmation et toasts
+  const {
+    loading: crudLoading,
+    error: crudError,
+    showDeleteDialog: showCrudDeleteDialog,
+    itemToDelete: crudItemToDelete,
+    handleDelete: handleDeleteRequest,
+    confirmDelete,
+    cancelDelete,
+    setError: setCrudError
+  } = useCrud<Teacher>({
+    successMessage: "Enseignant supprimé avec succès",
+    errorMessage: "Erreur lors de la suppression de l'enseignant"
+  });
 
   const departments = [
     { value: "all", label: "Tous les départements" },
@@ -221,31 +237,15 @@ export default function TeachersList() {
   const router = useRouter();
 
   const handleDelete = (teacher: Teacher) => {
-    setTeacherToDelete(teacher);
-    setShowDeleteDialog(true);
+    handleDeleteRequest(teacher, deleteTeacher, `Voulez-vous vraiment supprimer l'enseignant "${teacher.user?.name}" ?`);
   };
 
   const confirmDeleteTeacher = async () => {
-    if (!teacherToDelete) return;
-
-    setIsDeleting(true);
-    try {
-      await deleteTeacher(teacherToDelete.id);
-      // Mettre à jour la liste après suppression
-      setTeachers(prev => prev.filter(t => t.id !== teacherToDelete.id));
+    const success = await confirmDelete(deleteTeacher);
+    if (success) {
+      setTeachers(prev => prev.filter(t => t.id !== crudItemToDelete?.id));
       setPagination(prev => prev ? { ...prev, total: prev.total - 1 } : prev);
-      setShowDeleteDialog(false);
-      setTeacherToDelete(null);
-    } catch (error) {
-      // L'erreur sera gérée par le service
-    } finally {
-      setIsDeleting(false);
     }
-  };
-
-  const cancelDeleteTeacher = () => {
-    setShowDeleteDialog(false);
-    setTeacherToDelete(null);
   };
 
 
@@ -445,15 +445,15 @@ export default function TeachersList() {
 
       {/* Dialogue de confirmation de suppression */}
       <ConfirmationDialog
-        isOpen={showDeleteDialog}
+        isOpen={showCrudDeleteDialog}
         title="Supprimer l'enseignant"
-        message={`Êtes-vous sûr de vouloir supprimer l'enseignant "${teacherToDelete?.user?.name}" ? Cette action est irréversible.`}
+        message={`Êtes-vous sûr de vouloir supprimer l'enseignant "${crudItemToDelete?.user?.name}" ? Cette action est irréversible.`}
         confirmText="Supprimer"
         cancelText="Annuler"
         confirmButtonColor="red"
         onConfirm={confirmDeleteTeacher}
-        onCancel={cancelDeleteTeacher}
-        isLoading={isDeleting}
+        onCancel={cancelDelete}
+        isLoading={crudLoading}
       />
     </div>
   );

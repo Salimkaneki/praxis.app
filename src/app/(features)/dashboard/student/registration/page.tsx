@@ -11,8 +11,8 @@ import Input from "@/components/ui/Inputs/Input";
 import Select from "@/components/ui/Inputs/Select";
 import Textarea from "@/components/ui/Inputs/Textarea";
 
-// Import de l'API pour crÃ©er un Ã©tudiant
 import { createStudent } from "@dashboard/student/_services/student.service";
+import { useToast } from "@/hooks/useToast";
  
 
 interface FormData {
@@ -43,6 +43,7 @@ type SubmitStatus = 'success' | 'error' | null;
 
 export default function StudentRegistration() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState<FormData>({
     student_number: "",
     first_name: "",
@@ -163,6 +164,11 @@ export default function StudentRegistration() {
         address: ""
       });
       setErrors({});
+      showSuccess("Étudiant enregistré avec succès !");
+      // Redirection après un court délai
+      setTimeout(() => {
+        router.push('/dashboard/student');
+      }, 1500);
     } catch (error: any) {
       setSubmitStatus('error');
       if (error?.response?.status === 422 && error?.response?.data?.errors) {
@@ -173,6 +179,8 @@ export default function StudentRegistration() {
           }
         });
         setErrors(apiErrors);
+      } else {
+        showError("Une erreur est survenue lors de l'enregistrement.");
       }
     } finally {
       setIsSubmitting(false);
@@ -211,24 +219,6 @@ export default function StudentRegistration() {
           </div>
         </div>
       </div>
-
-      {/* Status Messages */}
-      {submitStatus && (
-        <div className="px-8 py-4">
-          {submitStatus === 'success' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
-              <span className="text-sm text-green-800">Ã‰tudiant enregistrÃ© avec succÃ¨s !</span>
-            </div>
-          )}
-          {submitStatus === 'error' && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
-              <span className="text-sm text-red-800">Une erreur est survenue lors de l'enregistrement.</span>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Form */}
       <div className="px-8 py-8">

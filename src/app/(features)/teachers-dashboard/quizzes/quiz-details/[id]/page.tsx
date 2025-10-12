@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from 'next/navigation';
-import { 
-  FileText, BookOpen, Clock, Star, Settings, 
-  Edit, Trash2, Users, Target, Eye, AlertCircle,
-  Plus, ChevronRight, MoreVertical, Play, Copy,
-  CheckCircle, XCircle, Shuffle, RotateCcw
+import {
+  FileText, BookOpen, Clock, Star,
+  Edit, Trash2, Eye, AlertCircle,
+  Plus, MoreVertical, Play, Copy,
+  CheckCircle, XCircle
 } from "lucide-react";
 import TeacherPageHeader from "../../../_components/page-header";
 import QuestionDetailsModal from "../../../_components/QuestionDetailsModal"; // Import du modal
@@ -133,7 +133,7 @@ const QuizDetailsPage = () => {
       },
       published: {
         label: "Publié",
-        className: "bg-green-100 text-green-800 border-green-200", 
+        className: "bg-green-100 text-green-800 border-green-200",
         icon: CheckCircle
       },
       archived: {
@@ -143,18 +143,7 @@ const QuizDetailsPage = () => {
       }
     };
     return configs[status];
-  };
-
-  const getDifficultyConfig = (difficulty: 'easy' | 'medium' | 'hard') => {
-    const configs = {
-      easy: { label: "Facile", className: "bg-green-100 text-green-800" },
-      medium: { label: "Moyen", className: "bg-yellow-100 text-yellow-800" },
-      hard: { label: "Difficile", className: "bg-red-100 text-red-800" }
-    };
-    return configs[difficulty];
-  };
-
-  const getQuestionTypeLabel = (type: Question['type']) => {
+  };  const getQuestionTypeLabel = (type: Question['type']) => {
     const types = {
       multiple_choice: "QCM",
       true_false: "Vrai/Faux", 
@@ -165,7 +154,7 @@ const QuizDetailsPage = () => {
   };
 
   const handleEditQuiz = () => {
-    // TODO: Implémenter quand la page d'édition sera créée
+    router.push(`/teachers-dashboard/quizzes/edit/${quizId}`);
   };
 
   const handleAddQuestion = () => {
@@ -295,16 +284,7 @@ const QuizDetailsPage = () => {
   }
 
   const statusConfig = getStatusConfig(quiz.status);
-  const StatusIcon = statusConfig.icon;
-  
-  // Déterminer la difficulté basée sur les points (fallback si pas de propriété difficulty)
-  const estimatedDifficulty: 'easy' | 'medium' | 'hard' = 
-    (quiz.total_points || 0) < 20 ? 'easy' : 
-    (quiz.total_points || 0) < 40 ? 'medium' : 'hard';
-  
-  const difficultyConfig = getDifficultyConfig(estimatedDifficulty);
-
-  const handleCancel = () => {
+  const StatusIcon = statusConfig.icon;  const handleCancel = () => {
     router.back();
   };
 
@@ -394,7 +374,7 @@ const QuizDetailsPage = () => {
             </div>
 
             {/* Statistiques rapides */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <Clock className="w-8 h-8 text-blue-600 mx-auto mb-2" />
                 <p className="text-2xl font-bold text-gray-900">{quiz.duration_minutes || 'N/A'}</p>
@@ -410,67 +390,9 @@ const QuizDetailsPage = () => {
                 <p className="text-2xl font-bold text-gray-900">{questions.length}</p>
                 <p className="text-sm text-gray-600">questions</p>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <Users className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gray-900">0</p>
-                <p className="text-sm text-gray-600">tentatives</p>
-              </div>
             </div>
 
-            {/* Configuration */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  Configuration
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Difficulté</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${difficultyConfig.className}`}>
-                      {difficultyConfig.label}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Résultats immédiats</span>
-                    <span className={`px-2 py-1 rounded-full text-xs ${quiz.show_results_immediately ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                      {quiz.show_results_immediately ? 'Oui' : 'Non'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Révision autorisée</span>
-                    <span className={`px-2 py-1 rounded-full text-xs ${quiz.allow_review ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                      {quiz.allow_review ? 'Oui' : 'Non'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Target className="w-5 h-5" />
-                  Options avancées
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Questions mélangées</span>
-                    <Shuffle className={`w-4 h-4 ${quiz.shuffle_questions ? 'text-green-600' : 'text-gray-400'}`} />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Créé le</span>
-                    <span className="text-sm text-gray-900">
-                      {new Date(quiz.created_at).toLocaleDateString('fr-FR')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Modifié le</span>
-                    <span className="text-sm text-gray-900">
-                      {new Date(quiz.updated_at).toLocaleDateString('fr-FR')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Suppression de la section Configuration selon les demandes */}
           </div>
 
           {/* Section Questions */}

@@ -14,9 +14,11 @@ import { createTeacher } from "../_services/teacher.service";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import api from "@/lib/server/interceptor/axios";
+import { useToast } from "@/hooks/useToast";
 
 export default function TeacherCreationForm() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
 
   const [formData, setFormData] = useState({
     user_id: "",
@@ -118,7 +120,9 @@ export default function TeacherCreationForm() {
         };
         await createTeacher(apiData);
         router.push("/dashboard/teacher");
+        showSuccess("Enseignant créé avec succès !");
       } catch (error) {
+        showError("Erreur lors de la création de l'enseignant");
       } finally {
         setLoading(false);
       }

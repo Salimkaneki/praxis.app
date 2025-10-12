@@ -5,11 +5,12 @@ import ClasseService, { Classe, PaginatedResponse } from "./_services/classe.ser
 import { useRouter } from "next/navigation";
 import TeacherPageHeader from "@/components/ui/Headers/page-header";
 import KPIGrid from "@/components/ui/Cards/kpi-grid";
+import ConfirmationDialog from "@/components/ui/Feedback/ConfirmationDialog";
+import { useCrud } from "@/hooks/useCrud";
 
 
 export default function ClassroomsPage() {
   const router = useRouter();
-
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [classrooms, setClassrooms] = useState<Classe[]>([]);
@@ -19,6 +20,19 @@ export default function ClassroomsPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [lastPage, setLastPage] = useState<number>(1);
   const [total, setTotal] = useState<number>(0);
+
+  // Hook pour la gestion CRUD avec confirmation et toasts
+  const {
+    loading: crudLoading,
+    showDeleteDialog,
+    itemToDelete,
+    handleDelete: handleDeleteRequest,
+    confirmDelete,
+    cancelDelete
+  } = useCrud<Classe>({
+    successMessage: "Classe supprimée avec succès",
+    errorMessage: "Erreur lors de la suppression de la classe"
+  });
 
   // Statistiques calculées
   const stats = {
@@ -105,16 +119,15 @@ export default function ClassroomsPage() {
   };
 
   // Dans ton composant ClassroomsPage
-  const handleDeleteClass = async (id: number) => {
-    try {
-      setLoading(true);
-      await ClasseService.deleteClasse(id);
+  const handleDeleteClass = (classe: Classe) => {
+    handleDeleteRequest(classe, ClasseService.deleteClasse, `Voulez-vous vraiment supprimer la classe "${classe.name}" ?`);
+  };
+
+  const handleConfirmDelete = async () => {
+    const success = await confirmDelete(ClasseService.deleteClasse);
+    if (success) {
       // Recharger la liste après suppression
       await fetchClasses();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Erreur lors de la suppression de la classe.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -208,7 +221,7 @@ export default function ClassroomsPage() {
                           <button 
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-smooth"
                             title="Supprimer"
-                            onClick={() => handleDeleteClass(room.id)}
+                            onClick={() => handleDeleteClass(room)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -266,6 +279,16 @@ export default function ClassroomsPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de confirmation de suppression */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Confirmer la suppression"
+        message={`Voulez-vous vraiment supprimer la classe "${itemToDelete?.name}" ? Cette action est irréversible.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={cancelDelete}
+        isLoading={crudLoading}
+      />
     </div>
   );
 }

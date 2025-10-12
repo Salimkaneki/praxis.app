@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Inputs/Input";
 import Button from "@/components/ui/Buttons/Button";
 import { loginStudent } from "../_services/auth.service";
+import { useToast } from "@/hooks/useToast";
 
 export default function StudentSignInForm() {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,12 +25,15 @@ export default function StudentSignInForm() {
 
       console.log("Connexion réussie:", response);
 
+      // Toast de succès
+      showSuccess("Connexion réussie ! Bienvenue dans votre espace étudiant.");
+
       // Redirection vers le dashboard étudiant
       router.push("/student/");
 
     } catch (err: any) {
       console.error("Erreur de connexion:", err);
-      setError(err.message || "Erreur de connexion");
+      showError(err.message || "Erreur de connexion");
     } finally {
       setLoading(false);
     }

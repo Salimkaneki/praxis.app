@@ -76,7 +76,7 @@ export default function AdminSideBar() {
       'rapports-examens': '/dashboard/analytics/examens-programmes',
       'analyses-detaillees': '/dashboard/analytics/detaillees',
       'gestion-utilisateurs': '/dashboard/user',
-      'parametres-systeme': '/dashboard/administration/parametres'
+      'parametres-systeme': '/dashboard/administration/parametres',
     };
 
     const route = routes[key];

@@ -64,7 +64,7 @@ export interface Question {
   question_text: string;
   type: 'multiple_choice' | 'true_false' | 'open_ended' | 'fill_blank';
   points?: number;
-  difficulty?: 'easy' | 'medium' | 'hard'; 
+  difficulty?: 'easy' | 'medium' | 'hard';
   options?: any[];
   correct_answer?: string;
   explanation?: string;

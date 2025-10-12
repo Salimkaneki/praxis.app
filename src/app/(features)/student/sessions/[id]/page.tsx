@@ -96,6 +96,22 @@ export default function StudentExamPage() {
   const params = useParams();
   const examId = params.id as string;
 
+  // Rediriger vers les bonnes pages si l'ID correspond à une route connue
+  const knownRoutes: Record<string, string> = {
+    'profile': '/student/profile',
+    'dashboard': '/student',
+    'results': '/student/results',
+    'sessions': '/student/sessions',
+    'settings': '/student/settings'
+  };
+
+  if (knownRoutes[examId]) {
+    React.useEffect(() => {
+      window.location.href = knownRoutes[examId];
+    }, []);
+    return null; // Ne rien rendre pendant la redirection
+  }
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, any>>({});
   const [timeLeft, setTimeLeft] = useState(0);
@@ -115,10 +131,10 @@ export default function StudentExamPage() {
     if (timeLeft > 0 && !isSubmitted) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !isSubmitted) {
+    } else if (timeLeft === 0 && !isSubmitted && examData) {
       handleSubmitExam();
     }
-  }, [timeLeft, isSubmitted]);
+  }, [timeLeft, isSubmitted, examData]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -134,7 +150,7 @@ export default function StudentExamPage() {
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < examData.questions.length - 1) {
+    if (examData && examData.questions && currentQuestionIndex < examData.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
@@ -146,6 +162,11 @@ export default function StudentExamPage() {
   };
 
   const handleSubmitExam = () => {
+    if (!examData || !examData.questions) {
+      console.error('Données d\'examen non disponibles');
+      return;
+    }
+
     // Calculer le score
     let correctAnswers = 0;
     examData.questions.forEach(question => {
@@ -242,7 +263,7 @@ export default function StudentExamPage() {
     <div className="min-h-screen bg-white">
       <StudentPageHeader
         title={examData.title}
-        subtitle={`Question ${currentQuestionIndex + 1} sur ${examData.questions.length}`}
+        subtitle={`Question ${currentQuestionIndex + 1} sur ${examData.questions?.length || 0}`}
       />
 
       <div className="w-full max-w-4xl mx-auto px-8 py-8">
@@ -328,7 +349,7 @@ export default function StudentExamPage() {
           </Button>
 
           <div className="flex gap-2">
-            {examData.questions.map((question, index) => (
+            {examData.questions?.map((question, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentQuestionIndex(index)}
@@ -345,7 +366,7 @@ export default function StudentExamPage() {
             ))}
           </div>
 
-          {currentQuestionIndex === examData.questions.length - 1 ? (
+          {currentQuestionIndex === (examData.questions?.length || 0) - 1 ? (
             <Button
               onClick={handleSubmitExam}
               variant="primary"

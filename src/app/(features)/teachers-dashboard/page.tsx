@@ -15,7 +15,7 @@ export default function TeacherDashboardPage() {
     },
     { 
       id: 2, 
-      title: "Quiz Réseaux - Modèle OSI", 
+      title: "Questionnaire Réseaux - Modèle OSI", 
       className: "L2 Réseaux", 
       questions: 15, 
       createdAt: "2025-09-07" 
@@ -39,7 +39,7 @@ export default function TeacherDashboardPage() {
     },
     { 
       id: 2, 
-      title: "Quiz - Administration Systèmes", 
+      title: "Questionnaire - Administration Systèmes", 
       date: "2025-09-14", 
       time: "14:00", 
       className: "L2 Réseaux" 
@@ -80,11 +80,11 @@ export default function TeacherDashboardPage() {
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg shadow-sm">
           <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-poppins font-medium text-gray-900">
-              Mes Quiz
+              Mes Questionnaires
             </h2>
             <button className="flex items-center space-x-2 px-3 py-1.5 bg-blue-600 text-white text-sm font-poppins rounded-md hover:bg-blue-700 transition-colors">
               <Plus className="w-4 h-4" />
-              <span>Créer un quiz</span>
+              <span>Créer un questionnaire</span>
             </button>
           </div>
           

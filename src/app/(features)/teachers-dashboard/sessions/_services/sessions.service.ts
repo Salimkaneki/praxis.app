@@ -81,13 +81,33 @@ export const SessionsService = {
   // Créer une nouvelle session
   create: async (sessionData: Partial<Session>): Promise<Session> => {
     try {
+      console.log('📤 SessionsService.create - Envoi des données:', sessionData);
+      console.log('🔗 SessionsService.create - URL:', '/teacher/sessions');
+      
       const response = await api.post('/teacher/sessions', sessionData);
+      
+      console.log('✅ SessionsService.create - Réponse réussie:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('❌ SessionsService.create - Erreur complète:', error);
+      console.error('📋 SessionsService.create - Détails:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
+
       // Afficher les détails de l'erreur de validation si disponible
       if (error.response?.status === 422 && error.response?.data) {
         if (error.response.data.errors) {
+          console.log('🔍 SessionsService.create - Erreurs de validation 422:', error.response.data.errors);
           Object.entries(error.response.data.errors).forEach(([field, messages]) => {
+            console.log(`   ${field}:`, messages);
           });
         }
       }
@@ -99,9 +119,44 @@ export const SessionsService = {
   // Mettre à jour une session
   update: async (id: number, sessionData: Partial<Session>): Promise<Session> => {
     try {
+      console.log('🔄 SessionsService.update - Envoi des données:', { id, sessionData });
       const response = await api.put(`/teacher/sessions/${id}`, sessionData);
+      console.log('✅ SessionsService.update - Réponse:', response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ SessionsService.update - Erreur:', error);
+      console.error('📋 SessionsService.update - Détails:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
+
+      // Gestion spécifique des erreurs de validation
+      if (error.response?.status === 400) {
+        const errorData = error.response.data;
+        if (errorData?.errors) {
+          // Erreurs de validation Laravel
+          const validationErrors = Object.entries(errorData.errors)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('; ');
+          throw new Error(`Erreurs de validation: ${validationErrors}`);
+        }
+        if (errorData?.error) {
+          throw new Error(errorData.error);
+        }
+        if (errorData?.message) {
+          throw new Error(errorData.message);
+        }
+      }
+
+      if (error.response?.status === 422) {
+        const errorData = error.response.data;
+        if (errorData?.errors) {
+          const validationErrors = Object.values(errorData.errors).flat().join(', ');
+          throw new Error(`Validation échouée: ${validationErrors}`);
+        }
+      }
+
       throw error;
     }
   },
@@ -244,5 +299,25 @@ export const SessionsService = {
   // Méthode utilitaire pour rafraîchir les données d'une session
   refresh: async (id: number): Promise<Session> => {
     return SessionsService.getById(id);
+  },
+
+  // Récupérer les étudiants participants à une session
+  getParticipants: async (id: number): Promise<any[]> => {
+    try {
+      const response = await api.get(`/teacher/sessions/${id}/participants`);
+      return response.data.participants || [];
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Récupérer les résultats d'une session
+  getResults: async (id: number): Promise<any[]> => {
+    try {
+      const response = await api.get(`/teacher/sessions/${id}/results`);
+      return response.data.results || [];
+    } catch (error) {
+      throw error;
+    }
   }
 };
