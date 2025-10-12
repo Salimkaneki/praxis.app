@@ -11,9 +11,7 @@ import {
   BookOpenIcon,
   Cog6ToothIcon,
   ClipboardDocumentListIcon,
-  ChatBubbleLeftRightIcon,
   AcademicCapIcon,
-  DocumentDuplicateIcon,
   ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -23,11 +21,10 @@ import {
   EyeIcon,
   DocumentChartBarIcon,
   UsersIcon,
-  BellIcon,
-  StarIcon
+  BellIcon
 } from "@heroicons/react/24/outline";
 
-type SectionKey = 'matieres' | 'evaluations' | 'communication' | 'ressources';
+type SectionKey = 'matieres' | 'evaluations' | 'questionnaires';
 type ActiveSection = 
   | 'dashboard'
   | 'mes-matieres'
@@ -35,22 +32,16 @@ type ActiveSection =
   | 'mes-quiz'
   | 'evaluation-en-cours'
   | 'resultats-notes'
-  | 'banque-questions'
   | 'cours-lecons'
-  | 'ressources'
-  | 'devoirs-maison'
-  | 'cahier-texte'
-  | 'notifications'
-  | 'archivage'
-  | 'parametres';
+  | 'parametres'
+  | 'notifications';
 
 export default function TeacherSideBar() {
   const [activeSection, setActiveSection] = useState<ActiveSection>('dashboard');
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
     matieres: true,
     evaluations: false,
-    communication: false,
-    ressources: false,
+    questionnaires: false,
   });
 
   const router = useRouter();
@@ -72,17 +63,9 @@ export default function TeacherSideBar() {
       'mes-quiz': '/teachers-dashboard/quizzes',
       'evaluation-en-cours': '/teachers-dashboard/sessions',
       'resultats-notes': '/teachers-dashboard/results',
-      'banque-questions': '/teachers-dashboard/quizzes/banque-questions',
       'cours-lecons': '/teachers-dashboard/cours',
-      'ressources': '/teachers-dashboard/ressources',
-      'devoirs-maison': '/teachers-dashboard/devoirs',
-      'cahier-texte': '/teachers-dashboard/cahier-texte',
-      'messagerie': '/teachers-dashboard/messagerie',
-      'annonces': '/teachers-dashboard/annonces',
-      'reunions-parents': '/teachers-dashboard/reunions',
       'parametres': '/teachers-dashboard/parametres',
       'notifications': '/teachers-dashboard/notifications',
-      'archivage': '/teachers-dashboard/archivage'
     };
 
     const route = routes[key];
@@ -106,20 +89,9 @@ export default function TeacherSideBar() {
     },
     {
       key: 'evaluations' as SectionKey,
-      title: 'Évaluations & Quiz',
+      title: 'Évaluations',
       icon: PresentationChartLineIcon,
       items: [
-        { 
-          key: 'creation-evaluation' as ActiveSection, 
-          label: 'Créer un quiz', 
-          icon: PlusIcon,
-          highlight: true
-        },
-        {
-          key: 'mes-quiz' as ActiveSection,
-          label: 'Mes quiz',
-          icon: DocumentTextIcon
-        },
         {
           key: 'evaluation-en-cours' as ActiveSection,
           label: 'Sessions d\'examen',
@@ -133,51 +105,20 @@ export default function TeacherSideBar() {
       ],
     },
     {
-      key: 'communication' as SectionKey,
-      title: 'Communication',
-      icon: ChatBubbleLeftRightIcon,
+      key: 'questionnaires' as SectionKey,
+      title: 'Questionnaires',
+      icon: DocumentTextIcon,
       items: [
         { 
-          key: 'messagerie' as ActiveSection, 
-          label: 'Messagerie', 
-          icon: ChatBubbleLeftRightIcon
+          key: 'creation-evaluation' as ActiveSection, 
+          label: 'Créer un questionnaire', 
+          icon: PlusIcon,
+          highlight: true
         },
-        { 
-          key: 'annonces' as ActiveSection, 
-          label: 'Annonces de classe', 
-          icon: BellIcon 
-        },
-        { 
-          key: 'reunions-parents' as ActiveSection, 
-          label: 'Rendez-vous parents', 
-          icon: CalendarDaysIcon
-        },
-      ],
-    },
-    {
-      key: 'ressources' as SectionKey,
-      title: 'Outils & Ressources',
-      icon: Cog6ToothIcon,
-      items: [
-        { 
-          key: 'banque-questions' as ActiveSection, 
-          label: 'Banque de questions', 
-          icon: DocumentDuplicateIcon 
-        },
-        { 
-          key: 'ressources' as ActiveSection, 
-          label: 'Ressources pédagogiques', 
-          icon: StarIcon 
-        },
-        { 
-          key: 'devoirs-maison' as ActiveSection, 
-          label: 'Devoirs maison', 
-          icon: DocumentTextIcon 
-        },
-        { 
-          key: 'archivage' as ActiveSection, 
-          label: 'Archivage', 
-          icon: ClockIcon 
+        {
+          key: 'mes-quiz' as ActiveSection,
+          label: 'Mes questionnaires',
+          icon: DocumentTextIcon
         },
       ],
     },

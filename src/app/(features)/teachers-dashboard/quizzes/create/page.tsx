@@ -205,10 +205,10 @@ export default function CreateQuizPage() {
     <div className="min-h-screen bg-gray-50 font-poppins">
       {/* Header - RETIRER backButton SI NÉCESSAIRE */}
       <TeacherPageHeader
-        title="Créer un Quiz"
-        subtitle="Remplissez les informations ci-dessous pour créer un nouveau quiz."
+        title="Créer un Questionnaire"
+        subtitle="Remplissez les informations ci-dessous pour créer un nouveau questionnaire."
         actionButton={{
-          label: isSubmitting ? "Création..." : "Créer le Quiz",
+          label: isSubmitting ? "Création..." : "Créer le Questionnaire",
           icon: isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />,
           onClick: handleSubmit,
           // disabled: isSubmitting || loadingSubjects
@@ -241,15 +241,15 @@ export default function CreateQuizPage() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Informations générales</h2>
-                  <p className="text-sm text-gray-600">Définissez les informations de base du quiz</p>
+                  <p className="text-sm text-gray-600">Définissez les informations de base du questionnaire</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
                   <Input 
-                    label="Titre du quiz" 
-                    placeholder="Ex: Quiz UX Design - Méthodologies et Prototypage" 
+                    label="Titre du questionnaire" 
+                    placeholder="Ex: Questionnaire UX Design - Méthodologies et Prototypage" 
                     value={formData.title} 
                     onChange={handleInputChange('title')} 
                     leftIcon={FileText} 

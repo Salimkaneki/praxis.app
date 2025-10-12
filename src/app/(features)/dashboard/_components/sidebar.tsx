@@ -15,12 +15,10 @@ import {
   PresentationChartLineIcon,
   DocumentChartBarIcon,
   ClockIcon,
-  UserPlusIcon,
-  BellIcon,
-  ChatBubbleLeftRightIcon
+  UserPlusIcon
 } from "@heroicons/react/24/outline";
 
-type SectionKey = 'pedagogique' | 'utilisateurs' | 'evaluations' | 'analytics' | 'administration' | 'communications';
+type SectionKey = 'pedagogique' | 'utilisateurs' | 'evaluations' | 'analytics' | 'administration';
 type ActiveSection =
   | 'dashboard'
   | 'formations'
@@ -37,9 +35,7 @@ type ActiveSection =
   | 'rapports-examens'
   | 'analyses-detaillees'
   | 'gestion-utilisateurs'
-  | 'parametres-systeme'
-  | 'notifications'
-  | 'chat';
+  | 'parametres-systeme';
 
 export default function AdminSideBar() {
   const [activeSection, setActiveSection] = useState<ActiveSection>('dashboard');
@@ -49,7 +45,6 @@ export default function AdminSideBar() {
     evaluations: false,
     analytics: false,
     administration: false,
-    communications: false,
   });
 
   const router = useRouter();
@@ -82,8 +77,6 @@ export default function AdminSideBar() {
       'analyses-detaillees': '/dashboard/analytics/detaillees',
       'gestion-utilisateurs': '/dashboard/user',
       'parametres-systeme': '/dashboard/administration/parametres',
-      'notifications': '/dashboard/notifications/create',
-      'chat': '/dashboard/chat'
     };
 
     const route = routes[key];
@@ -145,15 +138,6 @@ export default function AdminSideBar() {
       items: [
         { key: 'gestion-utilisateurs' as ActiveSection, label: 'Gestion des utilisateurs', icon: UsersIcon },
         { key: 'parametres-systeme' as ActiveSection, label: 'Paramètres système', icon: Cog6ToothIcon },
-      ],
-    },
-    {
-      key: 'communications' as SectionKey,
-      title: 'Communications',
-      icon: BellIcon,
-      items: [
-        { key: 'notifications' as ActiveSection, label: 'Créer une notification', icon: BellIcon },
-        { key: 'chat' as ActiveSection, label: 'Assistant Chat IA', icon: ChatBubbleLeftRightIcon },
       ],
     },
   ];

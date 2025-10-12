@@ -8,8 +8,6 @@ import {
   UserIcon,
   ChartBarIcon,
   Cog6ToothIcon,
-  ChatBubbleLeftRightIcon,
-  BellIcon,
   ClockIcon,
   CheckCircleIcon,
   ChevronDownIcon,
@@ -18,7 +16,7 @@ import {
   KeyIcon
 } from "@heroicons/react/24/outline";
 
-type SectionKey = 'evaluations' | 'resultats' | 'communication' | 'profil';
+type SectionKey = 'evaluations' | 'resultats' | 'profil';
 type ActiveSection =
   | 'dashboard'
   | 'quiz-disponibles'
@@ -26,8 +24,6 @@ type ActiveSection =
   | 'quiz-en-cours'
   | 'mes-resultats'
   | 'statistiques'
-  | 'messagerie'
-  | 'annonces'
   | 'mon-profil'
   | 'parametres';
 
@@ -36,7 +32,6 @@ export default function StudentSideBar() {
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
     evaluations: true,
     resultats: false,
-    communication: false,
     profil: false,
   });
 
@@ -59,8 +54,6 @@ export default function StudentSideBar() {
       'quiz-en-cours': '/student/quizzes/live',
       'mes-resultats': '/student/results',
       'mon-profil': '/student/profile',
-      'messagerie': '/student/messages',
-      'annonces': '/student/announcements',
       'statistiques': '/student/statistics',
       'parametres': '/student/settings'
     };
@@ -109,23 +102,6 @@ export default function StudentSideBar() {
           key: 'statistiques' as ActiveSection,
           label: 'Mes statistiques',
           icon: ChartBarIcon
-        },
-      ],
-    },
-    {
-      key: 'communication' as SectionKey,
-      title: 'Communication',
-      icon: ChatBubbleLeftRightIcon,
-      items: [
-        {
-          key: 'messagerie' as ActiveSection,
-          label: 'Messagerie',
-          icon: ChatBubbleLeftRightIcon
-        },
-        {
-          key: 'annonces' as ActiveSection,
-          label: 'Annonces de classe',
-          icon: BellIcon
         },
       ],
     },

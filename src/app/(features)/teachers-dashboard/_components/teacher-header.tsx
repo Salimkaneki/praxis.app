@@ -8,12 +8,8 @@ import {
   ArrowRightOnRectangleIcon,
   AcademicCapIcon,
   DocumentTextIcon,
-  CalendarDaysIcon,
   ClockIcon,
-  ChatBubbleLeftRightIcon,
-  ChartBarIcon,
-  BookOpenIcon,
-  PlusIcon
+  ChartBarIcon
 } from "@heroicons/react/24/outline";
 import teacherAuthService from "../_services/teacher-auth.service";
 import { getNotifications, getUnreadCount, markAsRead, TeacherNotification } from "../notifications/_services/T-Notification.service";
@@ -22,7 +18,6 @@ import { getNotifications, getUnreadCount, markAsRead, TeacherNotification } fro
 export default function TeacherHeader() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [teacherName, setTeacherName] = useState("Professeur");
   const [institutionName, setInstitutionName] = useState("Institution");
   const [department, setDepartment] = useState("Département");
@@ -66,14 +61,6 @@ export default function TeacherHeader() {
       setUnreadCount(0);
     }
   };
-
-  // Actions rapides pour le menu "+"
-  const quickActions = [
-    { icon: DocumentTextIcon, label: "Nouvelle évaluation", color: "text-blue-600" },
-    { icon: BookOpenIcon, label: "Nouveau cours", color: "text-green-600" },
-    { icon: CalendarDaysIcon, label: "Programmer un examen", color: "text-purple-600" },
-    { icon: ChatBubbleLeftRightIcon, label: "Envoyer un message", color: "text-orange-600" }
-  ];
 
   // Récupération des infos professeur depuis l'API et localStorage
   useEffect(() => {
@@ -172,37 +159,6 @@ export default function TeacherHeader() {
 
       {/* Right side */}
       <div className="flex items-center space-x-4">
-        {/* Quick Add Menu */}
-        <div className="relative">
-          <button
-            onClick={() => setShowQuickAdd(!showQuickAdd)}
-            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          >
-            <PlusIcon className="w-5 h-5" />
-          </button>
-          {showQuickAdd && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-              <div className="p-2">
-                <div className="px-3 py-2 text-xs font-poppins font-medium text-gray-500 uppercase tracking-wide">
-                  Actions rapides
-                </div>
-                {quickActions.map((action, index) => (
-                  <button key={index} className="w-full px-3 py-2 text-left text-sm font-poppins text-gray-700 hover:bg-gray-50 flex items-center space-x-3 rounded-md transition-colors">
-                    <action.icon className={`w-4 h-4 ${action.color}`} />
-                    <span>{action.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Messages/Communications */}
-        <button className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
-          <ChatBubbleLeftRightIcon className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full"></span>
-        </button>
-
         {/* Notifications */}
         <div className="relative">
           <button
@@ -337,13 +293,12 @@ export default function TeacherHeader() {
       </div>
 
       {/* Click outside handler */}
-      {(showUserMenu || showNotifications || showQuickAdd) && (
+      {(showUserMenu || showNotifications) && (
         <div 
           className="fixed inset-0 z-40" 
           onClick={() => {
             setShowUserMenu(false);
             setShowNotifications(false);
-            setShowQuickAdd(false);
           }}
         />
       )}
