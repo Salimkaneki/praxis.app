@@ -22,32 +22,42 @@ import {
   Loader2
 } from "lucide-react";
 import { getStudentProfile, logoutStudent, StudentProfile } from "../../auth/sign-in/student/_services/auth.service";
+import { StudentProfileService, StudentProfileData, UpdateProfilePayload, ChangePasswordPayload } from "./_services/profile.service";
 
 export default function StudentProfilePage() {
-  // État du profil
+  // État du profil complet
+  const [fullProfile, setFullProfile] = useState<StudentProfileData | null>(null);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // État du formulaire (pour les futures modifications)
+  // État du formulaire de profil
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    email: "",
     phone: "",
     birthDate: "",
     address: "",
-    class: "",
-    specialty: "",
-    year: "",
-    bio: "",
-    notifications: "all",
-    theme: "light"
+    emergencyContact: "",
+    emergencyPhone: "",
+    medicalInfo: "",
+    theme: "light",
+    notifications: true
+  });
+
+  // État du changement de mot de passe
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loggingOut, setLoggingOut] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // Charger le profil au montage du composant
   useEffect(() => {
@@ -59,14 +69,24 @@ export default function StudentProfilePage() {
       setLoading(true);
       setError(null);
       const profileData = await getStudentProfile();
-      setProfile(profileData);
+      const fullProfileData = await StudentProfileService.getProfile();
 
-      // Initialiser le formulaire avec les données du profil
-      setFormData(prev => ({
-        ...prev,
-        email: profileData.email,
-        // Les autres champs peuvent être vides pour l'instant car ils ne sont pas dans l'API
-      }));
+      setProfile(profileData);
+      setFullProfile(fullProfileData);
+
+      // Initialiser le formulaire avec les données du profil complet
+      setFormData({
+        firstName: fullProfileData.first_name || "",
+        lastName: fullProfileData.last_name || "",
+        phone: fullProfileData.phone || "",
+        birthDate: fullProfileData.birth_date || "",
+        address: fullProfileData.address || "",
+        emergencyContact: fullProfileData.emergency_contact || "",
+        emergencyPhone: fullProfileData.emergency_phone || "",
+        medicalInfo: fullProfileData.medical_info || "",
+        theme: fullProfileData.preferences?.theme || "light",
+        notifications: fullProfileData.preferences?.notifications ?? true
+      });
     } catch (err: any) {
       setError(err.message || 'Erreur lors du chargement du profil');
     } finally {
@@ -144,7 +164,7 @@ export default function StudentProfilePage() {
   }
 
   // Gestionnaire de changement
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Supprimer l'erreur quand l'utilisateur commence à taper
     if (errors[field]) {
@@ -158,62 +178,110 @@ export default function StudentProfilePage() {
 
     if (!formData.firstName.trim()) newErrors.firstName = "Le prénom est requis";
     if (!formData.lastName.trim()) newErrors.lastName = "Le nom est requis";
-    if (!formData.email.trim()) newErrors.email = "L'email est requis";
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email invalide";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Soumission du formulaire
-  const handleSubmit = (e: React.FormEvent) => {
+  // Soumission du formulaire de profil
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      // Ici on pourrait faire un appel API
+    if (!validateForm()) return;
+
+    try {
+      setUpdating(true);
+      const payload: UpdateProfilePayload = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone: formData.phone || undefined,
+        birth_date: formData.birthDate || undefined,
+        address: formData.address || undefined,
+        emergency_contact: formData.emergencyContact || undefined,
+        emergency_phone: formData.emergencyPhone || undefined,
+        medical_info: formData.medicalInfo || undefined,
+        preferences: {
+          theme: formData.theme as 'light' | 'dark',
+          notifications: formData.notifications
+        }
+      };
+
+      const updatedProfile = await StudentProfileService.updateProfile(payload);
+      setFullProfile(updatedProfile);
       setIsEditing(false);
-      // Afficher un message de succès
+
+      // Afficher un message de succès (vous pouvez utiliser un toast ici)
+      alert('Profil mis à jour avec succès');
+    } catch (error: any) {
+      alert(error.message || 'Erreur lors de la mise à jour du profil');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Soumission du changement de mot de passe
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      alert('Le mot de passe doit contenir au moins 8 caractères');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      const payload: ChangePasswordPayload = {
+        current_password: passwordData.currentPassword,
+        password: passwordData.newPassword,
+        password_confirmation: passwordData.confirmPassword
+      };
+
+      await StudentProfileService.changePassword(payload);
+
+      // Réinitialiser le formulaire
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+      setShowPasswordChange(false);
+
+      alert('Mot de passe changé avec succès');
+    } catch (error: any) {
+      alert(error.message || 'Erreur lors du changement de mot de passe');
+    } finally {
+      setChangingPassword(false);
     }
   };
 
   // Annulation des modifications
   const handleCancel = () => {
-    // Recharger les données originales (simulation)
-    setFormData({
-      firstName: "Jean",
-      lastName: "Dupont",
-      email: "jean.dupont@ecole.fr",
-      phone: "+33 6 12 34 56 78",
-      birthDate: "2005-05-15",
-      address: "123 Rue des Étudiants, 75001 Paris",
-      class: "Terminale S",
-      specialty: "Sciences",
-      year: "2025",
-      bio: "Étudiant passionné par les sciences et la programmation. J'aime résoudre des problèmes complexes et travailler en équipe.",
-      notifications: "all",
-      theme: "light"
-    });
+    if (fullProfile) {
+      setFormData({
+        firstName: fullProfile.first_name || "",
+        lastName: fullProfile.last_name || "",
+        phone: fullProfile.phone || "",
+        birthDate: fullProfile.birth_date || "",
+        address: fullProfile.address || "",
+        emergencyContact: fullProfile.emergency_contact || "",
+        emergencyPhone: fullProfile.emergency_phone || "",
+        medicalInfo: fullProfile.medical_info || "",
+        theme: fullProfile.preferences?.theme || "light",
+        notifications: fullProfile.preferences?.notifications ?? true
+      });
+    }
     setErrors({});
     setIsEditing(false);
   };
 
   // Options pour les selects
-  const classOptions = [
-    { value: "seconde", label: "Seconde" },
-    { value: "premiere", label: "Première" },
-    { value: "terminale", label: "Terminale" }
-  ];
-
-  const specialtyOptions = [
-    { value: "general", label: "Général" },
-    { value: "sciences", label: "Sciences" },
-    { value: "litteraire", label: "Littéraire" },
-    { value: "economique", label: "Économique et Social" }
-  ];
-
   const notificationOptions = [
-    { value: "all", label: "Toutes les notifications" },
-    { value: "important", label: "Uniquement importantes" },
-    { value: "none", label: "Aucune notification" }
+    { value: "true", label: "Activées" },
+    { value: "false", label: "Désactivées" }
   ];
 
   const themeOptions = [
@@ -404,22 +472,48 @@ export default function StudentProfilePage() {
             </div>
           </div>
 
-          {/* BIOGRAPHIE */}
+          {/* INFORMATIONS MÉDICALES */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h2 className="text-lg font-poppins font-medium text-gray-900 mb-6">
-              À propos de moi
+              Informations médicales
             </h2>
 
             <Textarea
-              label="Biographie"
-              value={formData.bio}
-              onChange={(e) => handleChange("bio", e.target.value)}
-              placeholder="Parlez-nous de vous, vos intérêts, vos objectifs..."
+              label="Informations médicales"
+              value={formData.medicalInfo}
+              onChange={(e) => handleChange("medicalInfo", e.target.value)}
+              placeholder="Allergies, traitements médicaux, etc. (optionnel)"
               disabled={!isEditing}
-              rows={4}
-              maxLength={500}
-              showCharCount={true}
+              rows={3}
             />
+          </div>
+
+          {/* CONTACTS D'URGENCE */}
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h2 className="text-lg font-poppins font-medium text-gray-900 mb-6">
+              Contacts d'urgence
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Contact d'urgence"
+                value={formData.emergencyContact}
+                onChange={(e) => handleChange("emergencyContact", e.target.value)}
+                leftIcon={User}
+                disabled={!isEditing}
+                placeholder="Nom du contact"
+              />
+
+              <Input
+                label="Téléphone d'urgence"
+                type="tel"
+                value={formData.emergencyPhone}
+                onChange={(e) => handleChange("emergencyPhone", e.target.value)}
+                leftIcon={Phone}
+                disabled={!isEditing}
+                placeholder="+33 6 XX XX XX XX"
+              />
+            </div>
           </div>
 
           {/* PRÉFÉRENCES */}
@@ -431,8 +525,8 @@ export default function StudentProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <SelectInput
                 label="Notifications"
-                value={formData.notifications}
-                onChange={(e) => handleChange("notifications", e.target.value)}
+                value={formData.notifications ? "true" : "false"}
+                onChange={(e) => handleChange("notifications", e.target.value === "true")}
                 options={notificationOptions}
                 leftIcon={Bell}
                 disabled={!isEditing}
@@ -452,8 +546,17 @@ export default function StudentProfilePage() {
           {/* BOUTONS D'ACTION */}
           {isEditing && (
             <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
-              <Button type="submit" variant="primary" className="flex items-center gap-2">
-                <Save className="w-4 h-4" />
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={updating}
+                className="flex items-center gap-2"
+              >
+                {updating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
                 Sauvegarder les modifications
               </Button>
 
@@ -469,6 +572,86 @@ export default function StudentProfilePage() {
             </div>
           )}
         </form>
+
+        {/* CHANGEMENT DE MOT DE PASSE - FORMULAIRE SÉPARÉ */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-poppins font-medium text-gray-900">
+              Sécurité
+            </h2>
+            {!showPasswordChange && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setShowPasswordChange(true)}
+                className="w-auto"
+              >
+                Changer le mot de passe
+              </Button>
+            )}
+          </div>
+
+          {showPasswordChange && (
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <Input
+                label="Mot de passe actuel"
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                required
+              />
+
+              <Input
+                label="Nouveau mot de passe"
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                required
+              />
+
+              <Input
+                label="Confirmer le nouveau mot de passe"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                required
+              />
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={changingPassword}
+                  className="flex items-center gap-2"
+                >
+                  {changingPassword ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Changer le mot de passe
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowPasswordChange(false);
+                    setPasswordData({
+                      currentPassword: "",
+                      newPassword: "",
+                      confirmPassword: ""
+                    });
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Annuler
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

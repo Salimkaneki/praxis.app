@@ -88,23 +88,6 @@ export default function TeacherSideBar() {
       ],
     },
     {
-      key: 'evaluations' as SectionKey,
-      title: 'Évaluations',
-      icon: PresentationChartLineIcon,
-      items: [
-        {
-          key: 'evaluation-en-cours' as ActiveSection,
-          label: 'Sessions d\'examen',
-          icon: () => <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-        },
-        { 
-          key: 'resultats-notes' as ActiveSection, 
-          label: 'Résultats & Notes', 
-          icon: DocumentChartBarIcon
-        },
-      ],
-    },
-    {
       key: 'questionnaires' as SectionKey,
       title: 'Questionnaires',
       icon: DocumentTextIcon,
@@ -119,6 +102,23 @@ export default function TeacherSideBar() {
           key: 'mes-quiz' as ActiveSection,
           label: 'Mes questionnaires',
           icon: DocumentTextIcon
+        },
+      ],
+    },
+    {
+      key: 'evaluations' as SectionKey,
+      title: 'Évaluations',
+      icon: PresentationChartLineIcon,
+      items: [
+        {
+          key: 'evaluation-en-cours' as ActiveSection,
+          label: 'Sessions d\'examen',
+          icon: () => <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+        },
+        { 
+          key: 'resultats-notes' as ActiveSection, 
+          label: 'Résultats & Notes', 
+          icon: DocumentChartBarIcon
         },
       ],
     },

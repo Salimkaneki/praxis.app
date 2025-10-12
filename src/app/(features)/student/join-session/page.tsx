@@ -75,7 +75,8 @@ export default function JoinSessionPage() {
       // Vérifier si l'étudiant a déjà rejoint cette session
       const hasJoined = await StudentSessionsService.hasJoinedSession(session.id);
       if (hasJoined) {
-        setError("Vous avez déjà rejoint cette session. Vous ne pouvez pas la rejoindre plusieurs fois.");
+        // Si déjà rejoint, rediriger directement vers la participation
+        router.push(`/student/sessions/participate?sessionId=${session.id}`);
         return;
       }
 

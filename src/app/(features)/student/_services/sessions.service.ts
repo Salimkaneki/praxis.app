@@ -15,6 +15,7 @@ export interface StudentSession {
   max_participants?: number;
   current_participants?: number;
   join_status?: "à venir" | "disponible" | "terminée";
+  has_joined?: boolean;
 
   quiz?: {
     id: number;
@@ -196,10 +197,14 @@ export const StudentSessionsService = {
         answer: answer.answer
       }));
 
+      console.log('Submitting exam', { resultId, responses, timeSpent });
+
       const response = await api.post(`/student/results/${resultId}/responses`, {
         responses,
         time_spent: timeSpent
       });
+
+      console.log('Submit response', response.data);
 
       // Transformer la réponse pour correspondre à l'interface ExamResult
       return {
@@ -212,6 +217,7 @@ export const StudentSessionsService = {
         answers: [] // Les détails des réponses ne sont pas retournés dans cette réponse
       };
     } catch (error: any) {
+      console.error('Submit exam error', error.response?.data);
 
       if (error.response?.status === 400) {
         const errorMsg = error.response?.data?.error || 'Erreur de validation';

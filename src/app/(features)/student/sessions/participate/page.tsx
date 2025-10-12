@@ -137,11 +137,11 @@ const StudentQuizInterface = () => {
         const sessionIdNum = parseInt(sessionIdParam);
         setSessionId(sessionIdNum);
 
-        // Vérifier si l'étudiant a déjà rejoint cette session
+        // Vérifier si l'étudiant participe à cette session
         const hasJoined = await StudentSessionsService.hasJoinedSession(sessionIdNum);
 
-        if (hasJoined) {
-          throw new Error('ALREADY_JOINED: Vous avez déjà participé à cette session d\'examen. Vous ne pouvez pas la rejoindre à nouveau.');
+        if (!hasJoined) {
+          throw new Error('NOT_JOINED: Vous ne participez pas à cette session d\'examen.');
         }
 
         // Démarrer l'examen et récupérer les données
@@ -150,9 +150,9 @@ const StudentQuizInterface = () => {
 
       } catch (err: any) {
 
-        // Vérifier si c'est une erreur de session déjà rejointe
-        if (err.message && err.message.includes('ALREADY_JOINED')) {
-          setError('Vous avez déjà participé à cette session d\'examen. Vous ne pouvez pas la rejoindre à nouveau.');
+        // Vérifier si c'est une erreur de session non rejointe
+        if (err.message && err.message.includes('NOT_JOINED')) {
+          setError('Vous ne participez pas à cette session d\'examen.');
         } else {
           // En production, afficher l'erreur réelle au lieu d'utiliser des données mockées
           setError(err.response?.data?.message || err.message || 'Erreur lors du chargement de l\'examen');
@@ -176,6 +176,7 @@ const StudentQuizInterface = () => {
   const [examResult, setExamResult] = useState<any>(null);
   const [examStartTime] = useState(new Date()); // Stocker l'heure de début de l'examen
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Fonction d'auto-save
   const autoSaveProgress = useCallback(async () => {
@@ -287,10 +288,15 @@ const StudentQuizInterface = () => {
   const handleSubmitQuiz = async () => {
     if (!examData || !sessionId) return;
 
+    setSubmitError(null);
+
     // Double vérification avant soumission
     const hasJoinedBeforeSubmit = await StudentSessionsService.hasJoinedSession(sessionId);
 
-    if (hasJoinedBeforeSubmit) {
+    if (!hasJoinedBeforeSubmit) {
+      setSubmitError('Vous ne participez plus à cette session.');
+      setSubmitting(false);
+      setShowConfirmSubmit(true);
       return;
     }
 
@@ -319,8 +325,7 @@ const StudentQuizInterface = () => {
       setIsSubmitted(true);
 
     } catch (error: any) {
-      // Afficher un message d'erreur à l'utilisateur
-
+      setSubmitError(error.message || 'Erreur lors de la soumission. Veuillez réessayer.');
       // Réactiver la possibilité de soumettre
       setSubmitting(false);
       setShowConfirmSubmit(true);
@@ -757,6 +762,11 @@ const StudentQuizInterface = () => {
               <AlertCircle className="w-6 h-6 text-orange-600" />
               <h3 className="text-lg font-semibold text-gray-900">Confirmer la soumission</h3>
             </div>
+            {submitError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-800 text-sm">{submitError}</p>
+              </div>
+            )}
             <p className="text-gray-600 mb-6">
               Êtes-vous sûr de vouloir soumettre votre examen ? Vous ne pourrez plus modifier vos réponses après la soumission.
             </p>
@@ -768,7 +778,10 @@ const StudentQuizInterface = () => {
               </div>
             </div>
             <div className="flex gap-3"><button
-                onClick={() => setShowConfirmSubmit(false)}
+                onClick={() => {
+                  setShowConfirmSubmit(false);
+                  setSubmitError(null);
+                }}
                 disabled={submitting}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium disabled:opacity-50"
               >

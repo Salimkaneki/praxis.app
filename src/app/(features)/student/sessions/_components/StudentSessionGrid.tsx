@@ -26,13 +26,10 @@ const StudentSessionCard = ({ session }: StudentSessionCardProps) => {
   const [hasJoined, setHasJoined] = useState<boolean | null>(null);
   const [checkingJoinStatus, setCheckingJoinStatus] = useState(false);
 
-  // Utiliser le join_status fourni par l'API au lieu de faire un appel supplémentaire
+  // Utiliser le has_joined fourni par l'API
   useEffect(() => {
-    // Le join_status "disponible" signifie que l'étudiant a rejoint et peut participer
-    // Le join_status "à venir" signifie que la session est programmée mais pas encore rejointe
-    // Le join_status "terminée" signifie que la session est terminée
-    setHasJoined(session.join_status === 'disponible');
-  }, [session.join_status]);
+    setHasJoined(session.has_joined || false);
+  }, [session.has_joined]);
 
   const getStatusConfig = (status: string) => {
     switch (status) {
