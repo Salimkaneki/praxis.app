@@ -22,6 +22,7 @@ const mockExamResults: ExamResult[] = [
     pass_rate: 82.6,
     duration_minutes: 90,
     quiz_title: "Quiz Mathématiques - Chapitre 5",
+    class_name: "Terminale S",
     status: "completed",
     created_at: "2024-12-15T16:30:00Z"
   },
@@ -38,6 +39,7 @@ const mockExamResults: ExamResult[] = [
     pass_rate: 71.4,
     duration_minutes: 60,
     quiz_title: "Évaluation Français - Conjugaison",
+    class_name: "Première L",
     status: "completed",
     created_at: "2024-12-14T11:30:00Z"
   },
@@ -54,6 +56,7 @@ const mockExamResults: ExamResult[] = [
     pass_rate: 95.0,
     duration_minutes: 75,
     quiz_title: "Quiz Physique - Électricité",
+    class_name: "Terminale S",
     status: "completed",
     created_at: "2024-12-13T17:00:00Z"
   },
@@ -70,6 +73,7 @@ const mockExamResults: ExamResult[] = [
     pass_rate: 80.0,
     duration_minutes: 120,
     quiz_title: "Quiz Histoire - 18ème siècle",
+    class_name: "Première ES",
     status: "completed",
     created_at: "2024-12-12T12:00:00Z"
   },
@@ -86,6 +90,7 @@ const mockExamResults: ExamResult[] = [
     pass_rate: 62.5,
     duration_minutes: 45,
     quiz_title: "Quiz Anglais - Unit 3",
+    class_name: "Seconde",
     status: "completed",
     created_at: "2024-12-11T15:30:00Z"
   },
@@ -102,6 +107,7 @@ const mockExamResults: ExamResult[] = [
     pass_rate: 86.7,
     duration_minutes: 80,
     quiz_title: "Quiz Géographie - Europe",
+    class_name: "Première L",
     status: "completed",
     created_at: "2024-12-10T13:00:00Z"
   }
@@ -199,7 +205,7 @@ export default function ResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-poppins">
       <TeacherPageHeader
         title="Résultats"
         subtitle="Consultez et analysez les résultats de vos sessions"
