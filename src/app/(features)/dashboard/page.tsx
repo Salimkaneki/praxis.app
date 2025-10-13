@@ -244,7 +244,7 @@ import { useAppData } from "../../../contexts/hooks";export default function Das
                           {student.user?.name || 'N/A'}
                         </p>
                         <p className="text-xs font-poppins text-gray-500">
-                          {student.registration_number}
+                          {student.student_number}
                         </p>
                       </div>
                     </div>

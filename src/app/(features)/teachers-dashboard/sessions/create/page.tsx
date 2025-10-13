@@ -170,10 +170,10 @@ export default function CreateSessionPage() {
       const startDateTime = new Date(`${formData.starts_at_date}T${formData.starts_at_time}`);
       const endDateTime = new Date(`${formData.ends_at_date}T${formData.ends_at_time}`);
       const now = new Date();
-      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000); // +5 minutes
+      const fiveMinutesFromNow = new Date(now.getTime() + 0 * 60 * 1000); // +0 minutes
       
       if (startDateTime <= fiveMinutesFromNow) {
-        newErrors.dateTime = "La date/heure de début doit être au moins 5 minutes dans le futur";
+        newErrors.dateTime = "La date/heure de début doit être dans le futur";
       } else if (startDateTime >= endDateTime) {
         newErrors.dateTime = "La date/heure de fin doit être postérieure à celle de début";
       } else {

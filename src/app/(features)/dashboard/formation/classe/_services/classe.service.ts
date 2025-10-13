@@ -34,6 +34,7 @@ const ClasseService = {
   async getClasses(search?: string, page: number = 1): Promise<PaginatedResponse<Classe>> {
     const params: Record<string, any> = { page };
     if (search) params.search = search;
+    params.with = 'formation'; // Inclure la relation formation
 
     const response = await axios.get<PaginatedResponse<Classe>>("/admin/classes", { params });
     return response.data;

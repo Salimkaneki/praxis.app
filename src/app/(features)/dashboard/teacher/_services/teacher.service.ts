@@ -38,6 +38,7 @@ export async function fetchTeachers(
     params: {
       page,
       ...filters,
+      with: 'user,institution' // Inclure les relations user et institution
     },
   });
   return response.data;

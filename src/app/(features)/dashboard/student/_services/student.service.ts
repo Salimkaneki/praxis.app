@@ -72,7 +72,10 @@ export const fetchStudents = async (params?: {
 }): Promise<PaginatedResponse<Student>> => {
   try {
     const response = await axios.get("/admin/students", {
-      params,
+      params: {
+        ...params,
+        with: 'user,classe' // Inclure les relations user et classe
+      },
       timeout: 30000 // 30 secondes pour cette requête spécifique
     });
     return response.data;

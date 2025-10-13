@@ -11,7 +11,7 @@ import ClasseAPIService from '../app/(features)/dashboard/formation/classe/_serv
 export interface Student extends BaseEntity {
   user_id: number;
   classe_id?: number;
-  registration_number: string;
+  student_number: string;
   date_of_birth?: string;
   address?: string;
   phone?: string;
@@ -49,7 +49,8 @@ export { StudentProvider, useStudentContext };
 export interface Teacher extends BaseEntity {
   user_id: number;
   department: string;
-  specialization?: string;
+  specialization: string;
+  grade: string;
   hire_date: string;
   status: 'active' | 'inactive' | 'retired';
   user?: {
@@ -57,6 +58,10 @@ export interface Teacher extends BaseEntity {
     name: string;
     email: string;
     account_type: string;
+  };
+  institution?: {
+    id: number;
+    name: string;
   };
 }
 
@@ -98,10 +103,14 @@ export { SubjectProvider, useSubjectContext };
 // Types pour les classes
 export interface Classe extends BaseEntity {
   name: string;
-  level: string;
+  level: number;
   academic_year: string;
   capacity: number;
   status: 'active' | 'inactive' | 'archived';
+  formation?: {
+    id: number;
+    name: string;
+  };
 }
 
 // Service classe
