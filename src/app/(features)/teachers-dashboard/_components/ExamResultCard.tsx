@@ -30,6 +30,7 @@ export type ExamResult = {
   pass_rate: number; // Pourcentage de réussite
   duration_minutes: number;
   quiz_title: string;
+  class_name?: string; // Classe concernée par l'examen
   status: "completed" | "in_progress" | "draft";
   created_at: string;
 };
@@ -289,6 +290,13 @@ const ExamResultCard = ({ result, index, onDelete }: ExamResultCardProps) => {
           <div className={`text-xs font-poppins ${isDeleting ? 'text-gray-400' : 'text-gray-500'}`}>
             <span className="font-medium">Quiz:</span> {result.quiz_title}
           </div>
+
+          {/* Classe concernée */}
+          {result.class_name && (
+            <div className={`text-xs font-poppins ${isDeleting ? 'text-gray-400' : 'text-gray-500'}`}>
+              <span className="font-medium">Classe:</span> {result.class_name}
+            </div>
+          )}
         </div>
 
         {/* Footer avec statut */}

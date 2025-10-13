@@ -69,9 +69,9 @@ export default function AdminSideBar() {
       'etudiants': '/dashboard/student',
       'liste-utilisateurs': '/dashboard/user',
       'creer-utilisateur': '/dashboard/user/create',
-      'evaluations-live': '/dashboard/evaluations/live',
+      'evaluations-live': '/dashboard/results',
       'evaluations-programmees': '/dashboard/evaluations/programmees',
-      'resultats': '/dashboard/evaluations/resultats',
+      'resultats': '/dashboard/results',
       'statistiques': '/dashboard/analytics',
       'rapports-examens': '/dashboard/analytics/examens-programmes',
       'analyses-detaillees': '/dashboard/analytics/detaillees',
@@ -114,11 +114,10 @@ export default function AdminSideBar() {
       items: [
         {
           key: 'evaluations-live' as ActiveSection,
-          label: 'Évaluations en cours',
-          icon: () => <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>,
+          label: 'Liste des évaluations',
+          icon: DocumentChartBarIcon,
         },
-        { key: 'evaluations-programmees' as ActiveSection, label: 'Évaluations programmées', icon: ClockIcon },
-        { key: 'resultats' as ActiveSection, label: 'Résultats & Corrections', icon: DocumentChartBarIcon },
+        { key: 'resultats' as ActiveSection, label: 'Résultats & Corrections', icon: ChartBarIcon },
       ],
     },
     {
