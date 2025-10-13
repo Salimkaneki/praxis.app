@@ -114,7 +114,7 @@ import { useAppData } from "../../../contexts/hooks";export default function Das
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-poppins font-semibold text-gray-900">
-                Université de Lomé
+                Panel de contrôle
               </h1>
               <p className="text-sm font-poppins text-gray-600 mt-1">
                 Tableau de bord de pilotage
