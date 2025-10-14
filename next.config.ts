@@ -5,16 +5,6 @@ const nextConfig: NextConfig = {
   /* config options here */
   outputFileTracingRoot: path.resolve(__dirname),
   
-  // Proxy pour contourner CORS en développement
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'https://praxis-api.bestwebapp.tech/:path*',
-      },
-    ];
-  },
-  
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,

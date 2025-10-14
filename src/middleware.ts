@@ -28,31 +28,21 @@ function getTokenFromRequest(request: NextRequest): string | null {
 }
 
 
-// Fonction pour vérifier la validité du token (version simplifiée pour le middleware)
+// Fonction pour vérifier la validité du token (simplifiée - on ne vérifie que la présence)
 function verifyToken(token: string): User | null {
   try {
-    // Pour l'instant, on fait une vérification basique
-    // TODO: Implémenter la vérification JWT complète
+    // Vérification basique : le token existe et fait une longueur minimale
     if (!token || token.length < 10) {
       return null
     }
 
-    // Simulation d'un utilisateur basé sur le token
-    // En production, décoder le JWT pour obtenir les vraies informations
-    let role: 'admin' | 'teacher' | 'student' = 'teacher'; // default
-
-    if (token.includes('admin')) {
-      role = 'admin';
-    } else if (token.includes('teacher')) {
-      role = 'teacher';
-    } else if (token.includes('student')) {
-      role = 'student';
-    }
-
+    // On ne fait plus de vérification du contenu du token côté serveur
+    // L'authentification réelle est gérée par le backend Laravel via les intercepteurs axios
+    // On simule juste un utilisateur pour respecter l'interface
     return {
       id: '1',
       email: 'user@example.com',
-      role: role,
+      role: 'admin', // On laisse passer, le backend vérifiera réellement
       name: 'User'
     }
   } catch (error) {
@@ -78,7 +68,7 @@ function redirectToUnauthorized(request: NextRequest): NextResponse {
   return NextResponse.redirect(new URL('/error-page?code=403', request.url))
 }
 
-// Fonction pour déterminer le rôle requis selon la route
+// Fonction pour déterminer le rôle requis selon la route (plus utilisée)
 function getRequiredRole(pathname: string): string[] {
   if (pathname.startsWith('/(features)/dashboard')) {
     return ['admin']
@@ -122,34 +112,22 @@ export function middleware(request: NextRequest) {
       return redirectToLogin(request)
     }
 
+    // On ne vérifie plus la validité du token côté serveur
+    // L'authentification réelle est gérée par le backend Laravel
     const user = verifyToken(token)
     if (!user) {
       return redirectToLogin(request)
     }
 
-    // Vérifier les permissions selon la route
-    const requiredRoles = getRequiredRole(request.nextUrl.pathname)
-    if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
-      return redirectToUnauthorized(request)
-    }
+    // Suppression de la vérification des rôles côté serveur
+    // Le backend vérifiera les permissions réelles via les API
   }
 
   // Rediriger les utilisateurs connectés loin des pages de login
+  // Simplifié car on ne peut plus déterminer le rôle côté serveur
   if (request.nextUrl.pathname.startsWith('/(features)/auth') && token) {
-    const user = verifyToken(token)
-    if (user) {
-      // Rediriger selon le rôle
-      switch (user.role) {
-        case 'admin':
-          return NextResponse.redirect(new URL('/(features)/dashboard', request.url))
-        case 'teacher':
-          return NextResponse.redirect(new URL('/(features)/teachers-dashboard', request.url))
-        case 'student':
-          return NextResponse.redirect(new URL('/(features)/student', request.url))
-        default:
-          return NextResponse.redirect(new URL('/', request.url))
-      }
-    }
+    // Laisser le frontend gérer la redirection appropriée après connexion
+    return NextResponse.next()
   }
 
   return NextResponse.next()

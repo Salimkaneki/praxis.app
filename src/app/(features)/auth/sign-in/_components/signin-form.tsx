@@ -26,12 +26,18 @@ export default function SignInForm() {
       // Gestion des erreurs côté backend
       if ("error" in res) {
         const msg = res.error.toLowerCase();
-        if (msg.includes("identifiants invalides")) {
-          showError("Identifiants invalides. V�rifiez votre email et mot de passe.");
-        } else if (msg.includes("pas d’accès")) {
-          showError("Acc�s refus�. Vous n'avez pas les permissions n�cessaires.");
+        if (msg.includes("identifiants invalides") || msg.includes("invalides")) {
+          showError("Identifiants invalides. Vérifiez votre email et mot de passe.");
+        } else if (msg.includes("accès refusé") || msg.includes("permissions")) {
+          showError("Accès refusé. Vous n'avez pas les permissions nécessaires.");
+        } else if (msg.includes("réseau") || msg.includes("connexion")) {
+          showError("Erreur de connexion réseau. Vérifiez votre connexion internet.");
+        } else if (msg.includes("serveur")) {
+          showError("Erreur serveur. Réessayez dans quelques instants.");
+        } else if (msg.includes("contacter")) {
+          showError("Impossible de contacter le serveur. Vérifiez la configuration.");
         } else {
-          showError("Une erreur est survenue. Veuillez r�essayer.");
+          showError(res.error);
         }
         return;
       }
@@ -44,6 +50,9 @@ export default function SignInForm() {
 
       // Stockage du token sécurisé
       localStorage.setItem("admin_token", res.token);
+      
+      // Stocker aussi dans les cookies pour le middleware côté serveur
+      document.cookie = `admin_token=${res.token}; path=/; max-age=86400; samesite=strict`;
 
       // Toast de succès
       showSuccess("Connexion réussie ! Bienvenue dans votre espace administrateur.");
