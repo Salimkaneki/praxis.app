@@ -3,55 +3,37 @@ import React from "react";
 import TeacherPageHeader from "./_components/page-header";
 import KPIGrid from "./_components/kpi-grid";
 import { Eye, Edit3, Trash2, Plus, Calendar } from "lucide-react";
+import { useTeacherDashboard } from "./_hooks/useTeacherDashboard";
 
 export default function TeacherDashboardPage() {
-  const quizzes = [
-    { 
-      id: 1, 
-      title: "Examen de Mathématiques - Chapitre 1", 
-      className: "L1 Informatique", 
-      questions: 20, 
-      createdAt: "2025-09-05" 
-    },
-    { 
-      id: 2, 
-      title: "Questionnaire Réseaux - Modèle OSI", 
-      className: "L2 Réseaux", 
-      questions: 15, 
-      createdAt: "2025-09-07" 
-    },
-    { 
-      id: 3, 
-      title: "Projet Final - Développement Web", 
-      className: "M1 Génie Logiciel", 
-      questions: 25, 
-      createdAt: "2025-09-09" 
-    },
-  ];
+  const { kpis, quizzes, upcomingEvaluations, loading, error, refreshData } = useTeacherDashboard();
 
-  const upcomingEvaluations = [
-    { 
-      id: 1, 
-      title: "Devoir Surveillé - Algorithmes", 
-      date: "2025-09-12", 
-      time: "10:00", 
-      className: "L1 Informatique" 
-    },
-    { 
-      id: 2, 
-      title: "Questionnaire - Administration Systèmes", 
-      date: "2025-09-14", 
-      time: "14:00", 
-      className: "L2 Réseaux" 
-    },
-    { 
-      id: 3, 
-      title: "Examen Partiel - Bases de Données", 
-      date: "2025-09-18", 
-      time: "09:00", 
-      className: "M1 Génie Logiciel" 
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement du tableau de bord...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={refreshData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -64,12 +46,7 @@ export default function TeacherDashboardPage() {
       {/* KPIS RAPIDES */}
       <div className="px-8 py-8">
         <KPIGrid 
-          kpis={[
-            { label: "Nombre d'élèves", value: 120, trend: "positive", period: "Depuis le mois dernier" },
-            { label: "Évaluations complétées", value: 45, trend: "negative", period: "Cette semaine" },
-            { label: "Taux de réussite", value: "86%", trend: "positive", period: "Ce trimestre" },
-            { label: "Nouvelles inscriptions", value: 15, trend: "positive", period: "Aujourd'hui" },
-          ]}
+          kpis={kpis}
         />
       </div>
 
@@ -103,10 +80,10 @@ export default function TeacherDashboardPage() {
                 {quizzes.map((quiz) => (
                   <tr key={quiz.id}>
                     <td className="px-6 py-4 text-sm font-poppins text-gray-900">{quiz.title}</td>
-                    <td className="px-6 py-4 text-sm font-poppins text-gray-600">{quiz.className}</td>
+                    <td className="px-6 py-4 text-sm font-poppins text-gray-600">{quiz.class_name}</td>
                     <td className="px-6 py-4 text-sm font-poppins text-center">{quiz.questions}</td>
                     <td className="px-6 py-4 text-sm font-poppins text-center">
-                      {new Date(quiz.createdAt).toLocaleDateString("fr-FR")}
+                      {new Date(quiz.created_at).toLocaleDateString("fr-FR")}
                     </td>
                     <td className="px-6 py-4 text-sm font-poppins text-center">
                       <div className="flex items-center justify-center space-x-3">
@@ -136,7 +113,7 @@ export default function TeacherDashboardPage() {
                 <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-poppins font-medium text-gray-900">{evaluation.title}</p>
-                  <p className="text-sm font-poppins text-gray-600">{evaluation.className}</p>
+                  <p className="text-sm font-poppins text-gray-600">{evaluation.class_name}</p>
                   <p className="text-xs font-poppins text-gray-500">
                     {new Date(evaluation.date).toLocaleDateString("fr-FR", { 
                       weekday: "short", 
