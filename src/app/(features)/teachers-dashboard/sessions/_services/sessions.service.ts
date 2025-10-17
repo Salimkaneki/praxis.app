@@ -169,8 +169,11 @@ export const SessionsService = {
         throw new Error('ID de session invalide');
       }
 
+      console.log('🗑️ SessionsService.delete - Tentative de suppression:', { id });
       await api.delete(`/teacher/sessions/${id}`);
+      console.log('✅ SessionsService.delete - Suppression réussie:', { id });
     } catch (error: any) {
+      console.error('❌ SessionsService.delete - Erreur:', error);
 
       // Gestion détaillée des erreurs 400
       if (error.response?.status === 400) {

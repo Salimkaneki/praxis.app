@@ -82,7 +82,7 @@ class ResultService {
    */
   async getExamResults(): Promise<ExamResult[]> {
     try {
-      // D'abord récupérer les sessions terminées
+      // Récupérer les sessions terminées via le nouvel endpoint
       const sessionsResponse = await api.get('/teacher/sessions?status=completed');
       const sessions = sessionsResponse.data.sessions || [];
 
@@ -92,7 +92,6 @@ class ResultService {
       for (const session of sessions) {
         try {
           // Récupérer tous les résultats pour cette session
-          // L'API utilise /teacher/quiz/{sessionId}/results selon les exemples
           const resultsResponse = await api.get(`/teacher/quiz/${session.id}/results`);
           const results = resultsResponse.data || [];
 
@@ -106,13 +105,13 @@ class ResultService {
             const lowestScore = scores.length > 0 ? Math.min(...scores) : 0;
             const passRate = scores.length > 0 ? (scores.filter((s: number) => s >= 60).length / scores.length) * 100 : 0;
 
-            // Calculer le nombre total de participants (max_participants de la session ou nombre de résultats)
-            const totalParticipants = session.max_participants || results.length;
+            // Calculer le nombre total de participants
+            const totalParticipants = session.max_participants || session.total_participants || results.length;
 
             examResults.push({
               id: session.id,
               session_id: session.id,
-              session_title: `${session.quiz?.title || 'Quiz'} - ${session.session_code}`,
+              session_title: `${session.quiz?.title || session.title || 'Quiz'} - ${session.session_code || session.code || ''}`,
               exam_date: session.completed_at || session.ends_at || session.created_at,
               total_participants: totalParticipants,
               completed_participants: completedResults.length,
@@ -121,18 +120,20 @@ class ResultService {
               lowest_score: lowestScore,
               pass_rate: Math.round(passRate * 100) / 100,
               duration_minutes: session.duration_minutes || 60,
-              quiz_title: session.quiz?.title || 'Quiz',
+              quiz_title: session.quiz?.title || session.title || 'Quiz',
               status: 'completed',
               created_at: session.created_at
             });
           }
         } catch (error) {
-          // Continuer avec les autres sessions même si une échoue
+          console.warn(`Erreur lors du chargement des résultats pour la session ${session.id}:`, error);
+          // Continuer avec les autres sessions
         }
       }
 
       return examResults;
     } catch (error) {
+      console.error('Erreur lors de la récupération des sessions terminées:', error);
       throw error;
     }
   }
